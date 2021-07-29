@@ -18,7 +18,6 @@
 from __future__ import print_function   # use the new Python 3 'print' function
 from datetime import datetime, timedelta
 import numpy
-#from matplotlib.mlab import movavg
 
 from config import FILTERED, RAW
 
@@ -29,8 +28,10 @@ Provide some utilities to manipulate SID/SuperSID files:
        - file is SuperSID format: SPLIT to one file per station in SID format
     - When two files are given as arguments:
        - both files are SID Format: MERGE in one SID Format
-       - one file is SuperSID and one is SID: MERGE the SID file with the matching station from SuperSId file
-       - both are SuperSID: MERGE in one SuperSID with "station to station" matching
+       - one file is SuperSID and one is SID: MERGE the SID file with the
+           matching station from SuperSId file
+       - both are SuperSID: MERGE in one SuperSID with "station to station"
+           matching
 """
 
 class SidFile():
@@ -384,9 +385,8 @@ class SidFile():
             # The points beyond the right edge, set to the ending point value
             dmin[length+bema_wing:length+bema_wing*2] = dmin[length+bema_wing-1]
             # Moving Average. This actually truncates array to original size
-            #daverage = movavg(dmin, (bema_wing*2+1))
             def movavg(a, n) :
-                ret = np.cumsum(a, dtype=float)
+                ret = numpy.cumsum(a, dtype=float)
                 ret[n:] = ret[n:] - ret[:-n]
                 return ret[n - 1:] / n
             daverage = movavg(dmin, (bema_wing*2+1))
