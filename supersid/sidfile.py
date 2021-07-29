@@ -385,7 +385,6 @@ class SidFile():
             # The points beyond the right edge, set to the ending point value
             dmin[length+bema_wing:length+bema_wing*2] = dmin[length+bema_wing-1]
             # Moving Average. This actually truncates array to original size
-            #daverage = movavg(dmin, (bema_wing*2+1))
             def movavg(a, n) :
                 ret = numpy.cumsum(a, dtype=float)
                 ret[n:] = ret[n:] - ret[:-n]
