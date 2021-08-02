@@ -42,3 +42,4 @@ Data
 
 #Virtual Enviroment
 venv/
+.DS_Store
