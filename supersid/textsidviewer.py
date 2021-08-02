@@ -1,4 +1,4 @@
-""" textsidviewer.py
+"""SuperSID text mode viewer.
 
 Minimal output for SuperSID in text mode i.e. within terminal window.
 Useful for Server mode
@@ -8,7 +8,6 @@ Each Viewer must implement:
 - run(): main loop to get user input
 - close(): cleaning up
 - status_display(): display a message in a status bar or equivalent
-
 """
 from __future__ import print_function   # use the new Python 3 'print' function
 import sys
@@ -17,6 +16,7 @@ from time import sleep
 from _getch import _Getch
 
 from config import FILTERED, RAW
+
 
 class textSidViewer:
     def __init__(self, controller):
@@ -30,7 +30,10 @@ class textSidViewer:
         self.timer.start()
 
     def run(self):
-        """main loop waiting for keyboard interrupt i.e. do nothing until user press 'X' or CTRL-C"""
+        """Loop waiting for keyboard interrupt.
+
+        i.e. do nothing until user press 'X' or CTRL-C
+        """
         try:
             while(self.controller.__class__.running):
                 sleep(1)
@@ -66,8 +69,9 @@ class textSidViewer:
             self.controller.close()
         elif s in ('f', 'r', 'e'):
             print ("\n\n")
-            for fname in self.controller.save_current_buffers(log_type = FILTERED if s=='f' else RAW,
-                                                              log_format = 'both_extended' if s == 'e' else 'both'):
+            for fname in self.controller.save_current_buffers(
+                    log_type=FILTERED if s == 'f' else RAW,
+                    log_format='both_extended' if s == 'e' else 'both'):
                 print (fname, "saved")
             self.print_menu()
         elif s == '?':
@@ -85,8 +89,7 @@ class textSidViewer:
                 print("Warning: cannot get all modules' versions")
         else:
             sys.stdout.write('\a')  # terminal bell
-        # call myself again in half a second to check if a new key has been pressed
+        # call again in half a second to check if a new key has been pressed
         if s != 'x':
             self.timer = Timer(0.5, self.check_keyboard)
             self.timer.start()
-

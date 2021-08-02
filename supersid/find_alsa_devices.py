@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Module for printing the names of all the audio recording devices.
+Print the names of all the audio recording devices.
 
 There may be several audio capture devices on your system.
 You will need to pick one of these strings to give as the value of
