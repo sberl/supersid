@@ -31,6 +31,11 @@ class SidTimer():
         self.callback = callback
         self.interval = interval
         self.lock = threading.Lock()
+
+        self.time_now = time.time()
+        self.utc_now = datetime.utcnow()
+        self.data_index = 0
+
         # wait for synchro on the next 'interval' sec
         now = time.gmtime()
         while now.tm_sec % self.interval != 0:
@@ -47,9 +52,9 @@ class SidTimer():
     def _ontimer(self):
         """Retrigger a timer for the next INTERVAL.
 
-         with adjustment if necessary
-         i.e. running late/fast then perform callback
-         """
+        with adjustment if necessary
+        i.e. running late/fast then perform callback
+        """
         self.time_now = time.time()
         self.utc_now = datetime.utcnow()
         self._timer = threading.Timer(self.interval
@@ -69,6 +74,7 @@ class SidTimer():
         self._timer.cancel()
 
     def get_utc_now(self):
+        """Get the UTC time now."""
         return self.utc_now.strftime("%Y-%m-%d %H:%M:%S.%f")
 
 
@@ -79,12 +85,13 @@ if __name__ == '__main__':
     class test_SidTimer_superclass(SidTimer):
         """Example of SidTimer implementation.
 
-         by extending SidTimer class and inheriting its properties
-         """
+        by extending SidTimer class and inheriting its properties
+        """
+
         def __init__(self, interval):
-            print ("Waiting for synchro...", end='')
+            print("Waiting for synchro...", end='')
             SidTimer.__init__(self, interval, self.onTimerEvent)
-            print ("done.")
+            print("done.")
             self.max_plus_error, self.max_minus_error = 0, 0
 
         def onTimerEvent(self):
@@ -99,12 +106,13 @@ if __name__ == '__main__':
             elif time_error < 0 and time_error < self.max_minus_error:
                 self.max_minus_error = time_error
 
-            print ("Idx", self.data_index, "now:", self.time_now,
-                   "expec_time:", self.expected_time - self.interval)
-            print (" err:", time_error,
-                   "interv: %f" % (self.expected_time - self.time_now))
+            print("Idx", self.data_index, "now:", self.time_now,
+                  "expec_time:", self.expected_time - self.interval)
+            print(" err:", time_error,
+                  "interv: %f" % (self.expected_time - self.time_now))
 
         def cancel_timer(self):
+            """ Cancel the timer. """
             self.stop()
 
     class test_SidTimer_simple():
@@ -114,9 +122,9 @@ if __name__ == '__main__':
         """
 
         def __init__(self, interval):
-            print ("Waiting for synchro...", end='')
+            print("Waiting for synchro...", end='')
             self.sidtimer = SidTimer(interval, self.onTimerEvent)
-            print ("done.")
+            print("done.")
             self.max_plus_error, self.max_minus_error = 0, 0
 
         def onTimerEvent(self):
@@ -124,31 +132,34 @@ if __name__ == '__main__':
 
             In this test , only display some tracking on the timer's accuracy
             """
-            time_error =  self.sidtimer.expected_time \
+            time_error = self.sidtimer.expected_time \
                 - self.sidtimer.time_now - self.sidtimer.interval
             if time_error > 0 and time_error > self.max_plus_error:
                 self.max_plus_error = time_error
             elif time_error < 0 and time_error < self.max_minus_error:
                 self.max_minus_error = time_error
 
-            print ("Idx", self.sidtimer.data_index, "now:",
-                   self.sidtimer.time_now, "expec_time:",
-                   self.sidtimer.expected_time - self.sidtimer.interval)
-            print (" err:", time_error,
-                   "interv: %f" % (self.sidtimer.expected_time
-                                   - self.sidtimer.time_now))
+            print("Idx", self.sidtimer.data_index, "now:",
+                  self.sidtimer.time_now, "expec_time:",
+                  self.sidtimer.expected_time - self.sidtimer.interval)
+            print(" err:", time_error,
+                  "interv: %f" % (self.sidtimer.expected_time
+                                  - self.sidtimer.time_now))
 
         def cancel_timer(self):
+            """ Cancel the timer. """
             self.sidtimer.stop()
 
+# ------------------------------------------------------------------------
     # choose either 'test_SidTimer_simple' or 'test_SidTimer_superclass'.
     # Results will be the same.
     tst = test_SidTimer_simple(TIME_INTERVAL)
     try:
+        time.sleep(TEST_LENGTH)  # do nothing while testing timer's accuracy
     except (KeyboardInterrupt, SystemExit):
         pass
 
     # let's cleanup and show max errors
     tst.cancel_timer()
-    print ("max positive error: ", tst.max_plus_error)
-    print ("max negative error: ", tst.max_minus_error)
+    print("max positive error: ", tst.max_plus_error)
+    print("max negative error: ", tst.max_minus_error)

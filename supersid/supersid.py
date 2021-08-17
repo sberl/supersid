@@ -17,6 +17,7 @@ Then it creates its necessary elements:
     - <still missing> network management with client-server protocol
 """
 from __future__ import print_function   # use the new Python 3 'print' function
+import sys
 import os.path
 import argparse
 
@@ -53,7 +54,7 @@ class SuperSID():
         self.config.supersid_check()
         if not self.config.config_ok:
             print("ERROR:", self.config.config_err)
-            exit(1)
+            sys.exit(1)
         else:
             # good for debugging: what .cfg file(s) were actually read
             print(self.config.filenames)
@@ -91,7 +92,7 @@ class SuperSID():
             self.viewer = textSidViewer(self)
         else:
             print("ERROR: Unknown viewer", sid.config['viewer'])
-            exit(2)
+            sys.exit(2)
 
         # Assign desired PSD function for calculation after capture
         # currently: using matplotlib's psd
@@ -108,10 +109,10 @@ class SuperSID():
         # Create Sampler to collect audio buffer (sound card or other server)
         self.sampler = Sampler(self,
                                audio_sampling_rate=self.config['audio_sampling_rate'],
-                               NFFT=1024);
+                               NFFT=1024)
         if not self.sampler.sampler_ok:
             self.close()
-            exit(3)
+            sys.exit(3)
         else:
             self.sampler.set_monitored_frequencies(self.config.stations)
 
@@ -128,7 +129,7 @@ class SuperSID():
         self.logger.sid_file.clear_buffer(next_day=True)
 
     def on_timer(self):
-        """Callback function.
+        """Call when timer expires.
 
         Triggered by SidTimer every 'log_interval' seconds
         """
@@ -159,7 +160,8 @@ class SuperSID():
             # do we need to save some files (hourly) or switch to a new day?
             if self.timer.utc_now.minute == 0 and self.timer.utc_now.second < self.config['log_interval']:
                 if self.config['hourly_save'] == 'YES':
-                    fileName = "hourly_current_buffers.raw.ext.%s.csv" % (self.logger.sid_file.sid_params['utc_starttime'][:10])
+                    fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
+                        self.logger.sid_file.sid_params['utc_starttime'][:10])
                     self.save_current_buffers(filename=fileName,
                                               log_type='raw',
                                               log_format='supersid_extended')
