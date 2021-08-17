@@ -147,7 +147,7 @@ if __name__ == '__main__':
                                   - self.sidtimer.time_now))
 
         def cancel_timer(self):
-            """ Cancel the timer. """
+            """Cancel the timer."""
             self.sidtimer.stop()
 
 # ------------------------------------------------------------------------
