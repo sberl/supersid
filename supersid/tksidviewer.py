@@ -93,6 +93,7 @@ class tkSidViewer():
                               font=('arial', 12, 'normal'))
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
+        self.need_refresh = False
 
     def run(self):
         self.need_refresh = False
@@ -101,7 +102,7 @@ class tkSidViewer():
 
     def close(self, force_close=True):
         if not force_close and MessageBox.askyesno("Confirm exit",
-                                    "Are you sure you want to exit SuperSID?"):
+                                                   "Are you sure you want to exit SuperSID?"):
             self.tk_root.destroy()
 
     def status_display(self, message, level=0, field=0):
@@ -144,7 +145,8 @@ class tkSidViewer():
 
     def save_file(self, param=None):
         """Save the files as per user's menu choice."""
-        param = param if isinstance(param, str) else param.keysym # which is the letter with the CTRL-
+        param = param if isinstance(
+            param, str) else param.keysym  # which is the letter with the CTRL-
         if param == 'r':
             saved_files = self.controller.save_current_buffers(log_type='raw',
                                                                log_format='both')
@@ -159,7 +161,7 @@ class tkSidViewer():
             if filename:
                 saved_files = self.controller.save_current_buffers(filename,
                                                                    log_type='filtered',
-                                                                   log_format = 'supersid')
+                                                                   log_format='supersid')
         MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
 
     def on_about(self):
@@ -171,7 +173,7 @@ class tkSidViewer():
 
         the calling routine will need to open the file
         """
-        if filetypes == None:
+        if filetypes is None:
             filetypes = [
                 ('CSV File', '*.csv'),
                 ('Any File', '*.*')]
