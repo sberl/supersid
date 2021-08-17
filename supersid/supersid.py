@@ -233,19 +233,21 @@ class SuperSID():
 
     def about_app(self):
         """Return a text indicating  information on the app, incl, version."""
-        msg = """This program is designed to detect Sudden Ionosphere \
-        Disturbances (SID),which are caused by a blast of intense X-ray \
-        radiation when there is a Solar Flare on the Sun.\n\n""" + \
-            "Controller: " + self.version + "\n" +  \
-            "Sampler: " + self.sampler.version + "\n"  \
-            "Timer: " + self.timer.version + "\n"  \
-            "Config: " + self.config.version + "\n"  \
-            "Logger: " + self.logger.version + "\n"  \
-            "Sidfile: " + self.logger.sid_file.version + "\n" + \
-            "Viewer: " + self.viewer.version + "\n" + \
-            "\n\nAuthor: Eric Gibert  ericgibert@yahoo.fr" +  \
-            "\n\nVisit http://solar-center.stanford.edu/SID/sidmonitor/ for \
-            more information."
+        msg = ("This program is designed to detect Sudden Ionospheric "
+               "Disturbances (SID), which are caused by a blast of intense "
+               "X-ray radiation when there is a Solar Flare on the Sun.\n\n"
+               "Controller: " + self.version + "\n"
+               + "Sampler: " + self.sampler.version + "\n"
+               "Timer: " + self.timer.version + "\n"
+               "Config: " + self.config.version + "\n"
+               "Logger: " + self.logger.version + "\n"
+               "Sidfile: " + self.logger.sid_file.version + "\n"
+               "Viewer: " + self.viewer.version + "\n"
+               "\n\nOriginal Author: Eric Gibert  ericgibert@yahoo.fr"
+               "\nAdditions by: Steve Berl <steveberl@gmail.com>"
+               "\n\nVisit http://solar-center.stanford.edu/SID/sidmonitor/ "
+               "for more information.")
+
         return msg
 
 

@@ -165,7 +165,7 @@ class tkSidViewer():
         MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
 
     def on_about(self):
-        """About message box display."""
+        """Display the About box message."""
         MessageBox.showinfo("SuperSID", self.controller.about_app())
 
     def AskSaveasFilename(self, title='Save File', filetypes=None, initialfile=''):
