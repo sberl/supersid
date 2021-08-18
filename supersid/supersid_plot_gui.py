@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-"""
+"""A GUI for displaying plot of SuperSID data.
+
     supersid_plot_gui.py
     version: 1.0 for Python 3.5
     Copyright: Eric Gibert
@@ -26,15 +27,16 @@ from noaa_flares import NOAA_flares
 
 
 def m2hm(x, i):
-    """Small function to format the time on horizontal axis - minor ticks"""
+    """Small function to format the time on horizontal axis - minor ticks."""
     t = matplotlib.dates.num2date(x)
     h = t.hour
     m = t.minute
-    return '%(h)02d:%(m)02d' % {'h': h, 'm': m} if h % 2 == 1 else ''  # only for odd hours
+    # only for odd hours
+    return '%(h)02d:%(m)02d' % {'h': h, 'm': m} if h % 2 == 1 else ''
 
 
 def m2yyyymmdd(x, i):
-    """Small function to format the date on horizontal axis - major ticks"""
+    """Small function to format the date on horizontal axis - major ticks."""
     t = matplotlib.dates.num2date(x)
     y = t.year
     m = t.month
@@ -43,22 +45,25 @@ def m2yyyymmdd(x, i):
 
 
 class Plot_Gui(ttk.Frame):
-    """Supersid Plot GUI in tk"""
-    COLOR = {'b': "blue", 'r': "red", 'g': "green", 'c': "cyan", 'm': "magenta", 'y': "yellow"}
+    """Supersid Plot GUI in tk."""
+
+    COLOR = {'b': "blue", 'r': "red", 'g': "green",
+             'c': "cyan", 'm': "magenta", 'y': "yellow"}
+
     def __init__(self, parent, file_list, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         matplotlib.use('TkAgg')
         self.version = "1.0 20170902 (tk)"
         self.tk_root = parent
-        self.hidden_stations = set()  # hide the graph if the station is in this set
-        self.colorStation = {}        # the color assigned to a station in the graph
-        self.sid_files = []           # ordered list of sid files read for the graph
+        self.hidden_stations = set()  # hide the graph if the station in set
+        self.colorStation = {}        # the color assigned to a station
+        self.sid_files = []           # ordered list of sid files read
         self.init_gui(file_list)
 
     def init_gui(self, file_list):
-        """Builds GUI."""
+        """Build GUI."""
         self.tk_root.title('SuperSID Plot')
-        color_list = "".join(self.COLOR) # one color per station
+        color_list = "".join(self.COLOR)  # one color per station
         color_idx = 0
         self.daysList = {} # date of NOAA's data already retrieved, prevent multiple fetch
         fig_title = []    # list of file names (w/o path and extension) as figure's title
@@ -66,50 +71,56 @@ class Plot_Gui(ttk.Frame):
         # prepare the GUI framework
         self.fig = Figure(facecolor='beige')
         self.canvas = FigureCanvas(self.fig, master=self.tk_root)
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.canvas.get_tk_widget().pack(side=tk.TOP,
+                                         fill=tk.BOTH, expand=True)
         self.graph = self.fig.add_subplot(111)
 
-        self.toolbar = NavigationToolbar2Tk( self.canvas, self.tk_root)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root)
         self.toolbar.update()
         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Add data to the graph for each file
         for filename in sorted(file_list):
             sid_file = SidFile(filename)
-            sid_file.XRAlist = []   # list will be populated if the user click on 'NOAA' button
+            sid_file.XRAlist = []  # list will be populated if the user click on 'NOAA' button
             self.sid_files.append(sid_file)
             self.daysList[sid_file.startTime] = []
             fig_title.append(os.path.basename(filename)[:-4])  # assumed extension .csv removed
             for station in set(sid_file.stations) - self.hidden_stations:
-                self.max_data = max(self.max_data, max(self.sid_files[0].data[0]))
+                self.max_data = max(self.max_data,
+                                    max(self.sid_files[0].data[0]))
                 print(sid_file.startTime, station)
                 # Does this station already have a color? if not, reserve one
                 if station not in self.colorStation:
                     self.colorStation[station] = color_list[color_idx % len(color_list)] + '-'  # format like 'b-'
                     color_idx += 1
                 # Add points to the plot
-                self.graph.plot_date(sid_file.timestamp, sid_file.get_station_data(station), self.colorStation[station])
+                self.graph.plot_date(sid_file.timestamp,
+                                     sid_file.get_station_data(station),
+                                     self.colorStation[station])
         # add the buttons to show/add a station's curve
         for s, c in self.colorStation.items():
             btn_color = self.COLOR[c[0]]
             station_button = tk.Button(self.tk_root, text=s,
                                        bg=btn_color, activebackground="white")
-            station_button.configure(command=lambda s=s, b=station_button: self.on_click_station(s, b))
+            station_button.configure(command=lambda s=s,
+                                     b=station_button: self.on_click_station(s, b))
             station_button.pack(side='left', padx=1, pady=1)
 
-        noaa_button = tk.Button(self.tk_root, text="NOAA", command=self.on_click_noaa)
+        noaa_button = tk.Button(self.tk_root, text="NOAA",
+                                command=self.on_click_noaa)
         noaa_button.pack(side='left', padx=1, pady=1)
         # other GUI items
         self.statusbar_txt = tk.StringVar()
-        self.label=tk.Label(self.tk_root,
-                            bd=1, relief=tk.SUNKEN, #anchor=tk.W,
-                            textvariable=self.statusbar_txt,
-                            font=('arial', 10, 'normal'), pady=5)
+        self.label = tk.Label(self.tk_root,
+                              bd=1, relief=tk.SUNKEN,  # anchor=tk.W,
+                              textvariable=self.statusbar_txt,
+                              font=('arial', 10, 'normal'), pady=5)
         self.statusbar_txt.set(", ".join(fig_title))
         self.label.pack(fill=tk.X)
 
-        self.calc_ephem()  # calculate the sun rise/set for each file
-        self.show_figure() # add other niceties and show the plot
+        self.calc_ephem()   # calculate the sun rise/set for each file
+        self.show_figure()  # add other niceties and show the plot
 
     def on_click_noaa(self):
         for sid_file in self.sid_files:
@@ -125,7 +136,7 @@ class Plot_Gui(ttk.Frame):
         self.update_graph()
 
     def on_click_station(self, station, button):
-        """Invert the color of the button and hide/draw the corresponding graph"""
+        """Invert the color of the button. Hide/draw corresponding graph."""
         print("click on", station)
         alt_color = self.COLOR[self.colorStation[station][0]]
         if station in self.hidden_stations:
@@ -137,7 +148,7 @@ class Plot_Gui(ttk.Frame):
         self.update_graph()
 
     def show_figure(self):
-        # some cosmetics on the figure
+        """Cosmetics on the figure."""
         current_axes = self.fig.gca()
         current_axes.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
         current_axes.xaxis.set_major_locator(matplotlib.dates.DayLocator())
@@ -154,25 +165,33 @@ class Plot_Gui(ttk.Frame):
         for label in current_axes.xaxis.get_minorticklabels():
             label.set_fontsize(12 if len(self.daysList.keys()) == 1 else 8)
 
-        # specific drawings for linked to each sid_file: flares and sunrise/sunset
+        # specific drawings  linked to each sid_file: flares and sunrise/sunset
         bottom_max, top_max = current_axes.get_ylim()
         for sid_file in self.sid_files:
-            # for each flare from NOAA, draw the lines and box with flares intensity
+            # for each flare, draw the lines and box with flares intensity
             for eventName, BeginTime, MaxTime, EndTime, Particulars in sid_file.XRAlist:
-                self.graph.vlines([BeginTime, MaxTime, EndTime], 0, self.max_data,
-                           color=['g', 'r', 'y'], linestyles='dotted')
-                self.graph.text(MaxTime, self.max_data + (top_max - self.max_data) / 4.0,
+                self.graph.vlines([BeginTime, MaxTime, EndTime], 0,
+                                  self.max_data, color=['g', 'r', 'y'],
+                                  linestyles='dotted')
+                self.graph.text(MaxTime,
+                                self.max_data + (top_max - self.max_data) / 4.0,
                                 Particulars, horizontalalignment='center',
-                                bbox={'facecolor': 'w', 'alpha': 0.5, 'fill': True})
-            # draw the rectangles for rising and setting of the sun with astronomical twilight
+                                bbox={'facecolor': 'w',
+                                      'alpha': 0.5,
+                                      'fill': True})
+            # draw the rectangles for rising and setting of the sun.
+            # Use astronomical twilight
             if sid_file.rising < sid_file.setting:
-                self.graph.axvspan(sid_file.startTime, sid_file.rising.datetime(),
-                           facecolor='blue', alpha=0.1)
-                self.graph.axvspan(sid_file.setting.datetime(), max(sid_file.timestamp),
-                           facecolor='blue', alpha=0.1)
+                self.graph.axvspan(sid_file.startTime,
+                                   sid_file.rising.datetime(),
+                                   facecolor='blue', alpha=0.1)
+                self.graph.axvspan(sid_file.setting.datetime(),
+                                   max(sid_file.timestamp),
+                                   facecolor='blue', alpha=0.1)
             else:
-                self.graph.axvspan(sid_file.setting.datetime(), sid_file.rising.datetime(),
-                           facecolor='blue', alpha=0.1)
+                self.graph.axvspan(sid_file.setting.datetime(),
+                                   sid_file.rising.datetime(),
+                                   facecolor='blue', alpha=0.1)
 
         self.canvas.draw()
 
@@ -184,13 +203,13 @@ class Plot_Gui(ttk.Frame):
             for station in set(sid_file.stations) - self.hidden_stations:
                 print(sid_file.startTime, station)
                 # Add points to the plot
-                self.graph.plot_date(sid_file.timestamp, sid_file.get_station_data(station), self.colorStation[station])
+                self.graph.plot_date(sid_file.timestamp,
+                                     sid_file.get_station_data(station),
+                                     self.colorStation[station])
         self.show_figure()
 
     def calc_ephem(self):
-        """
-            Compute the night period of each SidFile using the ephem module
-        """
+        """Compute the night period of each SidFile using the ephem module."""
         sid_loc = ephem.Observer()
         for sid_file in self.sid_files:
             sid_loc.lon, sid_loc.lat = sid_file.sid_params['longitude'], sid_file.sid_params['latitude']

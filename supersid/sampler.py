@@ -1,12 +1,14 @@
 #!/usr/bin/python
 """
-    Sampler handles audio data capture, calculating PSD, extracting signal strengths at monitored frequencies,
-    saving spectrum and spectrogram (image) to png file
+Sampler handles audio data capture.
 
-    This is pure Model, no wx import possible else Thread conflict
+Also handles calculating PSD, extracting signal strengths at monitored
+frequencies, saving spectrum and spectrogram (image) to png file
 
-    The Sampler class will use on 'device' to capture 1 second of sound.
-    This 'device' can be a local sound card:
+This is pure Model, no wx import possible else Thread conflict
+
+The Sampler class will use an audio 'device' to capture 1 second of sound.
+This 'device' can be a local sound card:
      - controlled by pyaudio on Windows or other system
      - controlled by alsaaudio on Linux
     or this 'device' can be a remote server
@@ -14,7 +16,8 @@
 
     All these 'devices' must implement:
      - __init__: open the 'device' for future capture
-     - capture_1sec: obtain one second of sound and return as an array of 'audio_sampling_rate' integers
+     - capture_1sec: obtain one second of sound and return as an array
+        of 'audio_sampling_rate' integers
      - close: close the 'device'
 """
 # 20150801:
@@ -25,7 +28,7 @@ from numpy import array
 
 from config import DEVICE_DEFAULT  # get value from config.py
 
-audioModule=[]
+audioModule = []
 try:
     import alsaaudio  # for Linux direct sound capture
     audioModule.append("alsaaudio")
@@ -35,7 +38,10 @@ try:
     # pip3 install sounddevice
 
     class alsaaudio_soundcard():
+        """Sampler for an ALSA audio device."""
+
         def __init__(self, card, device, periodsize, audio_sampling_rate):
+            """Initialize the ALSA audio sampler."""
             self.FORMAT = alsaaudio.PCM_FORMAT_S16_LE
             self.audio_sampling_rate = audio_sampling_rate
             if device != DEVICE_DEFAULT:
@@ -49,7 +55,7 @@ try:
                                          device=device)
                 self.name = "alsaaudio sound device capture on " + device
             else:
-                card = 'sysdefault:CARD=' + card  #.cfg file under [Capture] section
+                card = 'sysdefault:CARD=' + card  # .cfg file under [Capture] section
                 print("alsaaudio using card", card)
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
@@ -63,17 +69,19 @@ try:
         def capture_1sec(self):
             raw_data = b''
             while len(raw_data) < 2 * self.audio_sampling_rate:
-                length,data = self.inp.read()
-                if length> 0: raw_data += data
-            return array(st_unpack("%ih"%self.audio_sampling_rate, raw_data[:2 * self.audio_sampling_rate]))
+                length, data = self.inp.read()
+                if length > 0:
+                    raw_data += data
+            return array(st_unpack("%ih" % self.audio_sampling_rate,
+                                   raw_data[:2 * self.audio_sampling_rate]))
 
         def close(self):
             pass  # to check later if there is something to do
 
         def info(self):
-            print(self.name, "at", self.audio_sampling_rate,"Hz")
+            print(self.name, "at", self.audio_sampling_rate, "Hz")
             one_sec = self.capture_1sec()
-            print(len(one_sec),"bytes read from", self.name, one_sec.shape)
+            print(len(one_sec), "bytes read from", self.name, one_sec.shape)
             print(one_sec[:10])
             print("Vector sum", one_sec.sum())
 
@@ -94,7 +102,8 @@ try:
             self.name = "sounddevice capture on device " + str(device)
 
         def capture_1sec(self):
-            # duration = 1 sec hence   1 x self.audio_sampling_rate = self.audio_sampling_rate
+            # duration = 1 sec hence
+            # 1 x self.audio_sampling_rate = self.audio_sampling_rate
             one_sec_record = b''
             try:
                 one_sec_record = sounddevice.rec(self.audio_sampling_rate)
@@ -107,10 +116,10 @@ try:
             pass  # to check later if there is something to do
 
         def info(self):
-            print(self.name, "at", self.audio_sampling_rate,"Hz")
+            print(self.name, "at", self.audio_sampling_rate, "Hz")
             try:
                 one_sec = self.capture_1sec()
-                print(len(one_sec),"bytes read from", self.name, one_sec.shape)
+                print(len(one_sec), "bytes read from", self.name, one_sec.shape)
                 print(one_sec[:10])
                 print("Vector sum", one_sec.sum())
             except IndexError:
@@ -132,28 +141,30 @@ try:
             self.pa_lib = pyaudio.PyAudio()
             self.audio_sampling_rate = audio_sampling_rate
 
-            self.pa_stream = self.pa_lib.open(format = self.FORMAT,
-                                          channels = 1,
-                                          rate = self.audio_sampling_rate,
-                                          input = True,
-                                          frames_per_buffer = self.CHUNK)
+            self.pa_stream = self.pa_lib.open(format=self.FORMAT,
+                                              channels=1,
+                                              rate=self.audio_sampling_rate,
+                                              input=True,
+                                              frames_per_buffer=self.CHUNK)
             self.name = "pyaudio sound card capture"
 
         def capture_1sec(self):
             raw_data = b''.join(self.capture(1))  # self.pa_stream.read(self.audio_sampling_rate)
-            unpacked_data = st_unpack("{}h".format(self.audio_sampling_rate), raw_data)
+            unpacked_data = st_unpack("{}h".format(self.audio_sampling_rate),
+                                      raw_data)
             return array(unpacked_data)
 
         def capture(self, secs):
             frames = []
-            expected_number_of_bytes = 2 * self.audio_sampling_rate * secs #int(self.audio_sampling_rate / self.CHUNK * secs)
+            # int(self.audio_sampling_rate / self.CHUNK * secs)
+            expected_number_of_bytes = 2 * self.audio_sampling_rate * secs
             while len(frames) < expected_number_of_bytes:
                 try:
                     data = self.pa_stream.read(self.CHUNK)
                     frames.extend(data)
-                    #print(len(data), len(frames))
-                except IOError as io:
-                    #print("IOError reading card:", str(io))
+                    # print(len(data), len(frames))
+                except IOError:
+                    # print("IOError reading card:", str(io))
                     pass
             return frames[:expected_number_of_bytes]
 
@@ -165,11 +176,13 @@ try:
         def info(self):
             for i in range(self.pa_lib.get_device_count()):
                 print(i, ":", self.pa_lib.get_device_info_by_index(i))
-            print("default device :", self.pa_lib.get_default_input_device_info())
+            print("default device :",
+                  self.pa_lib.get_default_input_device_info())
             default_capability = self.pa_lib.get_default_host_api_info()
             print("default device Capability", default_capability)
-            is_supported = self.pa_lib.is_format_supported(input_format=self.FORMAT, input_channels=1,
-                                                       rate=self.audio_sampling_rate, input_device=0)
+            is_supported = self.pa_lib.is_format_supported(
+                input_format=self.FORMAT, input_channels=1,
+                rate=self.audio_sampling_rate, input_device=0)
             print("expected format is supported?", is_supported)
 
 except ImportError:
@@ -177,8 +190,9 @@ except ImportError:
 
 
 class Sampler():
-    """Sampler will gather sound capture from various devices: sound cards or remote server"""
-    def __init__(self, controller, audio_sampling_rate = 96000, NFFT = 1024):
+    """Sampler will gather sound capture from various devices."""
+
+    def __init__(self, controller, audio_sampling_rate=96000, NFFT=1024):
         self.version = "1.4 20160207"
         self.controller = controller
         self.scaling_factor = controller.config['scaling_factor']
@@ -191,14 +205,17 @@ class Sampler():
             if controller.config['Audio'] == 'pyaudio':
                 self.capture_device = pyaudio_soundcard(audio_sampling_rate)
             elif controller.config['Audio'] == 'sounddevice':
-                self.capture_device = sounddevice_soundcard(controller.config['Card'], audio_sampling_rate)
+                self.capture_device = sounddevice_soundcard(
+                    controller.config['Card'], audio_sampling_rate)
             elif controller.config['Audio'] == 'alsaaudio':
-                self.capture_device = alsaaudio_soundcard(controller.config['Card'],
-                                                          controller.config['Device'],
-                                                          controller.config['PeriodSize'],
-                                                          audio_sampling_rate)
+                self.capture_device = alsaaudio_soundcard(
+                    controller.config['Card'],
+                    controller.config['Device'],
+                    controller.config['PeriodSize'],
+                    audio_sampling_rate)
             else:
-                self.display_error_message("Unknown audio module:" + controller.config['Audio'])
+                self.display_error_message(
+                    "Unknown audio module:" + controller.config['Audio'])
                 self.sampler_ok = False
         except Exception as err:
             self.sampler_ok = False
@@ -213,9 +230,11 @@ class Sampler():
     def set_monitored_frequencies(self, stations):
         self.monitored_bins = []
         for station in stations:
-            binSample = int(((int(station['frequency']) * self.NFFT) / self.audio_sampling_rate))
+            binSample = int(((int(station['frequency'])
+                              * self.NFFT) / self.audio_sampling_rate))
             self.monitored_bins.append(binSample)
-            #print ("monitored freq =", station[Config.FREQUENCY], " => bin = ", binSample)
+            # print ("monitored freq =", station[Config.FREQUENCY],
+            # " => bin = ", binSample)
 
     def capture_1sec(self):
         """Capture 1 second of data, returned data as an array
@@ -224,10 +243,12 @@ class Sampler():
             self.data = self.capture_device.capture_1sec()
         except:
             self.sampler_ok = False
-            print ("Fail to read data from audio using " + self.capture_device.name)
+            print ("Fail to read data from audio using "
+                   + self.capture_device.name)
             self.data = []
         else:
-            #scale A/D raw_data to voltage here (we might substract 5v to make the data look more like SID)
+            # Scale A/D raw_data to voltage here
+            # Might substract 5v to make the data look more like SID
             if(self.scaling_factor != 1.0):
                 self.data *= self.scaling_factor
 
@@ -240,7 +261,9 @@ class Sampler():
         msg = "From Sampler object instance:\n" + message + ". Please check.\n"
         self.controller.viewer.status_display(msg)
 
+
 if __name__ == '__main__':
+
     print('Possible capture modules:', audioModule)
     print("\nalsaaudio:")
 
