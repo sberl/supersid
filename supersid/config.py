@@ -220,6 +220,13 @@ class Config(dict):
             self.config_err = "'hourly_save' must be either 'YES' or 'NO' in supersid.cfg. Please check."
             return
 
+        # 'automatic_upload' must be UPPER CASE
+        self['automatic_upload'] = self['automatic_upload'].upper()
+        if self['automatic_upload'] not in ('YES', 'NO'):
+            self.config_ok = False
+            self.config_err = "'automatic_upload' must be either 'YES' or 'NO' in supersid.cfg. Please check."
+            return
+
         # log_interval should be > 2
         if self['log_interval'] <= 2:
             self.config_ok = False
