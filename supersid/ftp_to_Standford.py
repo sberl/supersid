@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """
 Send SID data files to Standford FTP server.
@@ -50,12 +50,9 @@ def convert_supersid_to_sid(sid, stations):
 
     returns a list of sid format files to send
     """
-    if sid.sid_params['contact'] == "" and cfg['contact'] != "":
-        sid.sid_params['contact'] = cfg['contact']
-
-    print(sid.sid_params)
+    generated_files = []
     for station in stations:
-        print("Sending data from", station)
+        print("Sending data from: ", station)
         # if necessary, apply a multiplicator factor to the signal
         # of one station [NWC:100000]
         if ':' in station:
@@ -64,30 +61,32 @@ def convert_supersid_to_sid(sid, stations):
         else:
             station_name, factor = station, 1
 
-            if station_name not in sid.stations:
-                # strange: the desired station in not found in the file
-                print("Warning:", station_name,
-                      "is not in the data file", input_file)
-                continue
+        if station_name not in sid.stations:
+            # strange: the desired station in not found in the file
+            print("Warning:", station_name,
+                  "is not in the data file", input_file)
+            continue
 
-                if factor > 1:
-                    iStation = sid.get_station_index(station_name)
-                    sid.data[iStation] *= factor
-                    # generate the SID file of that station
-                    # UTC_StartTime = 2014-05-31 00:00:00
-                    file_startdate = sid.sid_params['utc_starttime']
-                    file_name = "{}{}{}_{}_{}.csv".format(cfg['local_tmp']
-                                                          or cfg["data_path"],
-                                                          path.sep,
-                                                          cfg['site_name'],
-                                                          station_name,
-                                                          file_startdate[:10])
-                    # if the original file is filtered then we can save it
-                    # "as is" else we need to apply_bema i.e. filter it
-                    sid.write_data_sid(station_name, file_name, FILTERED,
-                                       extended=False,
-                                       apply_bema=sid.sid_params['logtype'] == RAW)
-                    files_to_send.append(file_name)
+        if factor > 1:
+            station_index = sid.get_station_index(station_name)
+            sid.data[station_index] *= factor
+
+        # generate the SID file of that station
+        # UTC_StartTime = 2014-05-31 00:00:00
+        file_startdate = sid.sid_params['utc_starttime']
+        file_name = "{}{}{}_{}_{}.csv".format(cfg['local_tmp']
+                                              or cfg["data_path"],
+                                              path.sep,
+                                              cfg['site_name'],
+                                              station_name,
+                                              file_startdate[:10])
+        # if the original file is filtered then we can save it
+        # "as is" else we need to apply_bema i.e. filter it
+        sid.write_data_sid(station_name, file_name, FILTERED,
+                           extended=False,
+                           apply_bema=sid.sid_params['logtype'] == RAW)
+        generated_files.append(file_name)
+    return generated_files
 
 
 if __name__ == '__main__':
@@ -105,6 +104,7 @@ if __name__ == '__main__':
     stations = (cfg['call_signs'].split(",")
                 if cfg['call_signs'] else
                 [s['call_sign'] for s in cfg.stations])  # else all stations
+
     # file list
     if args.askYesterday:
         yesterday = datetime.utcnow() - timedelta(days=1)
@@ -137,6 +137,11 @@ if __name__ == '__main__':
     for input_file in file_list:
         if path.isfile(input_file):
             sid = SidFile(input_file, force_read_timestamp=True)
+            if sid.sid_params['contact'] == "" and cfg['contact'] != "":
+                sid.sid_params['contact'] = cfg['contact']
+
+            print(sid.sid_params)
+
             if sid.isSuperSID:
                 # SuperSID format files need to be converted to a set of
                 # one or more SID format files before they can be uploaded
@@ -146,51 +151,12 @@ if __name__ == '__main__':
                 # returns a list of files to send
                 if sid.sid_params['contact'] == "" and cfg['contact'] != "":
                     sid.sid_params['contact'] = cfg['contact']
-                print(sid.sid_params)
-                for station in stations:
-                    print("Sending data from", station)
-                    # if necessary, apply a multiplicator factor to the signal
-                    # of one station [NWC:100000]
-                    if ':' in station:
-                        station_name, factor = station.split(':')
-                        factor = int(factor)
-                    else:
-                        station_name, factor = station, 1
-
-                    if station_name not in sid.stations:
-                        # strange: the desired station in not found in the file
-                        print("Warning:", station_name,
-                              "is not in the data file", input_file)
-                        continue
-
-                    if factor > 1:
-                        iStation = sid.get_station_index(station_name)
-                        sid.data[iStation] *= factor
-                    # generate the SID file of that station
-                    # UTC_StartTime = 2014-05-31 00:00:00
-                    file_startdate = sid.sid_params['utc_starttime']
-                    file_name = "{}{}{}_{}_{}.csv".format(cfg['local_tmp']
-                                                          or cfg["data_path"],
-                                                          path.sep,
-                                                          cfg['site_name'],
-                                                          station_name,
-                                                          file_startdate[:10])
-                    # if the original file is filtered then we can save it
-                    # "as is" else we need to apply_bema i.e. filter it
-                    sid.write_data_sid(station_name, file_name, FILTERED,
-                                       extended=False,
-                                       apply_bema=sid.sid_params['logtype'] == RAW)
-                    files_to_send.append(file_name)
+                files_to_send = convert_supersid_to_sid(sid, stations)
             else:
-                # File is SID format. No need to change anything
-                # Just add iit to the list.
-                print(input_file + " is a SID format data file")
                 files_to_send.append(input_file)
-        else:
-            print("Error:", input_file, "does not exist.")
-
+    print("Main files_to_send: ", files_to_send)
     # now sending the files by FTP
-    if files_to_send and cfg['automatic_upload'] == 'yes':
+    if files_to_send and cfg['automatic_upload'] == 'YES':
         print("Opening FTP session with", cfg['ftp_server'])
         data = []
 
