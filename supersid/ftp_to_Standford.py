@@ -38,13 +38,6 @@ from sidfile import SidFile
 from config import Config, FILTERED, RAW
 
 
-def exist_file(x):
-    """Check that file exists but does not open it."""
-    if not path.isfile(x):
-        raise argparse.ArgumentError("{0} does not exist".format(x))
-    return x
-
-
 def convert_supersid_to_sid(sid, stations):
     """Convert a supersid format data file to one or more sid format files.
 
@@ -90,7 +83,14 @@ def convert_supersid_to_sid(sid, stations):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    def exist_file(file_name):
+        """Check that file exists but does not open it."""
+        if not path.isfile(file_name):
+            raise argparse.ArgumentError(
+                "{0} does not exist".format(file_name))
+        return file_name
+
+    parser = argparse.ArgumentParser(description="Upload data files to server")
     parser.add_argument("-c", "--config", dest="cfg_filename",
                         required=True, type=exist_file,
                         help="Supersid configuration file")
@@ -158,7 +158,6 @@ if __name__ == '__main__':
     # now sending the files by FTP
     if files_to_send and cfg['automatic_upload'] == 'YES':
         print("Opening FTP session with", cfg['ftp_server'])
-        data = []
 
         try:
             ftp = ftplib.FTP(cfg['ftp_server'])
@@ -174,11 +173,10 @@ if __name__ == '__main__':
         for f in files_to_send:
             print("Sending", f)
             try:
-                ftp.storlines("STOR " + path.basename(f), open(f, "rb"))
-            except ftplib.error_perm as err:
+                with open(f, "rb") as upload_file:
+                    ftp.storlines("STOR " + path.basename(f), upload_file)
+                    print("upload successful")
+            except ftplib.all_errors as err:
                 print("Error sending", path.basename(f), ":", err)
         ftp.quit()
         print("FTP session closed.")
-
-        for line in data:
-            print("-", line)
