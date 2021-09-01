@@ -98,8 +98,10 @@ if __name__ == '__main__':
                         dest="askYesterday", default=False,
                         help="Yesterday's date is used for the file name.")
     args, file_list = parser.parse_known_args()
+
     # read the configuration file
     cfg = Config(args.cfg_filename)
+
     # what stations are to be selected from the input file(s) ?
     stations = (cfg['call_signs'].split(",")
                 if cfg['call_signs'] else
@@ -155,6 +157,7 @@ if __name__ == '__main__':
             else:
                 files_to_send.append(input_file)
     print("Main files_to_send: ", files_to_send)
+    print("Automatic Upload: ", cfg['automatic_upload'])
     # now sending the files by FTP
     if files_to_send and cfg['automatic_upload'] == 'YES':
         print("Opening FTP session with", cfg['ftp_server'])
