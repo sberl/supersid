@@ -272,7 +272,7 @@ if __name__ == '__main__':
             try:
                 print("Accessing", card, "...")
                 for sampling_rate in [48000, 96000]:
-                    sc = alsaaudio_soundcard(card, 1024, sampling_rate)
+                    sc = alsaaudio_soundcard(card, DEVICE_DEFAULT, 1024, sampling_rate)
                     sc.info()
             except alsaaudio.ALSAAudioError as err:
                 print("! ERROR capturing sound on card", card)
