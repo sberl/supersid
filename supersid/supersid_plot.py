@@ -172,7 +172,8 @@ class SUPERSID_PLOT():
                 # Add points to the plot
                 plt.plot_date(sFile.timestamp,
                               sFile.get_station_data(station),
-                              colorStation[station])
+                              colorStation[station],
+                              label=station)
                 # Extra housekeeping
                 maxData = max(max(sFile.get_station_data(station)),
                               maxData)  # maxData will be used later to put the XRA labels up
@@ -263,11 +264,7 @@ class SUPERSID_PLOT():
 
         fig.suptitle(", ".join(figTitle))
 
-        xLegend = 0.03
-        for station, color in colorStation.items():
-            fig.text(xLegend, 0.93, station, color=color[0],
-                     fontsize=12, bbox={'fc': "w", 'pad': 10, 'ec': color[0]})
-            xLegend += 0.05
+        plt.legend()
 
         # actions requested by user
         if pdf or eMail:
