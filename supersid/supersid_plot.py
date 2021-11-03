@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
 Plot SuperSID data files.
 
 supersid_plot
-version: 1.3.1 enhanced for Python 2.7 and 3.3
+version: 1.3.1 enhanced for Python 3
 Original Copyright: Stanford Solar Center - 2008
 Copyright: Eric Gibert - 2012
 
@@ -13,7 +13,6 @@ Draw multi-stations graphs
 Offer the possibility to generate PDF and email it (perfect for batch mode)
 Offer the possibility to fetch NOAA XRA data and add them on the plot
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 import sys
 import datetime
 import time
@@ -27,13 +26,9 @@ import matplotlib.dates
 # Internet and Email modules
 import mimetypes
 import smtplib
-try:  # python 2.7 vs. Python 3.3
-    import urllib2
-    from email.MIMEText import MIMEText
-except ImportError:
-    import urllib.request
-    import urllib.error
-    from email.mime.text import MIMEText
+import urllib.request
+import urllib.error
+from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders, utils
@@ -43,9 +38,9 @@ from sidfile import SidFile
 from config import Config
 
 try:
-    clock = time.process_time
+    clock = time.process_time   # new in Python 3.3
 except:
-    clock = time.clock
+    clock = time.clock          # removed in Python 3.8
 
 
 def sendMail(config, To_mail, msgBody, PDFfile):
@@ -197,21 +192,15 @@ class SUPERSID_PLOT():
                     #ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
                     NOAA_URL = 'ftp://ftp.swpc.noaa.gov/pub/indices/events/%sevents.txt' % (day)
                     response = None
-                    if sys.version[0]<'3':  # python 2.7 vs. Python 3.3
-                        try:
-                            response = urllib2.urlopen(NOAA_URL)
-                        except urllib2.HTTPError as err:
-                            print (err, "\n", NOAA_URL)
-                    else:
-                        try:
-                            response = urllib.request.urlopen(NOAA_URL)
-                        except urllib.error.HTTPError as err:
-                            print (err, "\n", NOAA_URL)
+                    try:
+                        response = urllib.request.urlopen(NOAA_URL)
+                    except urllib.error.HTTPError as err:
+                        print (err, "\n", NOAA_URL)
                     lastXRAlen = len(XRAlist) # save temporarly current number of XRA events in memory
                     if response:
                         for webline in response.read().splitlines():
                             if sys.version[0] >= '3':
-                                webline = str(webline, 'utf-8')  # Python 3: cast bytes to str
+                                webline = str(webline, 'utf-8')  # cast bytes to str
                             fields = webline.split()
                             if len(fields) >= 9 and not fields[0].startswith("#"):
                                 if fields[1] == '+':

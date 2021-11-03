@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """Scan a large number of frequencies for a given number of minutes.
 
 supersid_scanner.py
@@ -10,7 +10,6 @@ Based on supersid.py
 Help to determine what stations are the strongest
 Can help to orientate the antenna
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 import os.path
 # matplotlib ONLY used in Controller for its PSD function, not for any graphic
 from matplotlib.mlab import psd as mlab_psd

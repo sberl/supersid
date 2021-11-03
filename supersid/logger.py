@@ -9,19 +9,11 @@ Eric Gibert
 Change tracking:
     20140816:
         - add config.CONSTANT
-        - fix 'raw_input' to ensure code works on both Python 2 and 3
     20150801:
         - truncate sid_params['utc_starttime'] to 19 first chars
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 from os import path
-try:
-    # this is Python 2 raw_input now to be used like input in Python 3
-    input = raw_input
-except NameError:
-    pass    # already Python 3
 from time import gmtime, strftime
-
 from sidfile import SidFile
 from config import FILTERED, RAW, CALL_SIGN, FREQUENCY, SID_FORMAT, SUPERSID_FORMAT
 

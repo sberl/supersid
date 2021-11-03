@@ -16,12 +16,8 @@ Note: len(config.stations) == config['number_of_stations'] - sanity check -
 #   20150801:
 #   - add the [FTP] section
 #
-from __future__ import print_function   # use the new Python 3 'print' function
 import os.path
-try:
-    import ConfigParser
-except ImportError:
-    import configparser as ConfigParser
+import configparser
 
 # constant for log_type
 FILTERED, RAW = 'filtered', 'raw'
@@ -55,7 +51,7 @@ class Config(dict):
         dict.__init__(self)         # Config objects are dictionaries
         self.config_ok = True       # Parsing success/failure
         self.config_err = ""        # Parsing failure error message
-        config_parser = ConfigParser.ConfigParser()
+        config_parser = configparser.ConfigParser()
 
         if filename == "supersid.cfg":  # let's look in various places
             self.filenames = config_parser.read(
@@ -143,10 +139,10 @@ class Config(dict):
                     self.config_ok = False
                     self.config_err = "'%s' is not of the type %s in 'supersid.cfg'. Please check." % (pkey, pcast)
                     return
-                except ConfigParser.NoSectionError:
+                except configparser.NoSectionError:
                     # it's ok: some sections are optional
                     pass
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     if pdefault is None:  # missing mandatory parameter
                         self.config_ok = False
                         self.config_err = "'"+pkey+"' is not found in '%s'. Please check." % filename
@@ -170,11 +166,11 @@ class Config(dict):
                 for parameter in (CALL_SIGN, FREQUENCY, COLOR):
                     tmpDict[parameter] = config_parser.get(section, parameter)
                 self.stations.append(tmpDict)
-            except ConfigParser.NoSectionError:
+            except configparser.NoSectionError:
                 self.config_ok = False
                 self.config_err = section + "section is expected but missing from the config file."
                 return
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 self.config_ok = False
                 self.config_err = section + " does not have the 3 expected parameters in the config file. Please check."
                 return

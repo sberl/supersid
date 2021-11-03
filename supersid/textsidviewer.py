@@ -9,7 +9,6 @@ Each Viewer must implement:
 - close(): cleaning up
 - status_display(): display a message in a status bar or equivalent
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 import sys
 from threading import Timer
 from time import sleep
