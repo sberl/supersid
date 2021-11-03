@@ -394,7 +394,7 @@ if __name__ == '__main__':
     if filenames:
         do_main(filenames,
                 showPlot=args.showPlot,
-                eMail=args.email or config.get("to_mail", None),
+                eMail=args.email,
                 pdf=args.pdffilename,
                 web=args.webData,
                 config=config)

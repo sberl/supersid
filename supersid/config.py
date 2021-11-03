@@ -113,7 +113,6 @@ class Config(dict):
 
             'Email': (
                         ("from_mail", str, ""),             # sender email
-                        ("to_mail", str, ""),               # recipient email
                         ("email_server", str, ""),          # your email server (SMPT)
                         ("email_port", str, ""),            # your email server's port (SMPT)
                         ("email_tls", str, "no"),           # your email server requires TLS yes/no
