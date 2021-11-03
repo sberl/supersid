@@ -43,6 +43,15 @@ except:
     clock = time.clock          # removed in Python 3.8
 
 
+PAPER_SIZE = {
+    'A3': (29.7 / 2.54, 42.0 / 2.54),
+    'A4': (21.0 / 2.54, 29.7 / 2.54),
+    'A5': (14.8 / 2.54, 21.0 / 2.54),
+    'LEGAL': (8.5, 14),
+    'LETTER': (8.5, 11)
+}
+
+
 def sendMail(config, To_mail, msgBody, PDFfile):
     """Send the mail using the smtplib module.
 
@@ -242,11 +251,12 @@ class SUPERSID_PLOT():
                          bbox={'facecolor': 'w', 'alpha': 0.5, 'fill': True})
                 alternate = 0 if alternate == 1 else 1
 
-        # plot/page size / figure size with on A4 paper
+        # plot/page size / figure size with standard paper
+        height, width = PAPER_SIZE[config.get("paper_size", "")]    # exchange width and height to get landscape orientation
         if len(daysList) == 1:
-            fig.set_size_inches(29.7 / 2.54, 21.0 / 2.54, forward=True)
+            fig.set_size_inches(width, height, forward=True)
         else:  # allow PDF poster for many days (monthly graph) --> use Adobe PDF Reader --> Print --> Poster mode
-            fig.set_size_inches((29.7 / 2.54) * (len(daysList)/2.0), (21.0 / 2.54) / 2.0, forward=True)
+            fig.set_size_inches((width) * (len(daysList)/2.0), (height) / 2.0, forward=True)
         fig.subplots_adjust(bottom=0.08, left=0.05, right=0.98, top=0.95)
 
         # some cosmetics on the figure

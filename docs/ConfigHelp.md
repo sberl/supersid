@@ -80,6 +80,7 @@ The 'supersid_plot.py' program can send you an email with the attached plot as a
   * email_tls: email server requires TLS **yes** / **no** (default)
   * email_login: [optional] if your server requires a login for identification
   * email_password: [optional] if your server requires a password for identification
+  * paper_size: one of A3, A4, A5, Legal, Letter
   
 <div id='id-section5'/>
 

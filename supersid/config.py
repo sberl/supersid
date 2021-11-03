@@ -118,7 +118,8 @@ class Config(dict):
                         ("email_port", str, ""),            # your email server's port (SMPT)
                         ("email_tls", str, "no"),           # your email server requires TLS yes/no
                         ("email_login", str, ""),           # if your server requires a login
-                        ("email_password", str, "")         # if your server requires a passwrd
+                        ("email_password", str, ""),        # if your server requires a password
+                        ("paper_size", str, "A4")           # paper size of the mailed image, one of A3, A4, A5, Legal, Letter
                      ),
             'FTP': (
                     ('automatic_upload',  str, "no"),   # yes/no: to upload the file to the remote FTP server
@@ -222,6 +223,13 @@ class Config(dict):
         if self['email_tls'] not in ('YES', 'NO'):
             self.config_ok = False
             self.config_err = "'email_tls' must be either 'YES' or 'NO' in supersid.cfg. Please check."
+            return
+
+        # 'paper_size' must be UPPER CASE
+        self['paper_size'] = self['paper_size'].upper()
+        if self['paper_size'] not in ('A3', 'A4', 'A5', 'LEGAL', 'LETTER'):
+            self.config_ok = False
+            self.config_err = "'paper_size' must be one of 'A3', 'A4', 'A5', 'Legal' or 'Letter' in supersid.cfg. Please check."
             return
 
         # log_interval should be > 2
