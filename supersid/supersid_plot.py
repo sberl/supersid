@@ -265,6 +265,7 @@ class SUPERSID_PLOT():
         fig.suptitle(", ".join(figTitle))
 
         plt.legend()
+        plt.tight_layout()
 
         # actions requested by user
         if pdf or eMail:
