@@ -23,9 +23,9 @@ import glob
 # matplolib tools
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter as ff
-from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.dates
 # Internet and Email modules
+import mimetypes
 import smtplib
 try:  # python 2.7 vs. Python 3.3
     import urllib2
@@ -66,7 +66,10 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     msg['Date'] = utils.formatdate(localtime=1)
 
     # attach the PDF file
-    ctype, encoding = ('application/pdf', None)
+    ctype, encoding = mimetypes.guess_type(PDFfile)
+    if ctype is None:
+        ctype = 'application/octet-stream'
+        print("MIME type for '{}' is unknown. Falling back to '{}'".format(PDFfile, ctype))
     maintype, subtype = ctype.split('/', 1)
     with open(PDFfile, 'rb') as pdf:
         att = MIMEBase(maintype, subtype)
@@ -269,9 +272,7 @@ class SUPERSID_PLOT():
         # actions requested by user
         if pdf or eMail:
             # in case option eMail is given
-            # but not pdfpp = PdfPages(pdf or 'Image.pdf')
-            plt.savefig(pp, format='pdf')
-            pp.close()
+            plt.savefig(pdf or 'Image.pdf')
         if showPlot:
             plt.show()
         if eMail:
