@@ -120,6 +120,7 @@ class Config(dict):
                         ("to_mail", str, ""),               # recipient email
                         ("email_server", str, ""),          # your email server (SMPT)
                         ("email_port", str, ""),            # your email server's port (SMPT)
+                        ("email_tls", str, "no"),           # your email server requires TLS yes/no
                         ("email_login", str, ""),           # if your server requires a login
                         ("email_password", str, "")         # if your server requires a passwrd
                      ),
@@ -218,6 +219,13 @@ class Config(dict):
         if self['hourly_save'] not in ('YES', 'NO'):
             self.config_ok = False
             self.config_err = "'hourly_save' must be either 'YES' or 'NO' in supersid.cfg. Please check."
+            return
+
+        # 'email_tls' must be UPPER CASE
+        self['email_tls'] = self['email_tls'].upper()
+        if self['email_tls'] not in ('YES', 'NO'):
+            self.config_ok = False
+            self.config_err = "'email_tls' must be either 'YES' or 'NO' in supersid.cfg. Please check."
             return
 
         # log_interval should be > 2

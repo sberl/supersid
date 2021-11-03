@@ -84,9 +84,11 @@ def sendMail(config, To_mail, msgBody, PDFfile):
         msg.attach(att)
 
     # Establish an SMTP object by connecting to your mail server
-    s = smtplib.SMTP()
+    s = smtplib.SMTP(mailserver, mailport)
     print("Connect to:", mailserver, mailport)
     s.connect(mailserver, port=mailport)
+    if 'YES' == config.get("email_tls", ""):
+        s.starttls()
     if mailserveruser:
         s.login(mailserveruser, mailserverpasswd)
     # Send the email - real from, real to, extra headers and content ...
@@ -339,6 +341,7 @@ if __name__ == '__main__':
     # print ("Files:", unk)
     if args.cfg_filename:
         config = Config(args.cfg_filename)
+        config.supersid_check()
         if args.verbose:
             print(args.cfg_filename, "read as config file.")
             for k, v in config.items():
