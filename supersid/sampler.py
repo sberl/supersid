@@ -59,12 +59,12 @@ try:
                 print("alsaaudio using card", card)
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
-                                         card)
+                                         channels=1,
+                                         rate=audio_sampling_rate,
+                                         format=self.FORMAT,
+                                         periodsize=periodsize,
+                                         device=card)
                 self.name = "alsaaudio sound card capture on " + card
-                self.inp.setchannels(1)
-                self.inp.setrate(audio_sampling_rate)
-                self.inp.setperiodsize(periodsize)
-                self.inp.setformat(self.FORMAT)
 
         def capture_1sec(self):
             raw_data = b''
