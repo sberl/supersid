@@ -42,6 +42,11 @@ import argparse
 from sidfile import SidFile
 from config import Config
 
+try:
+    clock = time.process_time
+except:
+    clock = time.clock
+
 
 def sendMail(config, To_mail, msgBody, PDFfile):
     """Send the mail using the smtplib module.
@@ -160,7 +165,7 @@ class SUPERSID_PLOT():
         colorStation = {}
         colorIdx = 0
 
-        time.clock()
+        clock()
         for filename in sorted(filenames):
             figTitle.append(os.path.basename(filename)[:-4]) # extension .csv assumed
             sFile = SidFile(filename)
@@ -234,7 +239,7 @@ class SUPERSID_PLOT():
                 # keep track of the days
                 daysList.add(sFile.startTime)
 
-        print ("All files read in", time.clock(), "sec.")
+        print ("All files read in", clock(), "sec.")
 
         if web:  # add the lines marking the retrieved flares from NOAA
             alternate = 0
