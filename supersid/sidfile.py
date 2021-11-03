@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """A Class to handle SID and SuperSID formatted files.
 
 Name:        sidfile.py
@@ -16,7 +16,6 @@ Licence:     Open to All
 20150801:
     - truncate ['utc_starttime'] to 19 chars
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 from datetime import datetime, timedelta
 import numpy
 
@@ -187,7 +186,7 @@ class SidFile():
         as .%f for second decimals
         """
         # necessary to convert timestamp string (extended or not) to datetime
-        # AND decode byte array to string to float for python 3
+        # AND decode byte array to string to float
         converters_dict = {0: SidFile._StringToDatetime}
         for i in range(len(self.stations)):
             converters_dict[i+1] = SidFile._StringToFloat
@@ -236,7 +235,7 @@ class SidFile():
 
     @classmethod
     def _StringToDatetime(cls, strTimestamp):
-        if type(strTimestamp) is not str:  # i.e. byte array in Python 3
+        if type(strTimestamp) is not str:  # i.e. byte array
             strTimestamp = strTimestamp.decode('utf-8')
         try:
             dts = datetime.strptime(strTimestamp, SidFile._timestamp_format)
@@ -251,7 +250,7 @@ class SidFile():
 
     @classmethod
     def _StringToFloat(cls, strNumber):
-        if type(strNumber) is not str:  # i.e. byte array in Python 3
+        if type(strNumber) is not str:  # i.e. byte array
             strNumber = strNumber.decode('utf-8')
         return float(strNumber)
 

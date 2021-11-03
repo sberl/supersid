@@ -10,7 +10,6 @@ Each Viewer must implement:
 - close(): cleaning up
 - status_display(): display a message in a status bar or equivalent
 """
-from __future__ import print_function
 import matplotlib
 # matplotlib.use('WXAgg') # select back-end before pylab
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas

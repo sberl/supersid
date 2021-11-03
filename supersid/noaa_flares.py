@@ -1,4 +1,4 @@
-#!python3
+#!/usr/bin/env python3
 """
 Retrieve data from NOAA regarding X-ray solar flares (GOES).
 
@@ -118,7 +118,7 @@ class NOAA_flares(object):
             print(err, "\n")
         else:
             for webline in response.read().splitlines():
-                fields = str(webline, 'utf-8').split()  # Python 3: cast bytes to str then split
+                fields = str(webline, 'utf-8').split()  # cast bytes to str then split
                 if len(fields) >= 9 and not fields[0].startswith("#"):
                     if fields[1] == '+': fields.remove('+')
                     if fields[6] in ('XRA',):  # maybe other event types could be of interrest
