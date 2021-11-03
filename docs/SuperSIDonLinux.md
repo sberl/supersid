@@ -89,7 +89,7 @@ then this means that alsa-lib is not installed correctly.
 
 Go to your home directory and execute:
 ```
- # git clone https://github.com/ericgibert/supersid.git
+ # git clone https://github.com/sberl/supersid.git
 ```
 In the future, change to the `~/superid` folder and execute `git pull` to update to the latest version.
 

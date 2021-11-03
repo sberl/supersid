@@ -21,7 +21,7 @@ Get the source from GitHub.com
 
 ```
 cd ~
-git clone https://github.com/ericgibert/supersid.git
+git clone https://github.com/sberl/supersid.git
 ```
 
 To update (pull) to the latest version, do:
