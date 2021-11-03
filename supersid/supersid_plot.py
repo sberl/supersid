@@ -23,9 +23,9 @@ import glob
 # matplolib tools
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter as ff
-from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.dates
 # Internet and Email modules
+import mimetypes
 import smtplib
 try:  # python 2.7 vs. Python 3.3
     import urllib2
@@ -41,6 +41,11 @@ import argparse
 # SuperSID modules
 from sidfile import SidFile
 from config import Config
+
+try:
+    clock = time.process_time
+except:
+    clock = time.clock
 
 
 def sendMail(config, To_mail, msgBody, PDFfile):
@@ -66,7 +71,10 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     msg['Date'] = utils.formatdate(localtime=1)
 
     # attach the PDF file
-    ctype, encoding = ('application/pdf', None)
+    ctype, encoding = mimetypes.guess_type(PDFfile)
+    if ctype is None:
+        ctype = 'application/octet-stream'
+        print("MIME type for '{}' is unknown. Falling back to '{}'".format(PDFfile, ctype))
     maintype, subtype = ctype.split('/', 1)
     with open(PDFfile, 'rb') as pdf:
         att = MIMEBase(maintype, subtype)
@@ -76,9 +84,11 @@ def sendMail(config, To_mail, msgBody, PDFfile):
         msg.attach(att)
 
     # Establish an SMTP object by connecting to your mail server
-    s = smtplib.SMTP()
+    s = smtplib.SMTP(mailserver, mailport)
     print("Connect to:", mailserver, mailport)
     s.connect(mailserver, port=mailport)
+    if 'YES' == config.get("email_tls", ""):
+        s.starttls()
     if mailserveruser:
         s.login(mailserveruser, mailserverpasswd)
     # Send the email - real from, real to, extra headers and content ...
@@ -157,7 +167,7 @@ class SUPERSID_PLOT():
         colorStation = {}
         colorIdx = 0
 
-        time.clock()
+        clock()
         for filename in sorted(filenames):
             figTitle.append(os.path.basename(filename)[:-4]) # extension .csv assumed
             sFile = SidFile(filename)
@@ -169,7 +179,8 @@ class SUPERSID_PLOT():
                 # Add points to the plot
                 plt.plot_date(sFile.timestamp,
                               sFile.get_station_data(station),
-                              colorStation[station])
+                              colorStation[station],
+                              label=station)
                 # Extra housekeeping
                 maxData = max(max(sFile.get_station_data(station)),
                               maxData)  # maxData will be used later to put the XRA labels up
@@ -230,7 +241,7 @@ class SUPERSID_PLOT():
                 # keep track of the days
                 daysList.add(sFile.startTime)
 
-        print ("All files read in", time.clock(), "sec.")
+        print ("All files read in", clock(), "sec.")
 
         if web:  # add the lines marking the retrieved flares from NOAA
             alternate = 0
@@ -260,18 +271,13 @@ class SUPERSID_PLOT():
 
         fig.suptitle(", ".join(figTitle))
 
-        xLegend = 0.03
-        for station, color in colorStation.items():
-            fig.text(xLegend, 0.93, station, color=color[0],
-                     fontsize=12, bbox={'fc': "w", 'pad': 10, 'ec': color[0]})
-            xLegend += 0.05
+        plt.legend()
+        plt.tight_layout()
 
         # actions requested by user
         if pdf or eMail:
             # in case option eMail is given
-            # but not pdfpp = PdfPages(pdf or 'Image.pdf')
-            plt.savefig(pp, format='pdf')
-            pp.close()
+            plt.savefig(pdf or 'Image.pdf')
         if showPlot:
             plt.show()
         if eMail:
@@ -335,6 +341,7 @@ if __name__ == '__main__':
     # print ("Files:", unk)
     if args.cfg_filename:
         config = Config(args.cfg_filename)
+        config.supersid_check()
         if args.verbose:
             print(args.cfg_filename, "read as config file.")
             for k, v in config.items():
