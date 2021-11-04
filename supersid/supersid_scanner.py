@@ -110,8 +110,6 @@ class SuperSID_scanner():
         # calculated from current UTC time
         current_index = self.timer.data_index
         utc_now = self.timer.utc_now
-        # clear the View to prepare for new data display
-        self.viewer.clear()
 
         # Get new data and pass them to the View
         message = "%s  [%d]  Capturing data..." % (self.timer.get_utc_now(),
