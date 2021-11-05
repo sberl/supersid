@@ -17,6 +17,14 @@ import tkinter.messagebox as MessageBox
 import tkinter.filedialog as FileDialog
 
 
+class Formatter(object):
+    def __init__(self):
+        pass
+    def __call__(self, x, y):
+        strength = pow(10, (y/10.0))
+        return "frequency=%.0f  " % x + " power=%.3f  " % y + " strength=%.0f" % strength
+
+
 class tkSidViewer():
     """Create the Tkinter GUI."""
 
@@ -75,7 +83,7 @@ class tkSidViewer():
         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
         self.axes = self.psd_figure.add_subplot(111)
-        # self.axes.hold(False)
+        self.axes.format_coord = Formatter()
 
         # StatusBar
         self.statusbar_txt = tk.StringVar()
