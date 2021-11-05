@@ -11,7 +11,7 @@ The default SuperSID project software runs on Windows OS to record the pre-ampli
 
 This *SuperSID* project is an Open Source implementation that runs on Linux and Windows. The scripts are executable by Python 3.
 
-This *SuperSID* includes a text mode which allows to turn your Raspberry Pi in a SID monitor (tested on Raspbian Wheezy & Pidora distro). TkInter in the default GUI to ensure Python 3 compatibility.
+This *SuperSID* includes a text mode which allows to turn your Raspberry Pi into a SID monitor (tested on Raspbian Wheezy & Pidora distro). TkInter in the default GUI to ensure Python 3 compatibility.
 
 
 |Original Project  |Open Source SuperSID Project
