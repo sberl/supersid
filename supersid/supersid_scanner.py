@@ -244,7 +244,9 @@ if __name__ == '__main__':
             RATE = 44100
             SEC = int(args.record_sec)
 
-        card = pyaudio_soundcard(RATE)
+        config = Config(args.config_file or "supersid.cfg")
+        config.supersid_check()
+        card = pyaudio_soundcard(config['Card'], RATE)
         frames = card.capture(SEC)
         card.close()
 
@@ -252,7 +254,7 @@ if __name__ == '__main__':
         wf.setnchannels(1)
         wf.setsampwidth(card.pa_lib.get_sample_size(card.FORMAT))
         wf.setframerate(RATE)
-        wf.writeframes(b''.join(frames))
+        wf.writeframes(bytearray(frames))
         wf.close()
 
     else:

@@ -24,6 +24,7 @@ This 'device' can be a local sound card:
 #   - modify the __main__ to help debugging the soundcard
 from struct import unpack as st_unpack
 from numpy import array
+import time
 
 from config import DEVICE_DEFAULT  # get value from config.py
 
@@ -79,10 +80,14 @@ try:
 
         def info(self):
             print(self.name, "at", self.audio_sampling_rate, "Hz")
-            one_sec = self.capture_1sec()
-            print(len(one_sec), "bytes read from", self.name, one_sec.shape)
-            print(one_sec[:10])
-            print("Vector sum", one_sec.sum())
+            try:
+                t = time.time()
+                one_sec = self.capture_1sec()
+                print(len(one_sec), "bytes read from", self.name, one_sec.shape, "duration (shall be roughly 1.0)", time.time() - t)
+                print(one_sec[:10])
+                print("Vector sum", one_sec.sum())
+            except IndexError:
+                print("Cannot read", self.name)
 
 except ImportError:
     pass
@@ -117,13 +122,13 @@ try:
         def info(self):
             print(self.name, "at", self.audio_sampling_rate, "Hz")
             try:
+                t = time.time()
                 one_sec = self.capture_1sec()
-                print(len(one_sec), "bytes read from", self.name, one_sec.shape)
+                print(len(one_sec), "bytes read from", self.name, one_sec.shape, "duration (shall be roughly 1.0)", time.time() - t)
                 print(one_sec[:10])
                 print("Vector sum", one_sec.sum())
             except IndexError:
                 print("Cannot read", self.name)
-
 
 except ImportError:
     pass
@@ -134,21 +139,27 @@ try:
     audioModule.append("pyaudio")
 
     class pyaudio_soundcard():
-        def __init__(self, audio_sampling_rate):
+        def __init__(self, device_name, audio_sampling_rate):
             self.FORMAT = pyaudio.paInt16
             self.CHUNK = 1024
             self.pa_lib = pyaudio.PyAudio()
+            self.device_name = device_name
+            self.input_device_index = self.get_device_by_name(self.device_name)
             self.audio_sampling_rate = audio_sampling_rate
 
-            self.pa_stream = self.pa_lib.open(format=self.FORMAT,
-                                              channels=1,
-                                              rate=self.audio_sampling_rate,
-                                              input=True,
-                                              frames_per_buffer=self.CHUNK)
-            self.name = "pyaudio sound card capture"
+            try:
+                self.pa_stream = self.pa_lib.open(format=self.FORMAT,
+                                                  channels=1,
+                                                  rate=self.audio_sampling_rate,
+                                                  input=True,
+                                                  frames_per_buffer=self.CHUNK,
+                                                  input_device_index=self.input_device_index)
+            except Exception as err:
+                print(err)
+            self.name = "pyaudio sound card capture on '{}'".format(device_name)
 
         def capture_1sec(self):
-            raw_data = b''.join(self.capture(1))  # self.pa_stream.read(self.audio_sampling_rate)
+            raw_data = bytearray(self.capture(1))
             unpacked_data = st_unpack("{}h".format(self.audio_sampling_rate),
                                       raw_data)
             return array(unpacked_data)
@@ -172,17 +183,36 @@ try:
             self.pa_stream.close()
             self.pa_lib.terminate()
 
-        def info(self):
+        def query_devices(self):
+            input_device_names = []
             for i in range(self.pa_lib.get_device_count()):
-                print(i, ":", self.pa_lib.get_device_info_by_index(i))
-            print("default device :",
-                  self.pa_lib.get_default_input_device_info())
-            default_capability = self.pa_lib.get_default_host_api_info()
-            print("default device Capability", default_capability)
+                if self.pa_lib.get_device_info_by_index(i)['maxInputChannels'] > 0:     # we are interrested only in input devices
+                    input_device_names.append(self.pa_lib.get_device_info_by_index(i)['name'])
+            return input_device_names
+
+        def get_device_by_name(self, device_name):
+            for i in range(self.pa_lib.get_device_count()):
+                if self.pa_lib.get_device_info_by_index(i)['name'] == device_name:
+                    return i
+            print("Warning: '{}' not found. Falling back to default input device".format(device_name))
+            return None
+
+        def info(self):
+            device_info = self.pa_lib.get_device_info_by_index(self.input_device_index)
+            print(self.input_device_index, ":", device_info['name'])
+            assert((device_info['name'] == self.device_name) or (self.device_name is None))
             is_supported = self.pa_lib.is_format_supported(
                 input_format=self.FORMAT, input_channels=1,
-                rate=self.audio_sampling_rate, input_device=0)
+                rate=self.audio_sampling_rate, input_device=self.input_device_index)
             print("expected format is supported?", is_supported)
+            try:
+                t = time.time()
+                one_sec = self.capture_1sec()
+                print(len(one_sec), "bytes read from", self.name, one_sec.shape, "duration (shall be roughly 1.0)", time.time() - t)
+                print(one_sec[:10])
+                print("Vector sum", one_sec.sum())
+            except IndexError:
+                print("Cannot read", self.name)
 
 except ImportError:
     pass
@@ -202,7 +232,8 @@ class Sampler():
 
         try:
             if controller.config['Audio'] == 'pyaudio':
-                self.capture_device = pyaudio_soundcard(audio_sampling_rate)
+                self.capture_device = pyaudio_soundcard(
+                    controller.config['Card'], audio_sampling_rate)
             elif controller.config['Audio'] == 'sounddevice':
                 self.capture_device = sounddevice_soundcard(
                     controller.config['Card'], audio_sampling_rate)
@@ -270,11 +301,11 @@ if __name__ == '__main__':
         for card in alsaaudio.cards():
             try:
                 print("Accessing", card, "...")
-                for sampling_rate in [48000, 96000]:
+                for sampling_rate in [48000, 96000, 192000]:
                     sc = alsaaudio_soundcard(card, DEVICE_DEFAULT, 1024, sampling_rate)
                     sc.info()
             except alsaaudio.ALSAAudioError as err:
-                print("! ERROR capturing sound on card", card)
+                print("! ERROR capturing sound on card '{}'".format(card))
                 print(err)
     else:
         print("not installed.")
@@ -285,14 +316,14 @@ if __name__ == '__main__':
     if 'sounddevice' in audioModule:
         print(sounddevice.query_devices())
         for device, card in enumerate(sounddevice.query_devices()):
-            # try:
-            print("Accessing", card['name'], "...")
-            for sampling_rate in [48000]:
-                sc = sounddevice_soundcard(device, sampling_rate)
-                sc.info()
-            # except alsaaudio.ALSAAudioError as err:
-            #     print("! ERROR capturing sound on card", card)
-            #     print(err)
+            try:
+                print("Accessing", card['name'], "...")
+                for sampling_rate in [48000, 96000, 192000]:
+                    sc = sounddevice_soundcard(device, sampling_rate)
+                    sc.info()
+            except Exception as err:
+                print("! ERROR capturing sound on card '{}'".format(card))
+                print(err)
     else:
         print("not installed.")
 
@@ -300,7 +331,14 @@ if __name__ == '__main__':
     print("pyaudio:")
 
     if 'pyaudio' in audioModule:
-        sc = pyaudio_soundcard(48000)
-        sc.info()
+        print(pyaudio_soundcard(None, 48000).query_devices())
+        for device_name in pyaudio_soundcard(None, 48000).query_devices():
+            try:
+                for sampling_rate in [48000, 96000, 192000]:
+                    sc = pyaudio_soundcard(device_name, sampling_rate)
+                    sc.info()
+            except Exception as err:
+                 print("! ERROR capturing sound on card '{}'".format(device_name))
+                 print(err)
     else:
         print("not installed.")
