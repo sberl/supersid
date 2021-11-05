@@ -7,22 +7,14 @@ tkSidViewer class - a graphical user interface for SID based on tkinter.
 2017/09/01: add vertical lines on the plot for each monitored station
 
 """
-from __future__ import print_function
 import matplotlib
 # matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-# handle both Python 2 and 3
-try:  # python 3
-    import tkinter as tk
-    import tkinter.messagebox as MessageBox
-    import tkinter.filedialog as FileDialog
-except ImportError:
-    # python 2
-    import Tkinter as tk
-    import tkMessageBox as MessageBox
-    import tkFileDialog as FileDialog
+import tkinter as tk
+import tkinter.messagebox as MessageBox
+import tkinter.filedialog as FileDialog
 
 
 class tkSidViewer():

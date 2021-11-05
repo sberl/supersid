@@ -73,11 +73,13 @@ This section can be omitted if you plan to use the 'pyaudio' library. If you wan
 
 ## [Email] ##
 The 'supersid_plot.py' program can send you an email with the attached plot as a PDF file. In order to use this feature, you must provide the information necessary to contact your email server as well as which email to use.
-  * from_mail: sender's emai
-  * to_mail: recipient's email
+  * from_mail: sender's email
   * email_server: email server to use (SMPT)
+  * email_port: email server's port (SMPT)
+  * email_tls: email server requires TLS **yes** / **no** (default)
   * email_login: [optional] if your server requires a login for identification
   * email_password: [optional] if your server requires a password for identification
+  * paper_size: one of A3, A4, A5, Legal, Letter
   
 <div id='id-section5'/>
 

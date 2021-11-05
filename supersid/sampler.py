@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
 Sampler handles audio data capture.
 
@@ -22,7 +22,6 @@ This 'device' can be a local sound card:
 """
 # 20150801:
 #   - modify the __main__ to help debugging the soundcard
-from __future__ import print_function   # use the new Python 3 'print' function
 from struct import unpack as st_unpack
 from numpy import array
 
@@ -59,12 +58,12 @@ try:
                 print("alsaaudio using card", card)
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
-                                         card)
+                                         channels=1,
+                                         rate=audio_sampling_rate,
+                                         format=self.FORMAT,
+                                         periodsize=periodsize,
+                                         device=card)
                 self.name = "alsaaudio sound card capture on " + card
-                self.inp.setchannels(1)
-                self.inp.setrate(audio_sampling_rate)
-                self.inp.setperiodsize(periodsize)
-                self.inp.setformat(self.FORMAT)
 
         def capture_1sec(self):
             raw_data = b''
@@ -272,7 +271,7 @@ if __name__ == '__main__':
             try:
                 print("Accessing", card, "...")
                 for sampling_rate in [48000, 96000]:
-                    sc = alsaaudio_soundcard(card, 1024, sampling_rate)
+                    sc = alsaaudio_soundcard(card, DEVICE_DEFAULT, 1024, sampling_rate)
                     sc.info()
             except alsaaudio.ALSAAudioError as err:
                 print("! ERROR capturing sound on card", card)

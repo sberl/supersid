@@ -16,12 +16,8 @@ Note: len(config.stations) == config['number_of_stations'] - sanity check -
 #   20150801:
 #   - add the [FTP] section
 #
-from __future__ import print_function   # use the new Python 3 'print' function
 import os.path
-try:
-    import ConfigParser
-except ImportError:
-    import configparser as ConfigParser
+import configparser
 
 # constant for log_type
 FILTERED, RAW = 'filtered', 'raw'
@@ -55,7 +51,7 @@ class Config(dict):
         dict.__init__(self)         # Config objects are dictionaries
         self.config_ok = True       # Parsing success/failure
         self.config_err = ""        # Parsing failure error message
-        config_parser = ConfigParser.ConfigParser()
+        config_parser = configparser.ConfigParser()
 
         if filename == "supersid.cfg":  # let's look in various places
             self.filenames = config_parser.read(
@@ -117,11 +113,12 @@ class Config(dict):
 
             'Email': (
                         ("from_mail", str, ""),             # sender email
-                        ("to_mail", str, ""),               # recipient email
                         ("email_server", str, ""),          # your email server (SMPT)
                         ("email_port", str, ""),            # your email server's port (SMPT)
+                        ("email_tls", str, "no"),           # your email server requires TLS yes/no
                         ("email_login", str, ""),           # if your server requires a login
-                        ("email_password", str, "")         # if your server requires a passwrd
+                        ("email_password", str, ""),        # if your server requires a password
+                        ("paper_size", str, "A4")           # paper size of the mailed image, one of A3, A4, A5, Legal, Letter
                      ),
             'FTP': (
                     ('automatic_upload',  str, "no"),   # yes/no: to upload the file to the remote FTP server
@@ -142,10 +139,10 @@ class Config(dict):
                     self.config_ok = False
                     self.config_err = "'%s' is not of the type %s in 'supersid.cfg'. Please check." % (pkey, pcast)
                     return
-                except ConfigParser.NoSectionError:
+                except configparser.NoSectionError:
                     # it's ok: some sections are optional
                     pass
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     if pdefault is None:  # missing mandatory parameter
                         self.config_ok = False
                         self.config_err = "'"+pkey+"' is not found in '%s'. Please check." % filename
@@ -169,11 +166,11 @@ class Config(dict):
                 for parameter in (CALL_SIGN, FREQUENCY, COLOR):
                     tmpDict[parameter] = config_parser.get(section, parameter)
                 self.stations.append(tmpDict)
-            except ConfigParser.NoSectionError:
+            except configparser.NoSectionError:
                 self.config_ok = False
                 self.config_err = section + "section is expected but missing from the config file."
                 return
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 self.config_ok = False
                 self.config_err = section + " does not have the 3 expected parameters in the config file. Please check."
                 return
@@ -218,6 +215,20 @@ class Config(dict):
         if self['hourly_save'] not in ('YES', 'NO'):
             self.config_ok = False
             self.config_err = "'hourly_save' must be either 'YES' or 'NO' in supersid.cfg. Please check."
+            return
+
+        # 'email_tls' must be UPPER CASE
+        self['email_tls'] = self['email_tls'].upper()
+        if self['email_tls'] not in ('YES', 'NO'):
+            self.config_ok = False
+            self.config_err = "'email_tls' must be either 'YES' or 'NO' in supersid.cfg. Please check."
+            return
+
+        # 'paper_size' must be UPPER CASE
+        self['paper_size'] = self['paper_size'].upper()
+        if self['paper_size'] not in ('A3', 'A4', 'A5', 'LEGAL', 'LETTER'):
+            self.config_ok = False
+            self.config_err = "'paper_size' must be one of 'A3', 'A4', 'A5', 'Legal' or 'Letter' in supersid.cfg. Please check."
             return
 
         # log_interval should be > 2

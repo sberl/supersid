@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 """
 Send SID data files to Standford FTP server.
@@ -27,7 +27,6 @@ local_tmp = /home/eric/supersid/Private/tmp
 call_signs = NWC:10000,JJI:100000
 
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 import argparse
 from os import path
 import ftplib

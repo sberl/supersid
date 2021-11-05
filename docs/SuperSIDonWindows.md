@@ -18,11 +18,11 @@ As you can notice, **wxPython** is absent as not ported on Python 3. Instead use
 ## SuperSID installtion
 
 Once the environment is setup, fetch the application:
- - You can simply go to https://github.com/ericgibert/supersid and click on the "Download ZIP" button
+ - You can simply go to https://github.com/sberl/supersid and click on the "Download ZIP" button
 **OR**
  - You can first install Git on Windows: http://msysgit.github.io/
 	- I have installed: Git-1.8.3-preview20130601.exe
- - Then issue the command: ````git clone https://github.com/ericgibert/supersid.git````
+ - Then issue the command: ````git clone https://github.com/sberl/supersid.git````
  - In the future, move to *supersid* directory and issue the command ````git pull```` to download the latest updates
 
 

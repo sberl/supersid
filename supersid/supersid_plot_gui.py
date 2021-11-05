@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """A GUI for displaying plot of SuperSID data.
 
     supersid_plot_gui.py

@@ -19,7 +19,6 @@ Note: this program runs on Windows. Tested on Windows 7 and 10.
 ## Python Requirements ##
 
 Python interpreters are installed as:
-- python: Python 2
 - python3: Python 3
 
 To install the necessary modules, you need to be *root* and install all the dependenies listed in `requirements.py`.
@@ -28,18 +27,10 @@ You can install them easily with `pip` using:
 ```
 pip3 install -r requirements.txt
 ```
-or in Python 2:
-```
-pip install -r requirements.txt
-```
 
 If you don't have `pip` installed you can install it by:
 ```
 sudo apt-get install python3-pip
-```
-or for Python 2:
-```
-sudo apt-get install python-pip
 ```
 
 <div id='id-section2'/>
@@ -49,11 +40,6 @@ The original SuperSID program uses PyAudio, which works fine on Windows. But for
 
 After various unsuccessful attempts to run SuperSID with PyAudio, I decided to switch to another library which directly captures sound at ALSA level: **alsaaudio**.  
 
-Python 2:
-````
- # yum/apt-get install python-alsaaudio
-````
-Python 3:
  Try to install the package as your distribution might offer it
 ````
  - dnf/yum/apt-get install python3-alsaaudio
@@ -89,7 +75,7 @@ then this means that alsa-lib is not installed correctly.
 
 Go to your home directory and execute:
 ```
- # git clone https://github.com/ericgibert/supersid.git
+ # git clone https://github.com/sberl/supersid.git
 ```
 In the future, change to the `~/superid` folder and execute `git pull` to update to the latest version.
 
@@ -169,7 +155,7 @@ PeriodSize = 128
 
 To check that the sampler recognizes your card properly, execute the `sample.py` module on its own:
 ````
-python ~/supersid/supersid/sampler.py
+python3 ~/supersid/supersid/sampler.py
 Possible capture modules: ['alsaaudio']
 Accessing MID ...
 alsaaudio sound card capture on sysdefault:CARD=MID at 48000 Hz
@@ -189,7 +175,7 @@ This confirms that both `MID` and `Pro` can be used to capture sound.
 
 On the other hand, on the Raspberry Pi, the card0 is playback only i.e. does not allow capture. Hence the following output:
 ````
-python supersid/supersid/sampler.py
+python3 supersid/supersid/sampler.py
 Possible capture modules: ['alsaaudio']
 Accessing ALSA ...
 ! ERROR accessing card ALSA

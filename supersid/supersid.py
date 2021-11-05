@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python3
 """SuperSID class is the Controller.
 
 supersid.py
@@ -16,7 +16,6 @@ Then it creates its necessary elements:
     - Timer for sampling
     - <still missing> network management with client-server protocol
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 import sys
 import os.path
 import argparse
@@ -73,7 +72,6 @@ class SuperSID():
         if self.config['viewer'] == 'wx':
             # GUI Frame to display real-time VLF Spectrum based on wxPython
             # special case: 'wx' module might not be installed (text mode only)
-            # nor even available (python 3)
             try:
                 from wxsidviewer import wxSidViewer
                 self.viewer = wxSidViewer(self)
@@ -83,7 +81,7 @@ class SuperSID():
                 wx_imported = False
         elif self.config['viewer'] == 'tk':
             # GUI Frame to display real-time VLF Spectrum based on
-            # tkinter (python 2 and 3)
+            # tkinter
             from tksidviewer import tkSidViewer
             self.viewer = tkSidViewer(self)
         elif self.config['viewer'] == 'text':

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """Class SidTimer.
 
 Define a timer with auto-correction to ensure that data acquisition is done
@@ -8,7 +8,6 @@ The auto-correction compensates for the micro-seconds lost from one tick
 Implemenation examples are provided at the source's end,
     which can be used to test the module/class.
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 import time
 from datetime import datetime
 import threading
