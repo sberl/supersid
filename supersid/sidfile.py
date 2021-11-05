@@ -259,7 +259,12 @@ class SidFile():
 
         by adding LogInterval seconds to UTC_StartTime.
         """
-        self.timestamp = numpy.empty(len(self.data[0]), dtype=datetime)
+        if 1 == len(self.data.shape):
+            # self.data is one deminsional if one station is configured
+            self.timestamp = numpy.empty(len(self.data), dtype=datetime)
+        elif 2 == len(self.data.shape):
+            # self.data is two deminsional if more than one station is configured
+            self.timestamp = numpy.empty(len(self.data[0]), dtype=datetime)
         # add 'interval' seconds to UTC_StartTime for each entries
         interval = timedelta(seconds=self.LogInterval)
         currentTimestamp = self.startTime
@@ -290,7 +295,13 @@ class SidFile():
         """Return the numpy array of the given station's data."""
         try:
             idx = self.get_station_index(stationId)
-            return self.data[idx]
+            if 1 == len(self.data.shape):
+                # self.data is one deminsional if one station is configured
+                assert(0 == idx)
+                return self.data
+            elif 2 == len(self.data.shape):
+                # self.data is two deminsional if more than one station is configured
+                return self.data[idx]
         except ValueError:
             return []
 
@@ -361,8 +372,13 @@ class SidFile():
                                        if 'monitor_id' in self.sid_params
                                        else self.sid_params['monitorid'])
         if isSuperSid:
-            hdr += "# Stations = %s\n" % self.sid_params['stations']
-            hdr += "# Frequencies = %s\n" % self.sid_params['frequencies']
+            # if only one station is configured, self.sid_params['stations'] is not present
+            if 'stations' in self.sid_params:
+                hdr += "# Stations = %s\n" % self.sid_params['stations']
+                hdr += "# Frequencies = %s\n" % self.sid_params['frequencies']
+            else:
+                hdr += "# Stations = %s\n" % self.sid_params['stationid']
+                hdr += "# Frequencies = %s\n" % self.sid_params['frequency']
         else:
             hdr += "# StationID = %s\n" % self.sid_params['stationid']
             hdr += "# Frequency = %s\n" % self.sid_params['frequency']
