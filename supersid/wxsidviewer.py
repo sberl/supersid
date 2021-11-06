@@ -15,7 +15,7 @@ import matplotlib
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 import wx
-from wx.lib.pubsub import Publisher
+import wx.adv
 
 import supersid_plot as SSP
 from config import FILTERED, RAW
@@ -97,7 +97,6 @@ class wxSidViewer(wx.Frame):
 
         psd_sizer.Add(self.canvas, 1, wx.EXPAND)
         self.axes = psd_figure.add_subplot(111)
-        self.axes.hold(False)
 
         # StatusBar
         self.status_bar = self.CreateStatusBar()
@@ -108,10 +107,6 @@ class wxSidViewer(wx.Frame):
         psd_sizer.SetItemMinSize(psd_panel, 1000, 600)
         self.Center(True)
         self.Show()
-
-        # create a pubsub receiver for refresh after data capture
-        # ref. link on threads
-        Publisher().subscribe(self.updateDisplay, "update")
 
     def run(self):
         """Implement main loop for the application."""
@@ -135,7 +130,8 @@ class wxSidViewer(wx.Frame):
         if level == 1:
             wx.CallAfter(self.status_display, message)
         elif level == 2:
-            wx.CallAfter(Publisher().sendMessage, "update", message)
+            wx.CallAfter(self.status_display, message)
+            wx.CallAfter(self.updateDisplay, message)
         else:
             self.status_bar.SetStatusText(message, field)
 
@@ -145,7 +141,6 @@ class wxSidViewer(wx.Frame):
 
     def close(self):
         """Request to close by the controller."""
-        self.app.Exit()
         self.Destroy()
 
     def on_exit(self, event):
@@ -164,7 +159,7 @@ class wxSidViewer(wx.Frame):
         """
         filenames = self.controller.save_current_buffers(log_format='supersid_format')
         print("plotting", filenames)
-        SSP.do_main(filenames)
+        SSP.do_main(filenames, config=self.controller.config)
 
     def on_plot_files(self, event):
         """Select multiple files and call supersid_plot module for display."""
@@ -193,12 +188,12 @@ class wxSidViewer(wx.Frame):
 
     def on_about(self, event):
         """Open an About message box."""
-        info = wx.AboutDialogInfo()
+        info = wx.adv.AboutDialogInfo()
         info.SetIcon(wx.Icon('supersid_icon.png', wx.BITMAP_TYPE_PNG))
         info.SetName('SuperSID')
         info.SetDescription(self.controller.about_app())
         info.SetCopyright('(c) Stanford Solar Center and Eric Gibert')
-        wx.AboutBox(info)
+        wx.adv.AboutBox(info)
 
     def on_click(self, event):  # MLP mouse event
         """Following user click on the graph.
@@ -230,6 +225,7 @@ class wxSidViewer(wx.Frame):
     def get_psd(self, data, NFFT, FS):
         """By calling 'psd' within axes, calculates and plots the spectrum."""
         try:
+            self.axes.clear()
             Pxx, freqs = self.axes.psd(data, NFFT=NFFT, Fs=FS)
         except wx.PyDeadObjectError:
             exit(3)
