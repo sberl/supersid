@@ -35,7 +35,7 @@ from email import encoders, utils
 import argparse
 # SuperSID modules
 from sidfile import SidFile
-from config import Config
+from config import readConfig, printConfig, CONFIG_FILE_NAME
 
 try:
     clock = time.process_time   # new in Python 3.3
@@ -303,8 +303,9 @@ if __name__ == '__main__':
      Usage:   supersid_plot.py  "filename*.csv"\n
      Note: " are optional on Windows, mandatory on *nix\n
      Other options:  supersid_plot.py -h\n""")
-    parser.add_argument("-c", "--config", dest="cfg_filename", required=False,
-                        default='', help="SuperSID Configuration file")
+    parser.add_argument("-c", "--config", dest="cfg_filename",
+                        type=exist_file,
+                        default=CONFIG_FILE_NAME, help="Supersid configuration file")
     parser.add_argument("-f", "--file", dest="filename",
                         help="Read SID and SuperSID csv file(s). Wildcards accepted.",
                         metavar="FILE|FILE*.csv")
@@ -335,23 +336,17 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--verbose",
                         action="store_true", dest="verbose", default=False,
                         help="Print more messages.")
-    (args, unk) = parser.parse_known_args()
-    # print ("Options:",args)
-    # print ("Files:", unk)
-    if args.cfg_filename:
-        config = Config(args.cfg_filename)
-        config.supersid_check()
-        if args.verbose:
-            print(args.cfg_filename, "read as config file.")
-            for k, v in config.items():
-                print(k, "=", v)
-            for s in config.stations:
-                print("Station:", s)
-    else:
-        config = {"site_name": ""}
-    # print (config)
+    parser.add_argument('file_list', metavar='file.csv', type=exist_file, nargs='+',
+                    help='file(s) to be plotted')
+    args = parser.parse_args()
+
+    # read the configuration file or exit
+    config = readConfig(args.cfg_filename)
+    if args.verbose:
+        printConfig(config)
+
     if args.filename is None:  # no --file option specified
-        if len(unk) > 0:
+        if len(args.file_list) > 0:
             # last non options arguments are assumed to be a list of file names
             filenames = ",".join(unk)
         else:
@@ -363,7 +358,7 @@ if __name__ == '__main__':
             # stations can be given as a comma delimited string
             # SuperSID id is unique
             lstFileNames = []
-            data_path = config.get("data_path", None) or "../Data"
+            data_path = config.get("data_path")
             if args.station_id is None:  # file name like supersid file format
                 lstFileNames.append("%s/%s_%04d-%02d-%02d.csv" %
                                     (data_path,

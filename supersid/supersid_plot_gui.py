@@ -24,6 +24,7 @@ import ephem
 
 from sidfile import SidFile
 from noaa_flares import NOAA_flares
+from supersid_common import exist_file
 
 
 def m2hm(x, i):
@@ -225,9 +226,10 @@ class Plot_Gui(ttk.Frame):
 if __name__ == '__main__':
     filenames = ""
     parser = argparse.ArgumentParser()
-    (args, unk) = parser.parse_known_args()
-    file_list = [os.path.expanduser(f) for f in unk]
+    parser.add_argument('file_list', metavar='file.csv', type=exist_file, nargs='+',
+                    help='file(s) to be plotted')
+    args = parser.parse_args()
 
     root = tk.Tk()
-    Plot_Gui(root, file_list)
+    Plot_Gui(root, args.file_list)
     root.mainloop()

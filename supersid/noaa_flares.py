@@ -17,6 +17,7 @@ Parameters
 
 import urllib.request
 import urllib.error
+import os
 from os import path
 from datetime import datetime, date
 
@@ -83,7 +84,11 @@ class NOAA_flares(object):
         """
         file_name = "goes-xrs-report_{}.txt".format(self.day[:4]) if self.day[:4] != "2015"  \
                                                     else "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
-        file_path = path.join("..", "Private", file_name)  # must exists else create supersid/Private
+        
+        folder = path.join("..", "Private")
+        if not path.isdir(folder):  # create folder ../Private if it does not exist
+            os.mkdir(folder)
+        file_path = path.join(folder, file_name)
         if not path.isfile(file_path):
             try:
                 url = path.join(self.ngdc_URL, file_name)
