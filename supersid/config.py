@@ -16,8 +16,11 @@ Note: len(config.stations) == config['number_of_stations'] - sanity check -
 #   20150801:
 #   - add the [FTP] section
 #
+import sys
 import os.path
 import configparser
+import argparse
+from supersid_common import exist_file
 
 # constant for log_type
 FILTERED, RAW = 'filtered', 'raw'
@@ -30,16 +33,13 @@ SUPERSID_EXTENDED, BOTH_EXTENDED = 'supersid_extended', 'both_extended'
 # Default value for alsaaudio Device parameter. Should be something the
 # alsaaudio library would never accept.
 DEVICE_DEFAULT = 'FOOBAR1234xyz'
+CONFIG_FILE_NAME = "../Config/supersid.cfg"  # can be overridden on command line
 
 
 class Config(dict):
     """Dictionary containing the key/values pair read from a .cfg file."""
 
-    # default locations for historical reasons
-    CONFIG_PATH_NAME = "../Config/"  # can be overridden on command line
-    DATA_PATH_NAME = "../Data/"  # can be overwritten by 'data_path'
-
-    def __init__(self, filename="supersid.cfg"):
+    def __init__(self, filename):
         """Read the given .cfg file or tries to find one.
 
         Config file is formatted as a .ini windows file
@@ -53,14 +53,7 @@ class Config(dict):
         self.config_err = ""        # Parsing failure error message
         config_parser = configparser.ConfigParser()
 
-        if filename == "supersid.cfg":  # let's look in various places
-            self.filenames = config_parser.read(
-                [Config.CONFIG_PATH_NAME + filename,  # historic location
-                    os.path.join('.', filename),      # current location
-                    os.path.expanduser(os.path.join('~', filename))])  # $home
-        else:
-            # a specific file has been given
-            self.filenames = config_parser.read(filename)
+        self.filenames = config_parser.read(filename)
 
         if len(self.filenames) == 0:
             self.config_ok = False
@@ -78,7 +71,7 @@ class Config(dict):
                         # optional entries
                             ('contact', str, None),             # email of the SuperSID owner
                             ('hourly_save', str, "no"),         # new flag: yes/no to save every hours
-                            ('data_path', str, ""),             # new: to override DATA_PATH_NAME by user
+                            ('data_path', str, "../Data/"),     # data path configuration by the user
                             ('log_format', str, SID_FORMAT),    # sid_format (default), supersid_format
                             ('mode', str, 'Standalone'),        # Server, Client, Standalone (default)
                             ('viewer', str, 'tk'),              # text, wx, tk (default)
@@ -247,12 +240,19 @@ class Config(dict):
             return
 
         # Check the 'data_path' validity and create it as a Config instance property
-        self.data_path = os.path.normpath(self['data_path']
-                                          or Config.DATA_PATH_NAME) + os.sep
+        self.data_path = os.path.normpath(self['data_path']) + os.sep
         if not os.path.isdir(self.data_path):
             self.config_ok = False
             self.config_err = "'data_path' does not point to a valid directory:\n" + self.data_path
             return
+
+        # when present, 'local_tmp' must be a folder
+        if 'local_tmp' in self:
+            self.local_tmp = os.path.normpath(self['local_tmp']) + os.sep
+            if not os.path.isdir(self.local_tmp):
+                self.config_ok = False
+                self.config_err = "'local_tmp' does not point to a valid directory:\n" + self.local_tmp
+                return
 
         # default audio to pyaudio if not declared
         if "Audio" not in self:
@@ -263,20 +263,44 @@ class Config(dict):
         self['plot_offset'] = 0
 
 
-if __name__ == '__main__':
-    import sys
-    # one argument: the .cfg file to read
-    cfg = Config(sys.argv[1])
+def readConfig(cfg_filename):
+    """
+    read and return the configuration or terminate the program
+    """
+    cfg = Config(cfg_filename)
     cfg.supersid_check()
     if cfg.config_ok:
-        print (cfg.filenames, "read successfully:")
+        assert(1 == len(cfg.filenames))
+        print("Config file '{}' read successfully".format(cfg.filenames[0]))
     else:
         print ("Error:", cfg.config_err)
+        sys.exit(1)
+    return cfg
+
+
+def printConfig(cfg):
+    assert(1 == len(cfg.filenames))
+    print("--- Config file " + "-"*26)
+    print("\t{}".format(cfg.filenames[0]))
+    print("--- Sections " + "-"*29)
     for section in sorted(cfg.sectionfound):
-        print ("-", section)
-    print("-"*20)
+        print("\t{}".format(section))
+    print("--- Key Value pairs " + "-"*22)
     for k, v in sorted(cfg.items()):
-        print (k, "=", v)
-    print("-"*20)
+        print("\t{} = {}".format(k, v))
+    print("--- Stations " + "-"*29)
     for st in cfg.stations:
-        print (st)
+        print("\tcall_sign = {}, frequency = {}, color = {}".format(st['call_sign'], st['frequency'], st['color']))
+    
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", dest="cfg_filename",
+                        type=exist_file,
+                        default=CONFIG_FILE_NAME,
+                        help="Supersid configuration file")
+    args = parser.parse_args()
+
+    # read the configuration file or exit
+    cfg = readConfig(args.cfg_filename)
+    printConfig(cfg)

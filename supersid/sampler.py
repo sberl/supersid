@@ -26,7 +26,7 @@ from struct import unpack as st_unpack
 from numpy import array
 import time
 
-from config import DEVICE_DEFAULT  # get value from config.py
+from config import DEVICE_DEFAULT, FREQUENCY # get value from config.py
 
 audioModule = []
 try:
@@ -311,7 +311,7 @@ class Sampler():
             binSample = int(((int(station['frequency'])
                               * self.NFFT) / self.audio_sampling_rate))
             self.monitored_bins.append(binSample)
-            # print ("monitored freq =", station[Config.FREQUENCY],
+            # print ("monitored freq =", station[FREQUENCY],
             # " => bin = ", binSample)
 
     def capture_1sec(self):

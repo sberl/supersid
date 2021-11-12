@@ -75,10 +75,7 @@ class textSidViewer:
         elif s == '?':
             self.print_menu()
         elif s == 'c':
-            print("\nConfig file(s):", self.controller.config.filenames)
-            for key in sorted(self.controller.config.keys()):
-                print("\t%s = %s" % (key, str(self.controller.config[key])))
-            print("Stations:", self.controller.config.stations)
+            printConfig(self.controller.config)
         elif s == 'v':
             print("\n")
             print(self.controller.about_app())
