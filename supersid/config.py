@@ -20,7 +20,7 @@ import sys
 import os.path
 import configparser
 import argparse
-from supersid_common import exist_file
+from supersid_common import *
 
 # constant for log_type
 FILTERED, RAW = 'filtered', 'raw'
@@ -33,7 +33,7 @@ SUPERSID_EXTENDED, BOTH_EXTENDED = 'supersid_extended', 'both_extended'
 # Default value for alsaaudio Device parameter. Should be something the
 # alsaaudio library would never accept.
 DEVICE_DEFAULT = 'FOOBAR1234xyz'
-CONFIG_FILE_NAME = "../Config/supersid.cfg"  # can be overridden on command line
+CONFIG_FILE_NAME = script_relative_to_cwd_relative("../Config/supersid.cfg")  # can be overridden on command line
 
 
 class Config(dict):
@@ -240,7 +240,8 @@ class Config(dict):
             return
 
         # Check the 'data_path' validity and create it as a Config instance property
-        self.data_path = os.path.normpath(self['data_path']) + os.sep
+        self['data_path'] = script_relative_to_cwd_relative(self['data_path']) + os.sep
+        self.data_path = self['data_path']
         if not os.path.isdir(self.data_path):
             self.config_ok = False
             self.config_err = "'data_path' does not point to a valid directory:\n" + self.data_path
@@ -248,7 +249,8 @@ class Config(dict):
 
         # when present, 'local_tmp' must be a folder
         if 'local_tmp' in self:
-            self.local_tmp = os.path.normpath(self['local_tmp']) + os.sep
+            self['local_tmp'] = script_relative_to_cwd_relative(self['local_tmp']) + os.sep
+            self.local_tmp = self['local_tmp']
             if not os.path.isdir(self.local_tmp):
                 self.config_ok = False
                 self.config_err = "'local_tmp' does not point to a valid directory:\n" + self.local_tmp
@@ -257,10 +259,6 @@ class Config(dict):
         # default audio to pyaudio if not declared
         if "Audio" not in self:
             self["Audio"] = "pyaudio"
-
-        # Just one choice: 'plot_offset = 0', for now
-        # not in the expected parameters list
-        self['plot_offset'] = 0
 
 
 def readConfig(cfg_filename):
@@ -279,6 +277,9 @@ def readConfig(cfg_filename):
 
 
 def printConfig(cfg):
+    """
+    print the configuration in a nice format
+    """
     assert(1 == len(cfg.filenames))
     print("--- Config file " + "-"*26)
     print("\t{}".format(cfg.filenames[0]))
@@ -291,7 +292,7 @@ def printConfig(cfg):
     print("--- Stations " + "-"*29)
     for st in cfg.stations:
         print("\tcall_sign = {}, frequency = {}, color = {}".format(st['call_sign'], st['frequency'], st['color']))
-    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

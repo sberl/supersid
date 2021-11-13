@@ -21,6 +21,8 @@ import os
 from os import path
 from datetime import datetime, date
 
+from supersid_common import *
+
 
 class NOAA_flares(object):
     """This object carries a list of all events of a given day."""
@@ -84,8 +86,8 @@ class NOAA_flares(object):
         """
         file_name = "goes-xrs-report_{}.txt".format(self.day[:4]) if self.day[:4] != "2015"  \
                                                     else "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
-        
-        folder = path.join("..", "Private")
+
+        folder = script_relative_to_cwd_relative(path.join("..", "Private"))
         if not path.isdir(folder):  # create folder ../Private if it does not exist
             os.mkdir(folder)
         file_path = path.join(folder, file_name)

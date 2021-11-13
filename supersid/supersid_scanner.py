@@ -34,14 +34,14 @@ class SuperSID_scanner():
 
     running = False  # class attribute indicates if the application is running
 
-    def __init__(self, config_file='', scan_params=(15, 16000, 24000)):
+    def __init__(self, config_file, scan_params=(15, 16000, 24000)):
         self.version = "1.3.1 20130910"
         self.timer = None
         self.sampler = None
         self.viewer = None
 
         # read the configuration file or exit
-        self.config = readConfig(args.cfg_filename)
+        self.config = readConfig(config_file)
 
         (self.scan_duration, self.scan_from, self.scan_to) = scan_params
         print ("Scanning for %d minutes on [%d:%d]..." % scan_params)
@@ -51,6 +51,7 @@ class SuperSID_scanner():
             new_station = {}
             new_station['call_sign'] = "ST_%d" % freq
             new_station['frequency'] = str(freq)
+            new_station['color'] = ''
             self.config.stations.append(new_station)
 
         # Create Logger -
@@ -89,6 +90,9 @@ class SuperSID_scanner():
         self.timer = SidTimer(self.config['log_interval'], self.on_timer,
                               delay=2)
         self.scan_end_time = self.timer.start_time + 60 * self.scan_duration
+
+    def about_app(self):
+        return self.version
 
     def clear_all_data_buffers(self):
         """Clear the current memory buffers and pass to the next day."""

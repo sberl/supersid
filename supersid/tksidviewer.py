@@ -162,7 +162,10 @@ class tkSidViewer():
                 saved_files = self.controller.save_current_buffers(filename,
                                                                    log_type='filtered',
                                                                    log_format='supersid')
-        MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
+            else:
+                saved_files = None
+        if saved_files:
+            MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
 
     def on_about(self):
         """Display the About box message."""

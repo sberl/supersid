@@ -83,7 +83,7 @@ try:
             try:
                 t = time.time()
                 one_sec = self.capture_1sec()
-                print("{:6d} {} read from {}, shape {}, duration {:3.2f}".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, time.time() - t))
+                print("{:6d} {} read from {}, shape {}, duration {:3.2f}, sum {}".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, time.time() - t, one_sec[:10].sum()))
                 print(one_sec[:10])
                 print("Vector sum", one_sec.sum())
             except IndexError:
@@ -116,7 +116,7 @@ try:
                 for i, device_info in enumerate(sounddevice.query_devices()):
                     if (device_info['hostapi'] == hostapi) and (device_info['name'] == name):
                         return i
-            print("Warning: '{}' not found".format(device_name))
+            print("Warning: sounddevice Device '{}' not found".format(device_name))
             return None
 
         @staticmethod
@@ -125,7 +125,7 @@ try:
             for index, host_api_info in enumerate(hostapis):
                 if host_api_info['name'] == hostapi_name:
                     return index
-            print("Warning: '{}' not found".format(hostapi_name))
+            print("Warning: sounddevice Host API '{}' not found".format(hostapi_name))
             return None
 
         def __init__(self, device_name, audio_sampling_rate):
@@ -159,7 +159,7 @@ try:
             try:
                 t = time.time()
                 one_sec = self.capture_1sec()
-                print("{:6d} {} read from {}, shape {}, duration {:3.2f}".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, time.time() - t))
+                print("{:6d} {} read from {}, shape {}, duration {:3.2f}, sum {}".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, time.time() - t, one_sec[:10].sum()))
                 print(one_sec[:10])
                 print("Vector sum", one_sec.sum())
             except IndexError:
@@ -194,7 +194,7 @@ try:
                     device_info = pyaudio.PyAudio().get_device_info_by_index(i)
                     if (device_info['hostApi'] == hostApi) and (device_info['name'] == name):
                         return i
-            print("Warning: '{}' not found.".format(device_name))
+            print("Warning: pyaudio Device '{}' not found.".format(device_name))
             return None
 
         @staticmethod
@@ -203,7 +203,7 @@ try:
                 host_api_info = pyaudio.PyAudio().get_host_api_info_by_index(i)
                 if host_api_info['name'] == hostapi_name:
                     return host_api_info['index']
-            print("Warning: '{}' not found".format(hostapi_name))
+            print("Warning: pyaudio Host API '{}' not found".format(hostapi_name))
             return None
 
         def __init__(self, device_name, audio_sampling_rate):
@@ -256,7 +256,7 @@ try:
             try:
                 t = time.time()
                 one_sec = self.capture_1sec()
-                print("{:6d} {} read from {}, shape {}, duration {:3.2f}".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, time.time() - t))
+                print("{:6d} {} read from {}, shape {}, duration {:3.2f}, sum {}".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, time.time() - t, one_sec[:10].sum()))
                 print(one_sec[:10])
                 print("Vector sum", one_sec.sum())
             except IndexError:

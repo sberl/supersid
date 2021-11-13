@@ -36,6 +36,7 @@ import argparse
 # SuperSID modules
 from sidfile import SidFile
 from config import readConfig, printConfig, CONFIG_FILE_NAME
+from supersid_common import exist_file
 
 try:
     clock = time.process_time   # new in Python 3.3
@@ -118,6 +119,13 @@ class SUPERSID_PLOT():
         d = t.day
         return '%(y)04d-%(m)02d-%(d)02d --' % {'y': y, 'm': m, 'd': d}
 
+    def get_station_color(self, config, call_sign):
+        if config:
+            for station in config.stations:
+                if call_sign == station['call_sign']:
+                    return station['color'] or None
+        return None
+
     def plot_filelist(self, filelist, showPlot=True, eMail=None, pdf=None,
                       web=False, config=None):
         """Read the files in the filelist parameters.
@@ -178,8 +186,10 @@ class SUPERSID_PLOT():
             for station in sFile.stations:
                 # Does this station already have a color? if not, reserve one
                 if station not in colorStation:
-                    colorStation[station] = colorList[colorIdx % len(colorList)] + '-'  # format like 'b-'
-                    colorIdx += 1
+                    colorStation[station] = self.get_station_color(config, station)
+                    if (colorStation[station] is None):
+                        colorStation[station] = colorList[colorIdx % len(colorList)] + '-'  # format like 'b-'
+                        colorIdx += 1
                 # Add points to the plot
                 plt.plot_date(sFile.timestamp,
                               sFile.get_station_data(station),
@@ -336,7 +346,7 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--verbose",
                         action="store_true", dest="verbose", default=False,
                         help="Print more messages.")
-    parser.add_argument('file_list', metavar='file.csv', type=exist_file, nargs='+',
+    parser.add_argument('file_list', metavar='file.csv', type=exist_file, nargs='*',
                     help='file(s) to be plotted')
     args = parser.parse_args()
 
