@@ -1,195 +1,141 @@
-# SuperSID on Linux #
+# SuperSID on Linux (Ubuntu Server 20.04.3 LTS)
 
-Version 1.4 20150801
+## Preparation
 
-Implementation of the SuperSID program to record Solar Induced Disturbances.
+[Set up your Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi) with the image **UBUNTU SERVER 20.04.3 LTS (RPI 3/4/400)** *64 bit server OS with long-term support for arm64 architectures*.
+Boot on the new micro-SD card, follow normal process for any fresh system install. Connect to the internet.
 
-Program is tested on Fedora 16, 20, 22, Ubuntu 18.04 on Desktop PC and Debian Wheezy, Buster & Pidorra on **Raspberry Pi**.
- 
-Note: this program runs on Windows. Tested on Windows 7 and 10.
-
-## Table of Content
-- [Python Requirements](#id-section1)
-- [Sound Card Configuration](#id-section2)
-- [To install SuperSid](#id-section3)
-- [Execution](#id-section4)
-
-<div id='id-section1'/>
-
-## Python Requirements ##
-
-Python interpreters are installed as:
-- python3: Python 3
-
-To install the necessary modules, you need to be *root* and install all the dependenies listed in `requirements.py`.
-
-You can install them easily with `pip` using:
+Install the x-server.
+```console
+    $ sudo apt install xinit
 ```
-pip3 install -r requirements.txt
+Reboot. X will start.
+Do the language setup and further required settings like WiFi, language, keyboard layout, time zone, ...
+Verify in the settings your sound card is set as input and output device.
+
+Execute the classic:
+```console
+    $ sudo apt-get update
+    $ sudo apt-get upgrade
 ```
 
-If you don't have `pip` installed you can install it by:
+
+## 1) Get the latest supersid software
+
+Get the source from GitHub.com
+
+```console
+    $ cd ~
+    $ git clone https://github.com/sberl/supersid.git
 ```
-sudo apt-get install python3-pip
+
+To update (pull) to the latest version, do:
+```console
+    $ cd ~/supersid
+    $ git pull
 ```
 
-<div id='id-section2'/>
 
-## Sound Card Configuration ##
-The original SuperSID program uses PyAudio, which works fine on Windows. But for Linux, with ALSA, it is rather frustrating: mode selection (with high sampling rate) is not always successfull, **`jackd`** is requiered but its configuration is not cumbersome.
+## 2) Extra software
 
-After various unsuccessful attempts to run SuperSID with PyAudio, I decided to switch to another library which directly captures sound at ALSA level: **alsaaudio**.  
-
- Try to install the package as your distribution might offer it
-````
- - dnf/yum/apt-get install python3-alsaaudio
-````
-
-if you have:
+Time synchro over the Internet:
+```console
+    $ sudo apt-get install ntpdate ntp
 ```
-alsaaudio.c:28:28: fatal error: alsa/asoundlib.h: No such file or directory
-     #include <alsa/asoundlib.h>
-                                ^
-    compilation terminated.
-    error: command 'gcc' failed with exit status 1
+Follow the tutorial [Raspberry Pi sync date and time](https://victorhurdugaci.com/raspberry-pi-sync-date-and-time)
 
-````
-then this means that alsa-lib is not installed correctly.
-- On Debian/Ubuntu, install a package called libasound2-dev
-- On SuSe, you can probably `zypper install -C 'pkgconfig(alsa)'` (I think the -C is correct... for "capabilities")
-- On Fedora, it's `dnf/yum install 'pkgconfig(alsa)'`
-
-
-
- Else *a la mano*:
-````
- - yum install 'pkgconfig(alsa)'
- - go to https://pypi.python.org/pypi/pyalsaaudio
- - download and unpack the latest pyalsaaudio-___.tar.gz  (my current version: 0.8.2)
- - change to this directory
- - as *root* or with *sudo*:  python3 setup.py install 
-````
-
-<div id='id-section3'/>
-## To install SuperSid ##
-
-Go to your home directory and execute:
+Optional: Virtualenv management for Python:
+```console
+    $ sudo apt-get install mkvirtualenv
 ```
- # git clone https://github.com/sberl/supersid.git
+
+Numpy also requires a special package (for opening `shared object (.so)` files):
+```console
+    $ sudo apt-get install libatlas-base-dev
 ```
-In the future, change to the `~/superid` folder and execute `git pull` to update to the latest version.
-
-A *supersid* folder is created with all the software and its documentation. Change to this directory (*cd supersid*).
-Create two sub-directories:
-- *mkdir Data*
-- *mkdir Private*
-
-Copy the supersid cfg files in the Config folder to the Private folder: you can now edit them to match your configuration, including changing the *data_path* to point to the *Data* sub-folder you just created.
 
 
-## Specific `supersid.*.cfg` Section ##
-A new section for Linux capture needs can be declared in `Config/supersid.*.cfg`. 
+## 3) Installing SuperSID
 
-````
-[Capture]
-# Default is Audio=pyaudio
-Audio=alsaaudio
-Card=External  
-PeriodSize=128
-````
+### 3.1) optional virtual environment
 
-#### Card
-Specify which sound card to use in the `Card` entry. To know which sound card are recognized on your Linux box execute `ls -l /proc/asound/`.  
+This step is optional. Creating your own environment allows to install libraries in all freedom,
+without `sudo` and ensure you have a coherent and working set of libraries (soundcard).
+If your Raspi is dedicated to SuperSID then you can skip this step and install all globally.
 
-Example on my Raspberry Pi B:
-````
-> ls -l /proc/asound/  
-total 0
-lrwxrwxrwx 1 root root 5 Jul 19 10:42 ALSA -> card0
-dr-xr-xr-x 3 root root 0 Jul 19 10:42 card0
-dr-xr-xr-x 4 root root 0 Jul 19 10:42 card1
--r--r--r-- 1 root root 0 Jul 19 10:42 cards
--r--r--r-- 1 root root 0 Jul 19 10:42 devices
-lrwxrwxrwx 1 root root 5 Jul 19 10:42 External -> card1
--r--r--r-- 1 root root 0 Jul 19 10:42 hwdep
-dr-xr-xr-x 2 root root 0 Jul 19 10:42 oss
--r--r--r-- 1 root root 0 Jul 19 10:42 pcm
-dr-xr-xr-x 2 root root 0 Jul 19 10:42 seq
--r--r--r-- 1 root root 0 Jul 19 10:42 timers
--r--r--r-- 1 root root 0 Jul 19 10:42 version
-````
-Here the USB soundcard is identified as `External`. Thus the [Capture] section of the config file will be:
-````
-[Capture]
-Audio=alsaaudio
-Card=External
-PeriodSize = 128
-````
+From /home/pi:
+```console
+    $ cd ~/supersid
+    $ mkvirtualenv -p /usr/bin/python3 supersid
+    $ workon supersid
+    $ toggleglobalsitepackages
+```
 
-Other example on my PC:
-````
-ls -l /proc/asound/
-total 0
-dr-xr-xr-x. 6 root root 0 Jul 19 10:44 card0
-dr-xr-xr-x. 3 root root 0 Jul 19 10:44 card1
--r--r--r--. 1 root root 0 Jul 19 10:44 cards
--r--r--r--. 1 root root 0 Jul 19 10:44 devices
--r--r--r--. 1 root root 0 Jul 19 10:44 hwdep
-lrwxrwxrwx. 1 root root 5 Jul 19 10:44 MID -> card0
--r--r--r--. 1 root root 0 Jul 19 10:44 modules
-dr-xr-xr-x. 2 root root 0 Jul 19 10:44 oss
--r--r--r--. 1 root root 0 Jul 19 10:44 pcm
-lrwxrwxrwx. 1 root root 5 Jul 19 10:44 Pro -> card1
-dr-xr-xr-x. 2 root root 0 Jul 19 10:44 seq
--r--r--r--. 1 root root 0 Jul 19 10:44 timers
--r--r--r--. 1 root root 0 Jul 19 10:44 version
-````
+Your prompt should now start with '(supersid)'
 
-I choose the MID card as the second card is my webcam:
-````
-[Capture]
-Audio=alsaaudio
-Card=MID
-PeriodSize = 128
-````
+This also ensures that we run in Python 3.7.3 as per current configuration.
 
-To check that the sampler recognizes your card properly, execute the `sample.py` module on its own:
-````
-python3 ~/supersid/supersid/sampler.py
-Possible capture modules: ['alsaaudio']
-Accessing MID ...
-alsaaudio sound card capture on sysdefault:CARD=MID at 48000 Hz
-48000 bytes read from alsaaudio sound card capture on sysdefault:CARD=MID
-alsaaudio sound card capture on sysdefault:CARD=MID at 96000 Hz
-96000 bytes read from alsaaudio sound card capture on sysdefault:CARD=MID
-Accessing Pro ...
-alsaaudio sound card capture on sysdefault:CARD=Pro at 48000 Hz
-48000 bytes read from alsaaudio sound card capture on sysdefault:CARD=Pro
-alsaaudio sound card capture on sysdefault:CARD=Pro at 96000 Hz
-! ERROR capturing sound on card Pro
-Capture data too large. Try decreasing period size
 
-````
+### 3.2) Global or local installation
 
-This confirms that both `MID` and `Pro` can be used to capture sound.
+This Raspi 3 is dedicated to SuperSid or you do not plan to mix various libraries: install at system level all the libraries.
+You can do so exactly like you would do in linux, for an local installation inside the virtual environement by first executing 'workon supersid'.
 
-On the other hand, on the Raspberry Pi, the card0 is playback only i.e. does not allow capture. Hence the following output:
-````
-python3 supersid/supersid/sampler.py
-Possible capture modules: ['alsaaudio']
-Accessing ALSA ...
-! ERROR accessing card ALSA
-Accessing External ...
-alsaaudio sound card capture on sysdefault:CARD=External at 48000 Hz
-````
 
-The first soundcard `ALSA` does not allow capture. You need to use the second card (in my case `External`).
+```console
+    $ sudo apt-get install python3-matplotlib
+    $ sudo apt-get install python3-pip
+    $ sudo apt-get install libasound2-dev
+    $ pip3 install -r requirements.txt
+```
 
-#### PeriodSize
-Number of frame ... If too big then error `error message` will be returned.
-Start with `PeriodSize = 128` and optionaly try out larger power.
+Optional and not required. Install when you want to test additonal audio libraries:
 
-<div id='id-section4'/>
-## Execution ##
+```console
+    sudo apt install libportaudio2
+    pip3 install sounddevice
+    $ sudo apt-get install python3-pyaudio
+```
 
-You can execute *~/supersid/supersid.py ~/supersid/Private/superdid.text.cfg* (or any .cfg of your choice).
+
+## 4) Choose your USB Soundcard
+
+Execute first the command `alsamixer` to ensure that the card is recorgnized and in proper order of functioning.
+Make sure that sound can be captured from it, and that the input volume is between 80 and 90.
+
+Do the following:
+
+```console
+    $ cd ~/supersid/supersid
+    $ python3 sampler.py
+```
+
+Find the right card line you want to use based on the card name and the frequency you want to sample.
+Make sure that the time is approximately one second, not fractions of a second and not multiples of a second.
+
+```example
+    alsaaudio sound card capture on sysdefault:CARD=External at 48000 Hz
+    48000 bytes read from alsaaudio sound card capture on sysdefault:CARD=External (48000,)
+```
+
+The corresponding lines of the configuration file 'supersid.cfg':
+```example
+    [PARAMETERS]
+    audio_sampling_rate = 48000
+
+    [Capture]
+    Audio = alsaaudio
+    Card = External
+    PeriodSize = 128
+```
+
+## 6) Adapt the your supersid\Config\supersid.cfg file
+
+See [ConfigHelp.md](./ConfigHelp.md)
+
+## 7) Start the SuperSID program
+
+```console
+    $ cd ~/supersid/supersid
+    $ python3 supersid.py -c=../Config/supersid.cfg
+```

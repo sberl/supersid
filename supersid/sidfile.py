@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 import numpy
 
 from config import FILTERED, RAW
+from supersid_common import exist_file
 
 USAGE = """
 Provide some utilities to manipulate SID/SuperSID files:
@@ -508,16 +509,6 @@ if __name__ == '__main__':
     from os import path
     import argparse
 
-    def exist_file(x):
-        """
-        Check that file exists, but does not open it.
-
-        'Type' for argparse -
-        """
-        if not path.isfile(x):
-            raise argparse.ArgumentError("{0} does not exist".format(x))
-        return x
-
     # /original/path/name.merge.ext
     fmerge = lambda x: "%s.merge%s" % path.splitext(x)
 
@@ -538,7 +529,7 @@ if __name__ == '__main__':
     parser.add_argument("-b", "--bema_wing", dest="bema_wing", required=False,
                         type=int, default=6,
                         help="Width of the window used in filtering a.k.a. 'bema_wing' (default=6)")
-    args, unk = parser.parse_known_args()
+    args = parser.parse_args()
     if args.filename_info:
         sid = SidFile(args.filename_info, force_read_timestamp=True)
         print("-" * 5, "Header information", "-" * 5)

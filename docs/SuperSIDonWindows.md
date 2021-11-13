@@ -1,4 +1,4 @@
-# SuperSID on Windows
+# SuperSID on Windows 10
 
 ## 1) Install Python
 

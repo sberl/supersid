@@ -1,13 +1,14 @@
-# SuperSID on Raspberry Pi 3
+# SuperSID on Raspberry Pi 3 with Rapberry OS
 
 ## Preparation
 
-[Set up your Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi) with the image *buster*.
-Boot on the new micro-SD card, follow normal process for any fresh system install.
+[Set up your Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi) with the image **Raspberry OS (32-bit)**. AT the date of the installation this corresponds to *buster*.
+Boot on the new micro-SD card, follow normal process for any fresh system install. Connect to the internet.
+
 Execute the classic:
 ```console
-    $ apt-get update
-    $ apt-get upgrade
+    $ sudo apt-get update
+    $ sudo apt-get upgrade
 ```
 
 
@@ -186,5 +187,5 @@ See [ConfigHelp.md](./ConfigHelp.md)
 
 ```console
     $ cd ~/supersid/supersid
-    > supersid.py -c=../Config/supersid.cfg
+    $ python3 supersid.py -c=../Config/supersid.cfg
 ```

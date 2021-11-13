@@ -19,6 +19,7 @@ import wx.adv
 
 import supersid_plot as SSP
 from config import FILTERED, RAW
+from supersid_common import *
 
 
 class wxSidViewer(wx.Frame):
@@ -50,7 +51,7 @@ class wxSidViewer(wx.Frame):
 
         # Icon
         try:
-            self.SetIcon(wx.Icon("supersid_icon.png", wx.BITMAP_TYPE_PNG))
+            self.SetIcon(wx.Icon(script_relative_to_cwd_relative("supersid_icon.png"), wx.BITMAP_TYPE_PNG))
         finally:
             pass
 
@@ -172,7 +173,7 @@ class wxSidViewer(wx.Frame):
         if filedialog.ShowModal() == wx.ID_OK:
             filelist = ""
             for u_filename in filedialog.GetFilenames():
-                filelist = str(filelist + "../Data/" + str(u_filename) + ",")
+                filelist = str(filelist + self.controller.config.data_path + str(u_filename) + ",")
             filelist = filelist.rstrip(',')  # remove last comma
 
             ssp = SSP.SUPERSID_PLOT()
@@ -189,7 +190,7 @@ class wxSidViewer(wx.Frame):
     def on_about(self, event):
         """Open an About message box."""
         info = wx.adv.AboutDialogInfo()
-        info.SetIcon(wx.Icon('supersid_icon.png', wx.BITMAP_TYPE_PNG))
+        info.SetIcon(wx.Icon(script_relative_to_cwd_relative('supersid_icon.png'), wx.BITMAP_TYPE_PNG))
         info.SetName('SuperSID')
         info.SetDescription(self.controller.about_app())
         info.SetCopyright('(c) Stanford Solar Center and Eric Gibert')

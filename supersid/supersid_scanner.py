@@ -19,9 +19,10 @@ import argparse
 # SuperSID Package classes
 from sidtimer import SidTimer
 from sampler import Sampler
-from config import Config
+from config import readConfig, CONFIG_FILE_NAME
 from logger import Logger
 from textsidviewer import textSidViewer
+from supersid_common import exist_file
 
 
 class SuperSID_scanner():
@@ -33,25 +34,14 @@ class SuperSID_scanner():
 
     running = False  # class attribute indicates if the application is running
 
-    def __init__(self, config_file='', scan_params=(15, 16000, 24000)):
+    def __init__(self, config_file, scan_params=(15, 16000, 24000)):
         self.version = "1.3.1 20130910"
         self.timer = None
         self.sampler = None
         self.viewer = None
 
-        # Read Config file here
-        print("Reading supersid.cfg ...", end='')
-        # this script accepts a .cfg file as optional argument else we default
-        # so that the "historical location" or the local path are explored
-        self.config = Config(config_file or "supersid.cfg")
-        # once the .cfg read, some sanity checks are necessary
-        self.config.supersid_check()
-        if not self.config.config_ok:
-            print("ERROR:", self.config.config_err)
-            exit(1)
-        else:
-            # good for debugging: what .cfg file(s) were actually read
-            print(self.config.filenames)
+        # read the configuration file or exit
+        self.config = readConfig(config_file)
 
         (self.scan_duration, self.scan_from, self.scan_to) = scan_params
         print ("Scanning for %d minutes on [%d:%d]..." % scan_params)
@@ -61,6 +51,7 @@ class SuperSID_scanner():
             new_station = {}
             new_station['call_sign'] = "ST_%d" % freq
             new_station['frequency'] = str(freq)
+            new_station['color'] = ''
             self.config.stations.append(new_station)
 
         # Create Logger -
@@ -99,6 +90,9 @@ class SuperSID_scanner():
         self.timer = SidTimer(self.config['log_interval'], self.on_timer,
                               delay=2)
         self.scan_end_time = self.timer.start_time + 60 * self.scan_duration
+
+    def about_app(self):
+        return self.version
 
     def clear_all_data_buffers(self):
         """Clear the current memory buffers and pass to the next day."""
@@ -206,15 +200,6 @@ class SuperSID_scanner():
         self.__class__.running = False
 
 
-# ----------------------------------------------------------------------------
-def exist_file(x):
-    """
-    'Type' for argparse - checks that file exists but does not open.
-    """
-    if not os.path.isfile(x):
-        raise argparse.ArgumentError('{} does not exist'.format(x))
-    return x
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--duration", dest="scan_duration",
@@ -228,8 +213,10 @@ if __name__ == '__main__':
                         help="Scan to the given frequency")
     parser.add_argument("-r", "--record", dest="record_sec", required=False,
                         help="record specified seconds of sound - testing pyaudio")
-    parser.add_argument('config_file', nargs='?', default='')
-    args, unk = parser.parse_known_args()
+    parser.add_argument("-c", "--config", dest="config_file",
+                        type=exist_file,
+                        default=CONFIG_FILE_NAME, help="Supersid configuration file")
+    args = parser.parse_args()
 
     if args.record_sec:
         from sampler import pyaudio_soundcard
@@ -244,7 +231,7 @@ if __name__ == '__main__':
             RATE = 44100
             SEC = int(args.record_sec)
 
-        config = Config(args.config_file or "supersid.cfg")
+        config = readConfig(args.config_file)
         config.supersid_check()
         card = pyaudio_soundcard(config['Card'], RATE)
         frames = card.capture(SEC)
