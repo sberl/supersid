@@ -36,6 +36,7 @@ tested_versions = {
     'cycler': {'versions': ['0.10.0', '0.11.0'], 'requirement': 'mandatory'},
     'six': {'versions': ['1.12.0', '1.16.0'], 'requirement': 'mandatory'},
     'kiwisolver': {'versions': ['1.3.1', '1.3.2'], 'requirement': 'mandatory'},
+    'numpy': {'versions': ['1.21.2', '1.21.3', '1.21.4+vanilla'], 'requirement': 'mandatory'},
     'pillow': {'versions': ['8.4.0'], 'requirement': 'mandatory'},
     'pyparsing': {'versions': ['2.4.7', '3.0.4'], 'requirement': 'mandatory'},
     'python-dateutil': {'versions': ['2.8.2'], 'requirement': 'mandatory'},
@@ -55,8 +56,8 @@ tested_versions = {
 
     # standalone
     'python': {'versions': ['3.7.3', '3.8.12', '3.9.7'], 'requirement': 'mandatory'},
+    'pip': {'versions': ['21.0.1', '21.2.2', '21.3.1'], 'requirement': 'mandatory'},
     'pyaudio': {'versions': ['0.2.11'], 'requirement': 'optional'},
-    'numpy': {'versions': ['1.21.2', '1.21.3', '1.21.4+vanilla'], 'requirement': 'mandatory'},
     'pyalsaaudio': {'versions': ['0.9.0'], 'requirement': 'optional'},
     'setuptools': {'versions': ['40.8.0', '57.4.0', '58.0.4'], 'requirement': 'mandatory'},    # import pkg_resources
 

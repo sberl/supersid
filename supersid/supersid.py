@@ -95,8 +95,7 @@ class SuperSID():
 
         # Create Sampler to collect audio buffer (sound card or other server)
         self.sampler = Sampler(self,
-                               audio_sampling_rate=self.config['audio_sampling_rate'],
-                               NFFT=1024)
+                               audio_sampling_rate=self.config['audio_sampling_rate'])
         if not self.sampler.sampler_ok:
             self.close()
             sys.exit(3)

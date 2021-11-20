@@ -142,15 +142,15 @@ This cutof will be visible in the graphical viewers of supersid.py (wx or tk).
 
 Selected:
 ```example
-    Accessing 'MME: Eingang (Realtek High Definitio' at 192000 Hz via sounddevice, ...
-    sounddevice 'MME: Eingang (Realtek High Definitio' at 192000 Hz
-    192000 <class 'numpy.int16'> read from sounddevice 'MME: Eingang (Realtek High Definitio', shape (192000,), duration 1.12
-    [ 0  0 -1  0  0  0  0 -1  0  0]
-    Vector sum -2810
+    sounddevice device 'MME: Microsoft Sound Mapper - Input', sampling rate 192000, format S32_LE
+    sounddevice 'MME: Microsoft Sound Mapper - Input' at 192000 Hz
+    192000 <class 'numpy.int32'> read from sounddevice 'MME: Microsoft Sound Mapper - Input', shape (192000,), format S32_LE, duration 1.09 sec, peak freq 9984 Hz
+    [     0      0 -65536      0      0      0      0 -65536      0      0]
+    Vector sum -517996544
 ```
 
 The important parts are in this line<br/>
-**192000** <class 'numpy.int16'> read from **sounddevice** '**MME: Eingang (Realtek High Definition Audio)**', shape (192000,), duration 1.12
+**192000** <class 'numpy.int32'> read from sounddevice '**MME: Microsoft Sound Mapper - Input**', shape (192000,), format **S32_LE**, duration 1.09 sec, peak freq 9984 Hz
 
 The corresponding lines of the configuration file 'supersid.cfg':
 ```example
@@ -159,12 +159,15 @@ The corresponding lines of the configuration file 'supersid.cfg':
 
     [Capture]
     Audio = sounddevice
-    Card = MME: Eingang (Realtek High Definition Audio)
+    Card = MME: Microsoft Sound Mapper - Input
+    Format = S32_LE
 ```
+
 
 ## 4) Adapt the your supersid\Config\supersid.cfg file
 
 See [ConfigHelp.md](./ConfigHelp.md)
+
 
 ## 5) Start the SuperSID program
 
