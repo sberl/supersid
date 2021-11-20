@@ -38,7 +38,7 @@ This section groups most of the parameters identifying your SuperSID monitor. So
   * audio_sampling_rate: **48000** or **96000** (you can experiment with other value as long as your card support them)
   * log_interval: number of second between two reading. Default is '**5**' seconds. Reading/sound capture last one second.
   * log_type: **filtered** or **raw**. When **filtered** is indicated, *bema_wing* function is called to smoothen raw data before writting the file else in **raw** mode, captured data are written 'as is'. Note that *sidfile.py* can be used as an utility to apply 'bema_wing' function to an existing file (raw or not) to smoothen its data.
-  * data_path: fully qualified path where files will be written. If not mentionned then '../Data/' is used.
+  * data_path: fully qualified path where files will be written. If not mentioned then '../Data/' is used. If the path is relative, then it is relative to the script folder.
   * log_format:
     - **sid_format**: one file per station with first data column as timestamp and second data column as captured value
     - **supersid_format**: one file for all station. No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 0:00:00UTC.
@@ -74,9 +74,10 @@ Each station to monitor is enumerated from 1 till n=*number_of_stations*. For ea
 
 This section can be omitted if you plan to use the 'pyaudio' library. If you want to use the "alsaaudio" library then you can declare:
 
-  * Audio: python library to use **alsaaudio** or **pyaudio** (default), **server** reserved for client/server future dev.
-  * Card: card name for capture. Default is 'External'.
-  * PeriodSize: [for alsaaudio only] period size for capture. Default is '128'.
+  * Audio: python library to use **alsaaudio** (default for Linux), **sounddevice** (default for Windows) or **pyaudio**
+  * Card: card name for capture. **plughw:CARD=Generic,DEV=0** (default for Linux), **MME: Microsoft Sound Mapper - Input** (default for Windows).
+  * Format: **S16_LE** (default), **S24_3LE**, **S32_LE**
+  * PeriodSize: [for alsaaudio only] period size for capture. Default is '1024'.
   
 <div id='id-section4'/>
 
@@ -100,5 +101,5 @@ Group all parameters to send data to an FTP server i.e. Standford data repositor
   * automatic_upload: [yes/no] if set to 'yes' then trigger the FTP data upload
   * ftp_server: URL of the server (sid-ftp.stanford.edu)
   * ftp_directory: target folder on the FTP server where files should be written (on Standford's server: /incoming/SuperSID/NEW/)
-  * local_tmp: local temporary directpry used to write the files before their upload
+  * local_tmp: local temporary directpry used to write the files before their upload. If not mentioned then '../outgoing/' is used. If the path is relative, then it is relative to the script folder.
   * call_signs: list of recorded stations to upload. Not all recorded stations might be of interrest: list only the most relevant one(s).

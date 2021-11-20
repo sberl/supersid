@@ -78,14 +78,14 @@ You can do so exactly like you would do in linux, for an local installation insi
     $ sudo apt-get install python3-matplotlib
     $ sudo apt-get install libasound2-dev
     $ pip3 install -r requirements.txt
+    $ sudo apt install libportaudio2
+    $ pip3 install sounddevice
 ```
 
 Optional and not required. Install when you want to test additonal audio libraries:
 
 ```console
-    sudo apt install libportaudio2
-    pip3 install sounddevice
-    pip3 install PyAudio
+    $ pip3 install PyAudio
 ```
 
 
@@ -153,37 +153,155 @@ SD card of 16 MB or more
 Execute first the command `alsamixer` to ensure that the card is recorgnized and in proper order of functioning.
 Make sure that sound can be captured from it, and that the input volume is between 80 and 90.
 
-Do the following:
+Connect a frequency generator to the line in and set it to 10 kHz.
+The frequency generator may by 
 
+- a real frequency generator device
+- a tablet or a smartphone running a frequency generator app
+- the line out of a PC geneating the test frequency
+
+It is possible to generate the test frequency with the *speaker-test* tool belonging to the *alsa-utils*.
+
+Assuming you are using the `speaker-test` tool connect the line out with the line in and do the following.
+You may have to adapt the device name to match your audio hardware. `aplay -L` will deliver a list of candidates.
+Here the builtin audio output of the RPi 3b is used.
+
+In one console generate the test frequency.
 ```console
-    $ cd ~/supersid/supersid
-    $ python3 sampler.py
+    $ speaker-test -Dplughw:CARD=Headphones,DEV=0 -c 2 -t sine -f 10000 -X
 ```
 
-Find the right card line you want to use based on the card name and the frequency you want to sample.
-Make sure that the time is approximately one second, not fractions of a second and not multiples of a second.
+In another console search for the suitable device. Read the help and follow it.
+```console
+    $ cd ~/supersid/supersid
+    $ python3 find_alsa_devices.py --help | less
+    $ python3 -u find_alsa_devices.py 2>&1 | grep OK
+```
+
+Lets assume, you got the output below (actually it is much longer, this is just an interresting snippet).
+
+Select a combination with properties in this order:
+
+- it yields a duration of 1 s and the expected frequency in each regression
+- the highest possible sampling rate 192000 is better than 96000, which is better than 48000
+- a format using highest number of bits S32_LE is better than S24_3LE, which is better than S16_LE
 
 ```example
-    alsaaudio sound card capture on sysdefault:CARD=External at 48000 Hz
-    48000 bytes read from alsaaudio sound card capture on sysdefault:CARD=External (48000,)
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  1, OK, 1.00 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  2, OK, 1.01 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  3, OK, 1.00 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  4, OK, 1.01 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  5, OK, 1.00 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  6, OK, 1.02 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  7, OK, 1.00 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  8, OK, 1.01 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  9, OK, 1.01 s, 9984 Hz
+ 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024, 10, OK, 1.00 s, 9984 Hz
+```
+
+Here 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024 is a good choice.
+Cross-check with `sampler.py` the setting are working as epected.
+The line with the duration and the peak frequency is the relevant one.
+
+```console
+   $ python3 -u sampler.py -s=96000 -m=alsaaudio -d="plughw:CARD=Dongle,DEV=0" -f=S24_3LE -p=1024 2>&1
+```
+
+This may be the output:
+```example
+    Accessing 'plughw:CARD=Dongle,DEV=0' at 96000 Hz via alsaaudio format 'S24_3LE', ...
+    alsaaudio device 'plughw:CARD=Dongle,DEV=0', sampling rate 96000, format S24_3LE, periodsize 1024
+    alsaaudio 'plughw:CARD=Dongle,DEV=0' at 96000 Hz
+     96000 <class 'numpy.int32'> read from alsaaudio 'plughw:CARD=Dongle,DEV=0', shape (96000,), format S24_3LE, duration 1.02 sec, peak freq 9984 Hz
+    [-4204419 -4227590 -4237790 -2773916  2728695  4167792  4192484  4179326
+      1628634 -4107804]
+    Vector sum 49601975
 ```
 
 The corresponding lines of the configuration file 'supersid.cfg':
 ```example
     [PARAMETERS]
-    audio_sampling_rate = 48000
+    audio_sampling_rate = 96000
 
     [Capture]
     Audio = alsaaudio
-    Card = External
-    PeriodSize = 128
+    Card = plughw:CARD=Dongle,DEV=0
+    Format = S24_3LE
+    PeriodSize = 1024
 ```
 
-## 6) Adapt the your supersid\Config\supersid.cfg file
+
+## 6) Troubleshooting issues with the sound card.
+This section is not meant as exhaustive discussion how to detect and configure the sound card but
+more as a list of tools which may help to do so. For further details you'll have to use search engines.
+
+In the given example the following setup is present:
+
+- A builtin *bcm2835 Headphones*.
+- A *VIA USB Dongle* connected to USB
+
+Install several utilities.
+```console
+    $ sudo apt-get install alsa-base alsa-utils pulseaudio-utils hwinfo
+```
+
+Add user to audio group. Lets assume your username is *pi* and it is missing in the audio group.
+Most likely there is nothing to do as the user pi will be be part of the audio group.
+```console
+    $ grep audio /etc/group
+    audio:x:29:pulse
+    $ sudo usermod -a -G audio pi
+    $ grep audio /etc/group
+    audio:x:29:pulse,pi
+```
+
+Is the sound card listed as USB device?
+In reality the putput is much longer. Here it is restricted to the relevant lines.
+```console
+    $ lsusb
+    Bus 001 Device 008: ID 040d:3400 VIA Technologies, Inc.
+```
+
+Is the sound card listed as card in /proc/asound?
+```console
+    $ cat /proc/asound/cards
+     0 [Headphones     ]: bcm2835_headpho - bcm2835 Headphones
+                          bcm2835 Headphones
+     1 [Dongle         ]: USB-Audio - VIA USB Dongle
+                          VIA Technologies Inc. VIA USB Dongle at usb-3f980000.usb-1.4, full speed
+```
+0 [Headphones     ] is the builtin audio line out.
+1 [Dongle         ] is the VIA USB Dongle at the USB port.
+
+Yet another view on the sound hardware. This generates a longer output which is not repeated here.
+```console
+    $ hwinfo --sound
+```
+
+Is the sound card listed by arecord?
+```console
+    $ arecord -l
+    $ arecord -L
+```
+
+Is the voluem too low or the channel muted?
+Set the volume to be between 80% and 90%, unmute the relevant channels.
+```console
+    $ alsamixer
+```
+
+Generate a test tome and connect line out to line in.
+```console
+    $ speaker-test -Dplughw:CARD=Headphones,DEV=0 -c 2 -t sine -f 10000 -X
+```
+
+
+## 7) Adapt the your supersid\Config\supersid.cfg file
 
 See [ConfigHelp.md](./ConfigHelp.md)
 
-## 7) Start the SuperSID program
+
+## 8) Start the SuperSID program
 
 ```console
     $ cd ~/supersid/supersid
