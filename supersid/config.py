@@ -130,8 +130,9 @@ class Config(dict):
 
         if sys.platform.startswith('win32'):
             sections['Capture'] = (
-                ("Audio", str, 'sounddevice'),                            # soundcard: sounddevice, pyaudio
-                ("Card", str, 'MME: Microsoft Sound Mapper - Input'),     # sounddevice, pyaudio: card name for capture
+                ("Audio", str, 'sounddevice'),                          # soundcard: sounddevice, pyaudio
+                ("Card", str, 'MME: Microsoft Sound Mapper - Input'),   # sounddevice, pyaudio: card name for capture
+                ("Format", str, 'S16_LE'),                              # alsaaudio: format S16_LE, S24_3LE, S24_LE
             )
 
         self.sectionfound = set()
