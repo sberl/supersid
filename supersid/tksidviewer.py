@@ -38,6 +38,7 @@ class tkSidViewer():
         self.controller = controller  # previously referred as 'parent'
         self.tk_root = tk.Tk()
         self.tk_root.title("supersid @ " + self.controller.config['site_name'])
+        self.running = False
 
         # All Menus creation
         menubar = tk.Menu(self.tk_root)
@@ -98,17 +99,20 @@ class tkSidViewer():
     def run(self):
         self.need_refresh = False
         self.refresh_psd()  # start the re-draw loop
+        self.running = True
         self.tk_root.mainloop()
+        self.running = False
 
     def close(self, force_close=True):
         if not force_close and MessageBox.askyesno("Confirm exit",
                                                    "Are you sure you want to exit SuperSID?"):
+            self.running = False
             self.tk_root.destroy()
 
     def status_display(self, message, level=0, field=0):
         """Update the main frame by changing the message in status bar."""
-        # print(message)
-        self.statusbar_txt.set(message)
+        if self.running:
+            self.statusbar_txt.set(message)
 
     def get_psd(self, data, NFFT, FS):
         """Call 'psd' within axes, both calculates and plots the spectrum."""
