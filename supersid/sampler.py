@@ -449,7 +449,6 @@ class Sampler():
 
     def close(self):
         if "capture_device" in dir(self):
-            print("self.capture_device.close()")
             self.capture_device.close()
 
     def display_error_message(self, message):

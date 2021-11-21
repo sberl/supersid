@@ -37,6 +37,8 @@ class wxSidViewer(wx.Frame):
 
         Creation of the Frame with menu and graph display using matplotlib
         """
+        self.running = False
+
         matplotlib.use('WXAgg')  # select back-end before pylab
         # the application MUST created first
         self.app = wx.App(redirect=False)
@@ -111,30 +113,34 @@ class wxSidViewer(wx.Frame):
 
     def run(self):
         """Implement main loop for the application."""
+        self.running = True
         self.app.MainLoop()
+        self.running = False
 
     def updateDisplay(self, msg):
         """Receive data from thread and updates the display.
 
         graph and statusbar
         """
-        try:
-            self.canvas.draw()
-            self.status_display(msg.data)
-        except:
-            pass
+        if self.running:
+            try:
+                self.canvas.draw()
+                self.status_display(msg.data)
+            except:
+                pass
 
     def get_axes(self):
         return self.axes
 
     def status_display(self, message, level=0, field=0):
-        if level == 1:
-            wx.CallAfter(self.status_display, message)
-        elif level == 2:
-            wx.CallAfter(self.status_display, message)
-            wx.CallAfter(self.updateDisplay, message)
-        else:
-            self.status_bar.SetStatusText(message, field)
+        if self.running:
+            if level == 1:
+                wx.CallAfter(self.status_display, message)
+            elif level == 2:
+                wx.CallAfter(self.status_display, message)
+                wx.CallAfter(self.updateDisplay, message)
+            else:
+                self.status_bar.SetStatusText(message, field)
 
     def on_close(self, event):
         """Request to close by the user."""
@@ -142,6 +148,7 @@ class wxSidViewer(wx.Frame):
 
     def close(self):
         """Request to close by the controller."""
+        self.running = False
         self.Destroy()
 
     def on_exit(self, event):
