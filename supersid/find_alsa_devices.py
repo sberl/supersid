@@ -5,6 +5,8 @@ import sys
 import re
 import glob
 import time
+import shutil
+import subprocess
 import argparse
 from argparse import RawTextHelpFormatter
 import pkg_resources    # python3 -m pip install setuptools
@@ -15,426 +17,345 @@ from pprint import pprint
 
 
 if __name__ == '__main__':
-    print("Version 202111250812")
+    print("Version 20211126")
 
 
 """
-1) walk through /proc/asound in order to identify the audio capture devices and their native capabilities
-   https://alsa.opensrc.org/Proc_asound_documentation
-   https://www.kernel.org/doc/html/latest/sound/designs/procfile.html
-2) walk through alsaaudio pcms and test with the capabilities of the capture devices known from /proc/asound
+1) query capabilities of capture devices from 'arecord'
+2a) generate a test tone which should be looped back with an audio cable from line out to line in
+2b) walk through alsaaudio pcms and test with the capabilities of the capture devices known from 'arecord'
 """
 
 DEFAULT_RATES = [44100, 48000, 96000, 192000]
 DEFAULT_FORMATS = ['S16_LE', 'S24_3LE', 'S32_LE']
-DEFAULT_CHANNELS = 1    # actually we don't know but lets assume there is at least one channel
-
-AUDIO_FORMATS = [
-    'S8', 'U8',
-    'S16_LE', 'S16_BE', 'U16_LE', 'U16_BE',
-    'S24_LE', 'S24_BE', 'U24_LE', 'U24_BE',
-    'S32_LE',  'S32_BE', 'U32_LE', 'U32_BE',
-    'FLOAT_LE', 'FLOAT_BE', 'FLOAT64_LE', 'FLOAT64_BE',
-    'MU_LAW', 'A_LAW', 'IMA_ADPCM', 'MPEG', 'GSM',
-    'S24_3LE', 'S24_3BE', 'U24_3LE', 'U24_3BE',
-]
-
-FORMAT_MASK = {
-    # bits [0x2]: 16
-    # bits [0x6]: 16 20
-    # bits [0xe]: 16 20 24
-    # bits [0x1e]: 16 20 24 32
-    0x02: 'S16_LE',     # 16 bits are sure, but S/U or LE/BE?
-    0x04: 'S20_LE',     # 20 bits are sure, but S/U or LE/BE?
-    0x08: 'S24_3LE',    # 24 bits are sure, but S/U or LE/BE?
-    0x10: 'S32_LE',     # 32 bits are sure, but S/U or LE/BE?
-#    0x20: 'S24_3BE',    # 24 bits are sure, but S/U or LE/BE/3LE/3BE?
-}
-
-RATES_MASK = {
-    0x400: 192000,
-    0x100:  96000,
-    0x040:  48000,
-    0x020:  44100,
-    0x010:  32000,
-}
+DEFAULT_CHANNELS = 1    # actually we don't know but let's assume there is at least one channel
 
 
-class proc_asound_walker():
-    def __init__(self, test_dir=None):
-        self.zip_proc_asound = False
-        if test_dir:
-            self.proc_path = os.path.normpath(os.path.join(test_dir, 'proc'))
+class alsa(object):
+    # https://github.com/torvalds/linux/blob/master/include/sound/pcm.h
+    # SNDRV_PCM_RATE_*, values in Hz
+    sndrv_pcm_rates = [5512, 8000, 11025, 16000, 22050, 32000, 44100, 48000, 64000, 88200, 96000, 176400, 192000, 352800, 384000]
+
+    # https://vovkos.github.io/doxyrest/samples/alsa-sphinxdoc/enum_snd_pcm_access_t.html
+    snd_pcm_access_t = {
+        'MMAP_INTERLEAVED ': 0,
+        'MMAP_NONINTERLEAVED': 1,
+        'MMAP_COMPLEX': 2,
+        'RW_INTERLEAVED': 3,
+        'RW_NONINTERLEAVED': 4,
+        'LAST': 4,  # RW_NONINTERLEAVED
+    }
+
+    # https://vovkos.github.io/doxyrest/samples/alsa-sphinxdoc/enum_snd_pcm_format_t.html
+    snd_pcm_format_t = {
+        'UNKNOWN': -1,
+        'S8': 0,
+        'U8': 1,
+        'S16_LE': 2,
+        'S16_BE': 3,
+        'U16_LE': 4,
+        'U16_BE': 5,
+        'S24_LE': 6,
+        'S24_BE': 7,
+        'U24_LE': 8,
+        'U24_BE': 9,
+        'S32_LE': 10,
+        'S32_BE': 11,
+        'U32_LE': 12,
+        'U32_BE': 13,
+        'FLOAT_LE': 14,
+        'FLOAT_BE': 15,
+        'FLOAT64_LE': 16,
+        'FLOAT64_BE': 17,
+        'IEC958_SUBFRAME_LE': 18,
+        'IEC958_SUBFRAME_BE': 19,
+        'MU_LAW': 20,
+        'A_LAW': 21,
+        'IMA_ADPCM': 22,
+        'MPEG': 23,
+        'GSM': 24,
+        'SPECIAL': 31,
+        'S24_3LE': 32,
+        'S24_3BE': 33,
+        'U24_3LE': 34,
+        'U24_3BE': 35,
+        'S20_3LE': 36,
+        'S20_3BE': 37,
+        'U20_3LE': 38,
+        'U20_3BE': 39,
+        'S18_3LE': 40,
+        'S18_3BE': 41,
+        'U18_3LE': 42,
+        'U18_3BE': 43,
+        'G723_24': 44,
+        'G723_24_1B': 45,
+        'G723_40': 46,
+        'G723_40_1B': 47,
+        'DSD_U8': 48,
+        'DSD_U16_LE': 49,
+        'DSD_U32_LE': 50,
+        'DSD_U16_BE': 51,
+        'DSD_U32_BE': 52,
+        'LAST': 52,  # DSD_U32_BE
+        'S16': 2,  # S16_LE
+        'U16': 4,  # U16_LE
+        'S24': 6,  # S24_LE
+        'U24': 8,  # U24_LE
+        'S32': 10,  # S32_LE
+        'U32': 12,   # U32_LE
+        'FLOAT': 14,  # FLOAT_LE
+        'FLOAT64': 16,  # FLOAT64_LE
+        'IEC958_SUBFRAME': 18,  # IEC958_SUBFRAME_LE
+    }
+
+    # https://vovkos.github.io/doxyrest/samples/alsa-sphinxdoc/enum_snd_pcm_subformat_t.html
+    snd_pcm_subformat_t  = {
+        'STD': 0,
+        'LAST': 0,  # STD
+    }
+
+    def __new__(cls, executable_name):
+        executable = shutil.which(executable_name)
+        if executable is None:
+            print("ERROR: '{}' executable could not be found!".format(executable_name))
+            return None
         else:
-            self.proc_path = '/proc'
+            instance = super(alsa, cls).__new__(cls)
+            instance.executable = executable
+            return instance
 
-    def check_preconditions(self):
-        if os.path.isdir(self.proc_path):
-            asound_path = os.path.normpath(os.path.join(self.proc_path, 'asound'))
-            if os.path.isdir(asound_path):
-                print("reading {}".format(asound_path))
-                return True
+    def __init__(self):
+        self.process = None
+
+    def start(self, args):
+        if self.process is None:
+            self.process = subprocess.Popen([self.executable] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def kill(self):
+        if self.process is not None:
+            self.process.kill()
+            self.process = None
+
+    def exec(self, args, return_error=False):
+        if self.process is not None:
+            print("ERROR: a process is already running")
+        self.start(args)
+        stdout, stderr = self.process.communicate()
+        errorlevel = self.process.returncode
+        self.process = None
+        stdout=stdout.decode()
+        stderr=stderr.decode()
+        if return_error:
+            return stdout, stderr, errorlevel
+        else:
+            if errorlevel:
+                print("ERROR: '{}' returned errorlevel {}".format(" ".join(args), errorlevel))
+                sys.exit(errorlevel)
+            elif stderr:
+                print("ERROR: '{}' returned stderr '{}'".format(" ".join(args), stderr))
+                sys.exit(1)
             else:
-                print("\tERROR: '{}' not found".format(asound_path))
-                self.zip_proc_asound = True
+                return stdout
+
+    def get_pcms(self):
+        """arecord -L, --list-pcms         list device names"""
+        """aplay -L, --list-pcms         list device names"""
+        pcms = []
+        stdout = self.exec(['--list-pcms'])
+        stdout = stdout.split('\n')
+        for line in stdout:
+            m = re.match('.*:CARD=.*', line)
+            if m:
+                pcms.append(line)
+        return pcms
+
+
+class aplay(alsa):
+    def __new__(cls):
+        return alsa.__new__(cls, 'aplay')
+
+
+class speaker_test(alsa):
+    def __new__(cls):
+        ap = aplay()
+        if ap is None:
+            return None
         else:
-            print("\tERROR: '{}' not found".format(self.proc_path))
-            self.zip_proc_asound = True
-        return False
+            instance = alsa.__new__(cls, 'speaker-test')
+            instance.ap = ap
+            instance.running = False
+            return instance
 
-    def read_file(self, file):
-        lines = ''
-        if os.path.isfile(file):
-            with open(file, 'r') as f:
-                lines = f.read().split('\n')
-        return(lines)
+    def get_pcms(self):
+        return self.ap.get_pcms()
 
-    def read_cards(self):
-        """
-        expected format:
-         index [the id string]: short description
-                                long description
-        example:
-         0 [HDMI           ]: HDA-Intel - HDA ATI HDMI
-                              HDA ATI HDMI at 0xfeb64000 irq 46
-         1 [Generic        ]: HDA-Intel - HD-Audio Generic
-                              HD-Audio Generic at 0xfeb60000 irq 47
-         2 [U0x41e0x30d3   ]: USB-Audio - USB Device 0x41e:0x30d3
-                              USB Device 0x41e:0x30d3 at usb-0000:00:10.0-3, full speed
-        """
-        cards = {}
-        cards_path = os.path.normpath(os.path.join(self.proc_path, 'asound/cards'))
-        if os.path.isfile(cards_path):
-            lines = self.read_file(cards_path)
-            while (len(lines) >= 2):
-                # interpret first line
-                index_id_short_description = lines[0]
-                separator_1 = index_id_short_description.find('[')
-                separator_2 = index_id_short_description.find(']:')
-                index = int(index_id_short_description[:separator_1].strip())
-                id = index_id_short_description[separator_1+1:separator_2].strip()
-                short_description = index_id_short_description[separator_2+2:].strip()
-                # interpret second line
-                long_description = lines[1].strip()
-                # drop interpreted lines
-                lines = lines[2:]
-                # store result
-                cards[index] = {'id': id, 'short_description': short_description, 'long_description': long_description}
-            for line in lines:
-                if line.strip():
-                    print("\tWARNING: unexpected line '{}'".format(line))
-                    self.zip_proc_asound = True
+    def start_test_tone(self, card, rate, frequency=10000):
+        """assumption: plughw: will generate the test tone"""
+        device = "plughw:{}".format(card)
+        if self.running == False:
+            pcms = self.get_pcms()
+            found = False
+            if device in pcms:
+                found = True # full match
+            else:
+                device = device[:device.find(',DEV=')]
+                for pcm in pcms:
+                    if device in pcm:
+                        device = pcm
+                        found = True # partial match
+                        break
+            if found:
+                args = ['-D', device, '-c', '2', '-t', 'sine', '-r', '{}'.format(rate), '-f', '{}'.format(frequency), '-X']
+                self.start(args)
+                self.running = True
+                print("test tone started {} Hz, '{}'".format(frequency, device))
+            else:
+                print("ERROR: device '{}' not found for test tone generation".format(device))
         else:
-            print("\tERROR: '{}' not found".format(cards_path))
-            self.zip_proc_asound = True
-        return cards
+            print("usage error: test tone is already active")
 
-    def sanity_check(self, interface):
-        """fill keys/value pairs with defaults, if the keys are not present"""
-        assert('card' in interface)
-        if 'formats' not in interface:
-            interface['formats'] = DEFAULT_FORMATS
-            print("\tWARNING: maiking up 'formats' for card '{}'".format(interface['card']))
-            self.zip_proc_asound = True
-        if 'channels' not in interface:
-            interface['channels'] = DEFAULT_CHANNELS
-            print("\tWARNING: maiking up 'channels' for card '{}'".format(interface['card']))
-            self.zip_proc_asound = True
-        if 'rates' not in interface:
-            interface['rates'] = DEFAULT_RATES
-            print("\tWARNING: maiking up 'rates' for card '{}'".format(interface['card']))
-            self.zip_proc_asound = True
-        return(interface)
+    def stop_test_tone(self):
+        if self.running:
+            self.kill()
+            self.running = False
+            print("test tone stopped")
 
-    def get_capture_interfaces_from_stream(self, file, card):
-        print("\t{}".format(file))
-        lines = self.read_file(file)
-        interfaces = []
-        interface = None
-        inCaptureSection = False
-        for line in lines[1:]:
-            if line[:7] == 'Capture':
-                inCaptureSection = True
-            elif line[:8] == 'Playback':
-                inCaptureSection = False
-            if inCaptureSection:
-                line = line.split()
-                if line:
-                    if (2 == len(line)) and (line[0] == 'Interface'):
-                        # distinguish between (len(line) == 3)
-                        """
-                        Status: Running
-                            Interface = 5
-                            Altset = 3
-                            URBs = 2 [ 1 1 ]
-                            Packet Size = 200
-                            Momentary freq = 44,099 Hz
-                        """
-                        # and (len(line) == 2)
-                        """
-                        Interface 5
-                            Altset 1
-                            Format: S24_3LE
-                            Channels: 2
-                            Endpoint: 6 IN (ASYNC)
-                            Rates: 48001 - 96000 (continous)
-                        """
-                        if interface:
-                            interfaces.append(self.sanity_check(interface))
-                        interface = {'card': 'CARD={}'.format(card['id']), 'number': int(line[1])}
-                    elif line[0] == 'Format:':
-                        if (2 == len(line)) and [line[1] in AUDIO_FORMATS]:
-                            interface['formats'] = [line[1]]
-                        elif (4 == len(line)) and ('(' == line[2][0]) and ('bits)' == line[3]):
-                            print("\tWARNING: guessing format '{}'".format(" ".join(line)))
-                            bits = line[2][1:]  # TODO: clarify the mapping from line[1] (hex representation) to ALSA audio formats
-                            if '8' == bits:
-                                interface['formats'] = ['S8']
-                            elif '16' == bits:
-                                interface['formats'] = ['S16_LE']
-                            elif '24' == bits:
-                                interface['formats'] = ['S24_3LE']
-                            elif '32' == bits:
-                                interface['formats'] = ['S32_LE']
-                            else:
-                                print("\tERROR: can't interpret '{}'".format(" ".join(line)))
-                    elif line[0] == 'Channels:':
-                        assert(2 == len(line))
-                        interface['channels'] = int(line[1])
-                    elif line[0] == 'Rates:':
-                        assert(2 <= len(line))
-                        if (5 == len(line)) and \
-                           (line[2] == '-') and \
-                           (line[-1] in ['(continous)', '(continuous)']):
-                            # https://alsa-devel.alsa-project.narkive.com/OJHvIzOP/correction-audiophile-usb-stream0-output
-                            # Rates: 48001 - 96000 (continous)
-                            # Rates: 48001 - 96000 (continuous)
-                            min_rate = int(line[1])
-                            max_rate = int(line[3])
-                            interface['rates'] = [min_rate]
-                            for rate in DEFAULT_RATES:
-                                if (rate > min_rate) and (rate < max_rate):
-                                    interface['rates'].append(rate)
-                            interface['rates'].append(max_rate)
-                        else:
-                            # Rates: 44100, 48000, 88200, 96000, 176400, 192000
-                            interface['rates'] = [int(i.strip(',')) for i in line[1:]]
-        if interface:
-            interfaces.append(self.sanity_check(interface))
-        return interfaces
 
-    def get_capture_interfaces_from_codec(self, file, card):
-        print("\t{}".format(file))
-        lines = self.read_file(file)
-        interfaces = []
-        interface = None
-        inCaptureSection = False
-        inPcmSection = False
-        for line in lines:
-            if re.search('^Node 0x[0-9a-fA-F]+ \[Audio Input\]', line):
-                inCaptureSection = False
-                inPcmSection = False
-                if interface:
-                    interfaces.append(self.sanity_check(interface))
-                if ': Stereo Amp-In' in line:
-                    interface = {'card': 'CARD={}'.format(card['id']), 'channels': 2}
-                    inCaptureSection = True
-                elif ': Stereo Digital' in line:
-                    interface = None
+class arecord(alsa):
+    def __new__(cls):
+        return alsa.__new__(cls, 'arecord')
+
+    def parse_hw_params(self, text):
+        """
+        sample outpout of arecord --dump-hw-params
+        the part between the dashed lines is the relevant on
+
+            Recording WAVE 'stdin' : Signed 16 bit Little Endian, Rate 8000 Hz, Mono
+            HW Params of device "hw:CARD=Generic,DEV=0":
+            --------------------
+            ACCESS:  MMAP_INTERLEAVED RW_INTERLEAVED
+            FORMAT:  S16_LE S32_LE
+            SUBFORMAT:  STD
+            SAMPLE_BITS: [16 32]
+            FRAME_BITS: [32 64]
+            CHANNELS: 2
+            RATE: [44100 192000]
+            PERIOD_TIME: (83 185760)
+            PERIOD_SIZE: [16 8192]
+            PERIOD_BYTES: [128 65536]
+            PERIODS: [2 32]
+            BUFFER_TIME: (166 371520)
+            BUFFER_SIZE: [32 16384]
+            BUFFER_BYTES: [128 65536]
+            TICK_TIME: ALL
+            --------------------
+            arecord: set_params:1374: Channels count non available
+
+        the above output is generated from
+            https://github.com/michaelwu/alsa-lib/blob/master/src/pcm/pcm.c snd_pcm_hw_params_dump()
+                -> dump_one_param() -> snd_pcm_hw_param_dump()
+            https://github.com/michaelwu/salsa-lib/blob/master/src/pcm_params.c snd_pcm_hw_param_dump()
+                -> snd_mask_print() | snd_interval_print()
+        data layout:
+            key: values
+            snd_mask_print()
+                mask_is_empty -> 'NONE'
+                mask_is_full  -> 'ALL'
                 else:
-                    interface = None
-                    print("\tERROR: can't interpret '{}'".format(line))
-            elif re.search('^Node 0x[0-9a-fA-F]+', line):
-                inCaptureSection = False
-                inPcmSection = False
-            if inCaptureSection:
-                if '  PCM:' == line[:6]:
-                    inPcmSection = True
-                    if ('rates' in line) and ('bits' in line):
-                        # sinlge line PCM section with all in one line
-                        # PCM: rates 0x160, bits 0x06, types 0x1
-                        tmp = line.split(',')
-                        for t in tmp:
-                            t = t.split()
-                            if t[-2] == 'rates':
-                                interface['rates'] = []
-                                rates = int(t[-1], 16)
-                                for r in RATES_MASK:
-                                    if rates & r:
-                                        interface['rates'].append(RATES_MASK[r])
-                                        rates ^= r
-                                if rates:
-                                    print("\tERROR: could not convert some rates 0x{:X}".format(rates))
-                            elif t[-2] == 'bits':
-                                interface['formats'] = []
-                                bits = int(t[-1], 16)
-                                for b in FORMAT_MASK:
-                                    if bits & b:
-                                        interface['formats'].append(FORMAT_MASK[b])
-                                        bits ^= b
-                                if bits:
-                                    print("\tERROR: could not convert some formats 0x{:X}".format(bits))
-                        inPcmSection = False
-                elif re.search('^  [A-Za-z0-9_]', line):
-                    if inPcmSection:
-                        inPcmSection = False
-                if inPcmSection:
-                    # multiline PCM section with rates and bits in separate lines
-                    if re.search('^    rates \[0x[0-9a-fA-F]+\]:', line):
-                        rates = line[line.find(':')+1:].split()
-                        interface['rates'] = [int(r) for r in rates]
-                    elif re.search('^    bits \[0x[0-9a-fA-F]+\]:', line):
-                        bits = line[line.find(':')+1:].split()
-                        bits = [int(b) for b in bits]
-                        interface['formats'] = []
-                        for b in bits: # TODO: clarify the mapping from the hex representation to ALSA audio formats
-                            if 8 == b:
-                                interface['formats'].append('S8')
-                            elif 16 == b:
-                                interface['formats'].append('S16_LE')
-                            elif 24 == b:
-                                interface['formats'].append('S24_3LE')
-                            elif 32 == b:
-                                interface['formats'].append('S32_LE')
-                            else:
-                                print("\tWARNING: unsupported bit length of {} bits".format(b))
+                    for each bit in ACCESS: ACCESS string snd_pcm_access_name(i), see snd_pcm_access_t
+                    for each bit in FORMAT: FORMAT string snd_pcm_format_name(i), see snd_pcm_format_t
+                    for each bit in SUBFORMAT: SUBFORMAT string snd_pcm_subformat_name(), see snd_pcm_subformat_t
+            snd_interval_print()
+                interval_is_empty -> 'NONE'
+                interval_is_full -> 'ALL'
+                interval_is_single -> integer
+                else:
+                    (min max) | [min max] | (min max] | [min max)
+                    '(' if openmin else '['
+                    ')' if openmax else ']'
+                    assumption: this is meant as the mathematical notation of intervals
+                    '(' min does not belong to the interval
+                    '[' min does belong to the interval
+                    ')' max does not belong to the interval
+                    ']' max does belong to the interval
+        """
+        hw_params = {}
+        text = text.split('\n')
+        in_block = False
+        for line in text:
+            if '--------------------' == line:
+                if in_block:
+                    break
+                else:
+                    in_block = True
+                    continue
+            if in_block:
+                try:
+                    key, value = line.split(':')
+                    values = value.strip()
+                    if (values[0] in '(['):
+                        assert(values[-1] in '])')
+                        opening_bracket = values[0]
+                        closing_bracket = values[-1]
+                        # an interval of integer values with min and max given
+                        values = values[1:-1]    # strip brackets
+                        values = values.split()  # split at blanks
+                        assert(2 == len(values))
+                        min, max = int(values[0]), int(values[1])
+                        # start assumption ->
+                        # assumption: the brackets are meant with their mathematical meaning
+                        if opening_bracket == '(':
+                            min += 1    # min does not belong to the interval, thus min+1 belongs to the interval
+                        if closing_bracket == ')':
+                            max -= 1    # max does not belong to the interval, thus max-1 belongs to the interval
+                        # <- end assumption
+                        values = range(min, max+1)	# python range: min is included, max is not include
+                    else:
+                        values = values.split()  # split at blanks
+                        if 1 == len(values):
+                            try:
+                                # try to convert to int, if not, also ok
+                                values = int(values[0])
+                            except:
+                                pass
+                    hw_params[key] = values
+                except Exception as err:
+                    print("WARNING: {} '{}'".format(err, line))
+        return hw_params
 
-        if interface:
-            interfaces.append(self.sanity_check(interface))
-        return interfaces
+    def rate_range_to_list(self, rate_range):
+        rate_list = [i for i in self.sndrv_pcm_rates if i in rate_range]
+        return rate_list
 
-    def consolidate_interfaces(self, interfaces):
-        consolidated_interfaces = []
-        for i in interfaces:
-            isAppended = False
-            i['formats'] = sorted(i['formats'])
-            i['rates'] = sorted(i['rates'])
-            for idx, ci in enumerate(consolidated_interfaces):
-                if (i['card'] == ci['card']) and (i['channels'] == ci['channels']):
-                    # card with the same name and the same amount of channels is present
-                    if set(i['formats']) == set(ci['formats']):
-                        # the same formats are accepted, join the rates
-                        consolidated_interfaces[idx]['rates'] = list(set(i['rates'] + ci['rates']))
-                        isAppended = True
-                    elif set(i['rates']) == set(ci['rates']):
-                        # the same rates are accepted, join the formats
-                        consolidated_interfaces[idx]['formats'] = list(set(i['formats'] + ci['formats']))
-                        isAppended = True
-            if not isAppended:
-                consolidated_interfaces.append(i)
-        return consolidated_interfaces
+    def get_pcm_hw_params(self, pcm):
+        hw_params = {}
+        with open('/dev/null', 'w') as f:
+            args = [self.executable, '-D', pcm, '--dump-hw-params', '-d', '1']
+            p = subprocess.Popen(args, stdout=f, stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+            stderr=stderr.decode()
+            errorlevel = p.returncode
+            assert(stdout is None)    # redirected to /dev/null
+            hw_params = self.parse_hw_params(stderr)
+            hw_params['RATE'] = self.rate_range_to_list(hw_params['RATE'])
+        return hw_params
 
     def get_capture_interfaces(self):
         interfaces = []
-        if self.check_preconditions():
-            cards = self.read_cards()
-            for index in cards:
-                folder = os.path.normpath('{}/asound/card{}'.format(self.proc_path, index))
-                if os.path.isdir(folder):
-                    pcm_play = glob.glob(os.path.normpath(os.path.join(folder, 'pcm*p/sub*')))
-                    play = []
-                    for p in pcm_play:
-                        p = os.path.normpath(p).split(os.sep)
-                        # print(p)
-                        play.append("{}/{}".format(p[-2], p[-1]))
-                    pcm_capture = glob.glob(os.path.normpath(os.path.join(folder, 'pcm*c/sub*')))
-                    capture = []
-                    for p in pcm_capture:
-                        p = os.path.normpath(p).split(os.sep)
-                        # print(p)
-                        capture.append("{}/{}".format(p[-2], p[-1]))
-                    if (0 == len(pcm_play)) and (0 == len(pcm_capture)):
-                        print("\tERROR: There are neither replay nor capture interfaces present.")
-                        self.zip_proc_asound = True
-                    print("\t{} playback: {}, capture: {}".format(folder, play, capture))
+        pcms = ar.get_pcms()
+        for pcm in pcms:
+            # we are only interrested in the capabilities of the "Direct hardware device without any conversions"
+            if "hw:" != pcm[:3]:
+                continue
+            hw_params = self.get_pcm_hw_params(pcm)
+            interfaces.append({
+                'card': pcm[3:],
+                'formats': hw_params['FORMAT'],
+                'rates':  hw_params['RATE'],
+                'channels': hw_params['CHANNELS'],
+            })
+        return interfaces
 
-                    # USB Audo Streams: card*/stream*
-                    # Shows the assignment and the current status of each audio stream of the given card.
-                    usb_interfaces_found = 0
-                    streams = glob.glob(os.path.join(folder, 'stream*'))
-                    for stream in streams:
-                        if os.path.isfile(stream):
-                            new_interfaces = self.get_capture_interfaces_from_stream(stream, cards[index])
-                            interfaces += new_interfaces
-                            interface_numbers = []
-                            for interface in new_interfaces:
-                                interface_numbers.append(interface['number'])
-                            usb_interfaces_found += len(set(interface_numbers))
-                        else:
-                            print("\tERROR: '{}' is no file".format(stream))
-                            self.zip_proc_asound = True
-
-                    # HD-Audio Codecs: card*/codec#*
-                    # Shows the general codec information and the attribute of each widget node.
-                    hd_interfaces_found = 0
-                    codecs = glob.glob(os.path.join(folder, 'codec#*'))
-                    for codec in codecs:
-                        if os.path.isfile(codec):
-                            new_interfaces = self.get_capture_interfaces_from_codec(codec, cards[index])
-                            interfaces += new_interfaces
-                            hd_interfaces_found += len(new_interfaces)
-                        else:
-                            print("\tERROR: '{}' is no file".format(codec))
-                            self.zip_proc_asound = True
-
-                    # AC97 Codec Information: card*/codec97#*/ac97#?-?
-                    # Shows the general information of this AC97 codec chip, such as name, capabilities, set up.
-                    AC97_interfaces_found = 0
-                    codecs = glob.glob(os.path.join(folder, 'codec97#*/ac97#?-?'))
-                    for codec in codecs:
-                        if os.path.isfile(codec):
-                            print('\tTODO', codec)
-                            self.zip_proc_asound = True
-                        else:
-                            print("\tERROR: '{}' is no file".format(codec))
-                            self.zip_proc_asound = True
-
-                    if len(pcm_capture) != (usb_interfaces_found + hd_interfaces_found + AC97_interfaces_found):
-                        print("\tERROR: '{}' has a mismatch regarding the number of capture devices.".format(folder))
-                        print("\t\tnumber of 'pcm*c' sub folders is {}".format(len(pcm_capture)))
-                        print("\t\tnumber of capture devices in 'stream*' files is {}".format(usb_interfaces_found))
-                        print("\t\tnumber of capture devices in 'codec#*' files is {}".format(hd_interfaces_found))
-                        # TODO print("\t\tnumber of capture devices in 'TODO' files is {}".format(AC97_interfaces_found))
-                        self.zip_proc_asound = True
-                else:
-                    print("\tERROR: '{}' not found".format(folder))
-                    self.zip_proc_asound = True
-
-        consolidated_interfaces = self.consolidate_interfaces(interfaces)
-        while (consolidated_interfaces != interfaces):
-            interfaces = consolidated_interfaces
-            consolidated_interfaces = self.consolidate_interfaces(interfaces)
-
-        if self.zip_proc_asound:
-            self.print_zip()
-
-        return consolidated_interfaces
-
-    def print_zip(self):
-        print("""
-    +-----------------------------------------------------------------------+
-    | Something unexpected happened while parsing the folder structure      |
-    |   /proc/asound                                                        |
-    | You may help improving the program by providing the folder content.   |
-    | The format of the folder is specified here:                           |
-    |   https://alsa.opensrc.org/Proc_asound_documentation                  |
-    |   https://www.kernel.org/doc/html/latest/sound/designs/procfile.html  |
-    | There should be no secrets in the information I ask for.              |
-    | Please do the following in a shell:                                   |
-    |                                                                       |
-    |   cd /tmp                                                             |
-    |   mkdir asound                                                        |
-    |   sudo cp -r /proc/asound asound                                      |
-    |   sudo zip -r asound.zip asound                                       |
-    |                                                                       |
-    | go to https://github.com/fenrog/supersid/issues                       |
-    | Create a new issue,                                                   |
-    | add the output of find_als_devices.py,                                |
-    | and attach asound.zip.                                                |
-    |                                                                       |
-    | You may want to use the command line parameter -b/--brute-force       |
-    | in order to test a wide range of parameter combinations.              |
-    +-----------------------------------------------------------------------+""")
 
 try:
     import alsaaudio
@@ -596,15 +517,34 @@ try:
                 print(type(e), e)
             return self.E_UNKNOWN, None, None, None
 
-        def test(self, interfaces, periodsize, regression):
+        def test(self, interfaces, periodsize, regression, test_card, test_tone):
+            if 'external' == test_tone:
+                st = None    # suppress test tone generation if configured to be external
+            else:
+                st = speaker_test()
+                if st is None:
+                    print("WARNING: 'speaker-test' inctance could not be created, there will be no frequency generated for the loop back test")
             tested_pcm_devices = []
-            print("audio_sampling_rate, Audio, Card, Format, PeriodSize, regression, result[, duration][, peak freqency]")
+            print("audio_sampling_rate, Audio, Card, Format, PeriodSize, regression, result[, duration][, peak frequency / generated frequency = frequency ratio]")
             for pcm_device in self.pcm_devices:
                 for interface in interfaces:
                     card = interface['card']
-                    if card in pcm_device:
+                    if test_card is not None:
+                        if test_card not in card:
+                            print('skip', card)
+                            continue    # if the card to be tested is configured but the current card doesn't match, skip the test
+                    if ((card in pcm_device) or (card[:card.find(',DEV=')] in pcm_device)) \
+                        and (pcm_device not in tested_pcm_devices):
                         tested_pcm_devices.append(pcm_device)
                         for rate in interface['rates']:
+                            generated_frequency = rate // 3
+                            if st is not None:
+                                st.start_test_tone(
+                                    test_tone if test_tone is not None   # preferably use the card configured for the test tone
+                                    else card,                           # else fall back to the same card which is tested
+                                    rate,                                # use the same sample rate as for the capturing
+                                    generated_frequency                  # adapt the frequency to the sample rate, theoretic max would be rate // 2
+                                )
                             for format in interface['formats']:
                                 asound_format = format
                                 alsaaudio_format = ASOUND_2_ALSAAUDIO_FORMATS[asound_format]
@@ -613,7 +553,11 @@ try:
                                     print("{:6d}, alsaaudio, {}, {:7s}, {}, {:2d}, {}{}{}".format(
                                         rate, pcm_device, asound_format, periodsize, i+1, self.RESULTS[result],
                                         "" if duration is None else ', {:.2f} s'.format(duration),
-                                        "" if peak_freq is None else ", " + ", ".join('{} Hz'.format(int(f)) for f in peak_freq)))
+                                        "" if peak_freq is None else ", {} Hz / {} Hz = {:5.3f}".format(int(peak_freq[0]), generated_frequency, peak_freq[0] / generated_frequency)))
+                                    if result != self.OK:
+                                        break    # speed up if the result is not ok, break the regression
+                            if st is not None:
+                                st.stop_test_tone()
             print('list of untested devices:')
             pprint(set(self.pcm_devices) - set(tested_pcm_devices))
 
@@ -629,19 +573,29 @@ Combinations of card, sampling-rate, format, periodsitze are tested.
 Each combination is regression tested as specified by -r/--regression.
 The list of tests which will be done can be queried with -l/--list.
 
-Per default the folder /proc/asound is searched for audio cards which are
-capable to capture. Their supported sample rates and formats are tested.
+Per default 'arecord' is queried for audio cards which are capable to 
+capture. Their supported sample rates and formats are tested.
 
 This behaviour can be overridden with the -b/--brute-force parameter.
 In case of brute force, all 'alsaaudio' PCMs are tested with various
 baudrates and formats. Do not use --brute-force unless there is no result
 otherwise.
 
-It is recommended to connect a frequency generator to the line in which
-is to be tested. Set the frequency to 10000 Hz.
+It is recommended to connect the line out of each device with it's own
+line in. The line out will be used to generate a 10000 Hz test tone.
+The captured data of the line in is checked for the peak frequency.
 With 41100 samples/sec rate the peak frequency should be 9991 Hz.
 With 48k, 96k, 192k samples/s the peak frequency should be 9984 Hz.
 The deviation from 10000 depends on the frequency resolution of the FFT.
+
+It may happen that a sound device is not capable of generating a reliable
+test tone at the same time when capturing data. In this case use the
+parameters -t/--test-tone in combination with -c/--card.
+The test tone will be generated from the device given as -t/--test-tone.
+The card specified with -c/--card will be tested. In this cae the line out
+of the -t device shall be connected to teh line in of the -c device.
+If you want to connect to an external frequency generator instead, set
+-t/--test-tone=external and connect to the external frequency generator.
 
 Some parameter combinations are not suitable at all.
 Other combinations yield wrong output (i.e. wrong freuencies measured).
@@ -688,8 +642,19 @@ PeriodSize = 1024
 default=1024, if the computer runs out of memory,
 select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
     parser.add_argument("-r", "--regression", help="regressions with the same settings, default=10", type=int, default=10)
-    parser.add_argument("-t", "--test-dir", help="Not for normal use: prefix for /proc/asound; Used for the test of proc_asound_walker()", default=None)
+    parser.add_argument("-t", "--test-tone", help="Format: external or CARD=xxxx, the card to be used for the test tone generation", default=None)
+    parser.add_argument("-c", "--card", help="Format: CARD=xxxx, the card to be tested", default=None)
     args = parser.parse_args()
+
+    t_start = time.time()
+
+    if args.test_tone or args.card:
+        if args.test_tone is None:
+            parser.print_help()
+            sys.exit(1)
+        if args.card is None:
+            parser.print_help()
+            sys.exit(1)
 
     if args.list:
         if ALSAAUDIO_IS_PRESENT:
@@ -715,12 +680,12 @@ select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
         else:
             print("ERROR: 'alsaaudio' is not available. Option -b/--brute-force is not available.")
     else:
-        if True: #try:
-            interfaces = proc_asound_walker(args.test_dir).get_capture_interfaces()
-        else: #except Exception as err:
-            print("ERROR: {}, {}".format(type(err), err))
-            proc_asound_walker(args.test_dir).print_zip()
-        print()
+        ar = arecord()
+        if ar is None:
+            print("ERROR: arecord inctance could not be created")
+            sys.exit(1)
+        else:
+            interfaces = ar.get_capture_interfaces()
 
     for interface in interfaces:
         print(interface['card'])
@@ -733,6 +698,8 @@ select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
 
     print()
     if ALSAAUDIO_IS_PRESENT:
-        alsaaudio_tester().test(interfaces, args.periodsize, args.regression)
+        alsaaudio_tester().test(interfaces, args.periodsize, args.regression, args.card, args.test_tone)
     else:
         print("ERROR: 'alsaaudio' is not available. Thus the alsaaudio test is not available.")
+
+    print("spent {} seconds".format(int(time.time() - t_start)))
