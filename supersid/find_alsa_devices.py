@@ -14,10 +14,11 @@ from struct import unpack as st_unpack
 from numpy import array
 from matplotlib.mlab import psd as mlab_psd
 from pprint import pprint
+import pandas as pd     # python3 -m pip install pandas
 
 
 if __name__ == '__main__':
-    print("Version 20211126")
+    print("Version 20211127")
 
 
 """
@@ -524,6 +525,7 @@ try:
                 st = speaker_test()
                 if st is None:
                     print("WARNING: 'speaker-test' inctance could not be created, there will be no frequency generated for the loop back test")
+            test_log = []
             tested_pcm_devices = []
             print("audio_sampling_rate, Audio, Card, Format, PeriodSize, regression, result[, duration][, peak frequency / generated frequency = frequency ratio]")
             for pcm_device in self.pcm_devices:
@@ -550,6 +552,18 @@ try:
                                 alsaaudio_format = ASOUND_2_ALSAAUDIO_FORMATS[asound_format]
                                 for i in range(regression):
                                     result, data, duration, peak_freq = self.test_configuration(pcm_device, rate, alsaaudio_format, periodsize)
+                                    test_log.append({
+                                        'Card': pcm_device,
+                                        'audio_sampling_rate': rate,
+                                        'Format': asound_format,
+                                        'PeriodSize': periodsize,
+                                        'i': i + 1,
+                                        'result': result,
+                                        'duration': duration,
+                                        'peak_freqency': None if peak_freq is None else peak_freq[0],
+                                        'generated_frequency': generated_frequency,
+                                        'frequency_ratio': None if peak_freq is None else peak_freq[0] / generated_frequency,
+                                    })
                                     print("{:6d}, alsaaudio, {}, {:7s}, {}, {:2d}, {}{}{}".format(
                                         rate, pcm_device, asound_format, periodsize, i+1, self.RESULTS[result],
                                         "" if duration is None else ', {:.2f} s'.format(duration),
@@ -558,8 +572,90 @@ try:
                                         break    # speed up if the result is not ok, break the regression
                             if st is not None:
                                 st.stop_test_tone()
-            print('list of untested devices:')
+            print()
+            print('This is the list of untested devices:')
             pprint(set(self.pcm_devices) - set(tested_pcm_devices))
+            print()
+            self.test_summary(test_log, regression)
+
+        def test_summary(self, test_log, regression):
+            df = pd.DataFrame(test_log)  # convert the entire results list
+            df = df.dropna()             # drop all rows containing no values e.g. no duration, no peak_frequency, no frequency_ratio
+            df = df[(df['frequency_ratio'] >= 0.999) & (df['frequency_ratio'] <= 1.001)]  # drop frequency_ratio not similar deviating more than 1 %% from the ideal 1.0
+            df['candidate'] = None
+            num_candidates = 0
+            for Card in df['Card'].unique():
+                for audio_sampling_rate in df['audio_sampling_rate'].unique():
+                    for Format in df['Format'].unique():
+                        for PeriodSize in df['PeriodSize'].unique():
+                            index = df[(df['Card'] == Card) & (df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format) & (df['PeriodSize'] == PeriodSize)].index
+                            if len(index) == regression:
+                                num_candidates += 1
+                                df.loc[index, 'candidate'] = num_candidates
+
+            if num_candidates >= 1:
+                print("{} candidates found.".format(num_candidates))
+                print("Prefer candidates with these properties:")
+                print("- audio_sampling_rate = highest available value")
+                print("- Format = the more bits the better (32 better than 24, 24 better than 16)")
+                print()
+
+                print("This is the complete list of candidates fulfilling the minimum requirements:")
+                df = df.dropna()                 # drop all non-candidates
+                df = df[df['i'] == regression]   # drop all but one line per setting
+                df = df.reset_index(drop=True)
+                pd.set_option('display.max_rows', None)    # display all candidates
+                print(df[['Card', 'audio_sampling_rate', 'Format', 'PeriodSize']])
+                print()
+
+                audio_sampling_rate = df['audio_sampling_rate'].max()
+                Format = df['Format'].max()
+                index =  df[(df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format)].index
+                if 1 == len(index):
+                    print("This is the supersid.cfg setting of the best candidate:")
+                else:
+                    print("These are the supersid.cfg settings of the best candidates:")
+                for Card in df['Card'].unique():
+                    for PeriodSize in df['PeriodSize'].unique():
+                        index =  df[(df['Card'] == Card) & (df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format) & (df['PeriodSize'] == PeriodSize)].index
+                        if (len(index)):
+                            print("# candidate '{}', {}, {}, {}".format(Card, audio_sampling_rate, Format, PeriodSize))
+                            print('[PARAMETERS]')
+                            print('audio_sampling_rate = {}'.format(audio_sampling_rate))
+                            print('[Capture]')
+                            print('Audio = alsaaudio')
+                            print('Card = {}'.format(Card))
+                            print('Format = {}'.format(Format))
+                            print('PeriodSize = {}'.format(PeriodSize))
+                            print()
+            else:
+                print("No candidate could be found.")
+                print()
+                print("Q: Did you use an external frequency generator?")
+                print("y: The candidate suggestion doesn't work with an external frequency generator.")
+                print("n: Continue reading ...")
+                print()
+                print("Q: Have line out and line in of the audio cards been connected with an audio cable?")
+                print("n: The candidate suggestion doesn't work without the loop back from line out to line in. ")
+                print("y: Doublecheck the cable is ok and correctly plugged in. Continue reading ...")
+                print()
+                print("Q: Is the line out generatin a test tone?")
+                print("   Connect a speaker.")
+                print("   Use the command below and replace the device name with the one to be verified.")
+                print("   speaker-test -Dplughw:CARD=Generic,DEV=0 -c 2 -t sine -f 440 -X ")
+                print("n: Try command line options -t/--test-tone and -c/--card")
+                print("   Connect line out of the -t interface with line in of the -c interface.")
+                print("y: Continue reading ...")
+                print()
+                print("Q: Is the user who is executing the scripts part of the audio group?")
+                print("   grep audio /etx/group")
+                print("n: It may be worth adding the user to the audio group.")
+                print("   sudo usermod -a -G audio")
+                print("   logout and login in order to have the changes take effect")
+                print("y: Continue reading ...")
+                print()
+                print("The card may not be suitable, the drivers may not be up to date, ...")
+                print("You need to ask a search engine or an expert for help about fixing audio issues.")
 
 except ImportError:
     print("ERROR: 'alsaaudio' is not available, on Linux try 'python3 -m pip install alsaaudio'")
