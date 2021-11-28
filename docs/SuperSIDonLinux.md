@@ -91,6 +91,8 @@ You can do so exactly like you would do in linux, for an local installation insi
     $ sudo apt-get install python3-matplotlib
     $ sudo apt-get install python3-pip
     $ sudo apt-get install libasound2-dev
+    $ sudo apt-get install python3-numpy
+    $ sudo apt-get install python3-pandas
     $ pip3 install -r requirements.txt
 ```
 
