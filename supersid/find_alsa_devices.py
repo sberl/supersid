@@ -651,7 +651,7 @@ try:
                 print("y: Continue reading ...")
                 print()
                 print("Q: Is the user who is executing the scripts part of the audio group?")
-                print("   grep audio /etx/group")
+                print("   grep audio /etc/group")
                 print("n: It may be worth adding the user to the audio group.")
                 print("   sudo usermod -a -G audio")
                 print("   logout and login in order to have the changes take effect")
