@@ -18,7 +18,7 @@ import pandas as pd     # python3 -m pip install pandas
 
 
 if __name__ == '__main__':
-    print("Version 20211127")
+    print("Version 20211128")
 
 
 """
@@ -332,13 +332,15 @@ class arecord(alsa):
         hw_params = {}
         with open('/dev/null', 'w') as f:
             args = [self.executable, '-D', pcm, '--dump-hw-params', '-d', '1']
+            # print(" ".join(s for s in args))
             p = subprocess.Popen(args, stdout=f, stderr=subprocess.PIPE)
             stdout, stderr = p.communicate()
             stderr=stderr.decode()
             errorlevel = p.returncode
-            assert(stdout is None)    # redirected to /dev/null
-            hw_params = self.parse_hw_params(stderr)
-            hw_params['RATE'] = self.rate_range_to_list(hw_params['RATE'])
+            if (0 == errorlevel):
+                assert(stdout is None)    # redirected to /dev/null
+                hw_params = self.parse_hw_params(stderr)
+                hw_params['RATE'] = self.rate_range_to_list(hw_params['RATE'])
         return hw_params
 
     def get_capture_interfaces(self):
@@ -349,12 +351,13 @@ class arecord(alsa):
             if "hw:" != pcm[:3]:
                 continue
             hw_params = self.get_pcm_hw_params(pcm)
-            interfaces.append({
-                'card': pcm[3:],
-                'formats': hw_params['FORMAT'],
-                'rates':  hw_params['RATE'],
-                'channels': hw_params['CHANNELS'],
-            })
+            if hw_params:
+                interfaces.append({
+                    'card': pcm[3:],
+                    'formats': hw_params['FORMAT'],
+                    'rates':  hw_params['RATE'],
+                    'channels': hw_params['CHANNELS'],
+                })
         return interfaces
 
 
