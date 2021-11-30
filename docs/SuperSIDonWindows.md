@@ -60,6 +60,7 @@ Open an `Anaconda Command Promt (Anaconda3)`
     > conda create --name supersid python=3.8
     > conda activate supersid
     > conda install numpy
+    > conda install pandas
     > conda install matplotlib
     > conda install PyAudio
     > pip install wxPython

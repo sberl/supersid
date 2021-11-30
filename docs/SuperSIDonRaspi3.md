@@ -77,14 +77,15 @@ You can do so exactly like you would do in linux, for an local installation insi
 ```console
     $ sudo apt-get install python3-matplotlib
     $ sudo apt-get install libasound2-dev
+    $ cd ~/supersid
     $ pip3 install -r requirements.txt
-    $ sudo apt install libportaudio2
-    $ pip3 install sounddevice
 ```
 
 Optional and not required. Install when you want to test additonal audio libraries:
 
 ```console
+    $ sudo apt install libportaudio2
+    $ pip3 install sounddevice
     $ pip3 install PyAudio
 ```
 
@@ -153,7 +154,18 @@ SD card of 16 MB or more
 Execute first the command `alsamixer` to ensure that the card is recorgnized and in proper order of functioning.
 Make sure that sound can be captured from it, and that the input volume is between 80 and 90.
 
-Connect a frequency generator to the line in and set it to 10 kHz.
+Read the help of find_alsa_devices.py and follow it.
+Then connetc line out of the sound card with line in of the same sound card.
+
+```console
+    $ cd ~/supersid/supersid
+    $ python3 find_alsa_devices.py --help | less
+    $ python3 -u find_alsa_devices.py 2>&1
+```
+
+The execution may take some minutes. Idealy a working configuration is found and the supersid.cfg settings are reported in the end.
+If this fails, you may want to connect a frequency generator to the line in and set it to 10 kHz.
+
 The frequency generator may by 
 
 - a real frequency generator device
@@ -171,11 +183,10 @@ In one console generate the test frequency.
     $ speaker-test -Dplughw:CARD=Headphones,DEV=0 -c 2 -t sine -f 10000 -X
 ```
 
-In another console search for the suitable device. Read the help and follow it.
+In another console search for the suitable device. Replace 'plughw:CARD=Dongle,DEV=0' with the device of interrest.
 ```console
     $ cd ~/supersid/supersid
-    $ python3 find_alsa_devices.py --help | less
-    $ python3 -u find_alsa_devices.py 2>&1 | grep OK
+    $ python3 -u find_alsa_devices.py -t=external -c=plughw:CARD=Dongle,DEV=0 2>&1 | grep OK
 ```
 
 Lets assume, you got the output below (actually it is much longer, this is just an interresting snippet).
@@ -187,16 +198,16 @@ Select a combination with properties in this order:
 - a format using highest number of bits S32_LE is better than S24_3LE, which is better than S16_LE
 
 ```example
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  1, OK, 1.00 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  2, OK, 1.01 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  3, OK, 1.00 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  4, OK, 1.01 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  5, OK, 1.00 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  6, OK, 1.02 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  7, OK, 1.00 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  8, OK, 1.01 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  9, OK, 1.01 s, 9984 Hz
- 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024, 10, OK, 1.00 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  1, OK, 1.00 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  2, OK, 1.00 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  3, OK, 1.01 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  4, OK, 1.00 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  5, OK, 1.00 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  6, OK, 1.00 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  7, OK, 1.00 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  8, OK, 1.01 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  9, OK, 1.01 s, 9984 Hz
+     96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024, 10, OK, 1.01 s, 9984 Hz
 ```
 
 Here 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024 is a good choice.
