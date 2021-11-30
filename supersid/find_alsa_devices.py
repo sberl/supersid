@@ -337,9 +337,9 @@ class arecord(alsa):
             stdout, stderr = p.communicate()
             stderr=stderr.decode()
             errorlevel = p.returncode
-            if (0 == errorlevel):
-                assert(stdout is None)    # redirected to /dev/null
-                hw_params = self.parse_hw_params(stderr)
+            assert(stdout is None)    # redirected to /dev/null
+            hw_params = self.parse_hw_params(stderr)
+            if hw_params:
                 hw_params['RATE'] = self.rate_range_to_list(hw_params['RATE'])
         return hw_params
 
@@ -580,7 +580,7 @@ try:
             print()
             print('This is the list of untested devices:')
             pprint(set(self.pcm_devices) - set(tested_pcm_devices))
-            if generated_frequency is not None:
+            if test_tone != "external":
                 print()
                 self.test_summary(test_log, regression)
 
