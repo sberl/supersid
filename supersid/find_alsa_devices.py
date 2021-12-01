@@ -18,7 +18,7 @@ import pandas as pd     # python3 -m pip install pandas
 
 
 if __name__ == '__main__':
-    print("Version 20211128")
+    print("Version 20211130")
 
 
 """
@@ -337,9 +337,9 @@ class arecord(alsa):
             stdout, stderr = p.communicate()
             stderr=stderr.decode()
             errorlevel = p.returncode
-            if (0 == errorlevel):
-                assert(stdout is None)    # redirected to /dev/null
-                hw_params = self.parse_hw_params(stderr)
+            assert(stdout is None)    # redirected to /dev/null
+            hw_params = self.parse_hw_params(stderr)
+            if hw_params:
                 hw_params['RATE'] = self.rate_range_to_list(hw_params['RATE'])
         return hw_params
 
@@ -532,18 +532,19 @@ try:
             tested_pcm_devices = []
             print("audio_sampling_rate, Audio, Card, Format, PeriodSize, regression, result[, duration][, peak frequency / generated frequency = frequency ratio]")
             for pcm_device in self.pcm_devices:
+                if test_card is not None:
+                    if test_card not in pcm_device:
+                        print('skip', pcm_device)
+                        continue    # if the card to be tested is configured but the current card doesn't match, skip the test
                 for interface in interfaces:
                     card = interface['card']
-                    if test_card is not None:
-                        if test_card not in card:
-                            print('skip', card)
-                            continue    # if the card to be tested is configured but the current card doesn't match, skip the test
                     if ((card in pcm_device) or (card[:card.find(',DEV=')] in pcm_device)) \
                         and (pcm_device not in tested_pcm_devices):
                         tested_pcm_devices.append(pcm_device)
                         for rate in interface['rates']:
-                            generated_frequency = rate // 3
+                            generated_frequency = None
                             if st is not None:
+                                generated_frequency = rate // 3
                                 st.start_test_tone(
                                     test_tone if test_tone is not None   # preferably use the card configured for the test tone
                                     else card,                           # else fall back to the same card which is tested
@@ -565,12 +566,13 @@ try:
                                         'duration': duration,
                                         'peak_freqency': None if peak_freq is None else peak_freq[0],
                                         'generated_frequency': generated_frequency,
-                                        'frequency_ratio': None if peak_freq is None else peak_freq[0] / generated_frequency,
+                                        'frequency_ratio': None if (peak_freq is None) or (generated_frequency is None) else peak_freq[0] / generated_frequency,
                                     })
-                                    print("{:6d}, alsaaudio, {}, {:7s}, {}, {:2d}, {}{}{}".format(
+                                    print("{:6d}, alsaaudio, {}, {:7s}, {}, {:2d}, {}{}{}{}".format(
                                         rate, pcm_device, asound_format, periodsize, i+1, self.RESULTS[result],
                                         "" if duration is None else ', {:.2f} s'.format(duration),
-                                        "" if peak_freq is None else ", {} Hz / {} Hz = {:5.3f}".format(int(peak_freq[0]), generated_frequency, peak_freq[0] / generated_frequency)))
+                                        "" if peak_freq is None else ", {} Hz".format(int(peak_freq[0])),
+                                        "" if (peak_freq is None) or (generated_frequency is None) else " / {} Hz = {:5.3f}".format(generated_frequency, peak_freq[0] / generated_frequency)))
                                     if result != self.OK:
                                         break    # speed up if the result is not ok, break the regression
                             if st is not None:
@@ -578,8 +580,9 @@ try:
             print()
             print('This is the list of untested devices:')
             pprint(set(self.pcm_devices) - set(tested_pcm_devices))
-            print()
-            self.test_summary(test_log, regression)
+            if test_tone != "external":
+                print()
+                self.test_summary(test_log, regression)
 
         def test_summary(self, test_log, regression):
             df = pd.DataFrame(test_log)  # convert the entire results list

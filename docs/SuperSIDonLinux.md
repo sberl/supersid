@@ -93,6 +93,7 @@ You can do so exactly like you would do in linux, for an local installation insi
     $ sudo apt-get install libasound2-dev
     $ sudo apt-get install python3-numpy
     $ sudo apt-get install python3-pandas
+    $ cd ~/supersid
     $ pip3 install -r requirements.txt
 ```
 
@@ -154,7 +155,18 @@ SD card of 16 MB or more
 Execute first the command `alsamixer` to ensure that the card is recorgnized and in proper order of functioning.
 Make sure that sound can be captured from it, and that the input volume is between 80 and 90.
 
-Connect a frequency generator to the line in and set it to 10 kHz.
+Read the help of find_alsa_devices.py and follow it.
+Then connetc line out of the sound card with line in of the same sound card.
+
+```console
+    $ cd ~/supersid/supersid
+    $ python3 find_alsa_devices.py --help | less
+    $ python3 -u find_alsa_devices.py 2>&1
+```
+
+The execution may take some minutes. Idealy a working configuration is found and the supersid.cfg settings are reported in the end.
+If this fails, you may want to connect a frequency generator to the line in and set it to 10 kHz.
+
 The frequency generator may by 
 
 - a real frequency generator device
@@ -172,11 +184,10 @@ In one console generate the test frequency.
     $ speaker-test -Dplughw:CARD=Generic,DEV=0 -c 2 -t sine -f 10000 -X
 ```
 
-In another console search for the suitable device. Read the help and follow it.
+In another console search for the suitable device. Replace 'CARD=Generic' with the device of interrest.
 ```console
     $ cd ~/supersid/supersid
-    $ python3 find_alsa_devices.py --help | less
-    $ python3 -u find_alsa_devices.py 2>&1 | grep OK
+    $ python3 -u find_alsa_devices.py -t=external -c=CARD=Generic 2>&1 | grep OK
 ```
 
 Lets assume, you got the output below (actually it is much longer, these are just two interresting snippets).
@@ -190,46 +201,47 @@ Select a combination with properties in this order:
 - a format using highest number of bits S32_LE is better than S24_3LE, which is better than S16_LE
 
 ```example
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  1, OK, 1.00 s, 9984 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  2, OK, 1.00 s, 0 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  3, OK, 1.00 s, 9984 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  4, OK, 1.00 s, 9984 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  5, OK, 1.00 s, 9984 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  6, OK, 1.00 s, 9984 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  7, OK, 1.00 s, 0 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  8, OK, 1.00 s, 0 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024,  9, OK, 1.00 s, 9984 Hz
-    192000, alsaaudio, default:CARD=Generic, S24_3LE, 1024, 10, OK, 1.00 s, 9984 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  1, OK, 1.00 s, 0 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  2, OK, 1.00 s, 0 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  3, OK, 1.00 s, 9984 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  4, OK, 1.00 s, 9984 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  5, OK, 1.00 s, 9984 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  6, OK, 1.00 s, 9984 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  7, OK, 1.00 s, 0 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  8, OK, 1.00 s, 9984 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024,  9, OK, 1.00 s, 9984 Hz
+    192000, alsaaudio, default:CARD=Generic, S32_LE , 1024, 10, OK, 1.00 s, 9984 Hz
     ...
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  1, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  2, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  3, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  4, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  5, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  6, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  7, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  8, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024,  9, OK, 1.01 s, 9984 Hz
-    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024, 10, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  1, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  2, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  3, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  4, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  5, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  6, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  7, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  8, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024,  9, OK, 1.01 s, 9984 Hz
+    192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE , 1024, 10, OK, 1.01 s, 9984 Hz
 ```
 
-Here 192000, alsaaudio, plughw:CARD=Generic,DEV=0, S24_3LE, 1024 is a good choice.
+Here 192000, alsaaudio, plughw:CARD=Generic,DEV=0, S32_LE, 1024 is a good choice,
+while 192000, alsaaudio, default:CARD=Generic, S32_LE , 1024 is not working because the captured frequency is not consistently close to 10 kHz.
 Cross-check with `sampler.py` the setting are working as epected.
 The line with the duration and the peak frequency is the relevant one.
 
 ```console
-   $ python3 -u sampler.py -s=192000 -m=alsaaudio -d="plughw:CARD=Generic,DEV=0" -f=S24_3LE -p=1024 2>&1
+   $ python3 -u sampler.py -s=192000 -m=alsaaudio -d="plughw:CARD=Generic,DEV=0" -f=S32_LE -p=1024 2>&1
 ```
 
 This may be the output:
 ```example
-    Accessing 'plughw:CARD=Generic,DEV=0' at 192000 Hz via alsaaudio format 'S24_3LE', ...
-    alsaaudio device 'plughw:CARD=Generic,DEV=0', sampling rate 192000, format S24_3LE, periodsize 1024
+    Accessing 'plughw:CARD=Generic,DEV=0' at 192000 Hz via alsaaudio format 'S32_LE', ...
+    alsaaudio device 'plughw:CARD=Generic,DEV=0', sampling rate 192000, format S32_LE, periodsize 1024
     alsaaudio 'plughw:CARD=Generic,DEV=0' at 192000 Hz
-    192000 <class 'numpy.int64'> read from alsaaudio 'plughw:CARD=Generic,DEV=0', shape (192000,), format S24_3LE, duration 1.01 sec, peak freq 9984 Hz
-    [ 4239098  4161076  4228715  4194703  4178881  4200527  4193552  4181457
-      4219564 -1865580]
-    Vector sum -93576084
+    192000 <class 'numpy.int64'> read from alsaaudio 'plughw:CARD=Generic,DEV=0', shape (192000,), format S32_LE, duration 1.01 sec, peak freq 9984 Hz
+    [ 1064932352  1074352000  -789722880 -1081461760 -1076092544 -1078001024
+     -1071956096 -1069945216 -1077227008 -1067823744]
+    Vector sum -32073466112
 ```
 
 The corresponding lines of the configuration file 'supersid.cfg':
@@ -240,7 +252,7 @@ The corresponding lines of the configuration file 'supersid.cfg':
     [Capture]
     Audio = alsaaudio
     Card = plughw:CARD=Generic,DEV=0
-    Format = S24_3LE
+    Format = S32_LE
     PeriodSize = 1024
 ```
 
