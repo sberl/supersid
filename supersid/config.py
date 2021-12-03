@@ -83,6 +83,7 @@ class Config(dict):
                             ('mode', str, 'Standalone'),        # Server, Client, Standalone (default)
                             ('viewer', str, 'tk'),              # text, wx, tk (default)
                             ('bema_wing', int, 6),              # beta_wing for sidfile.filter_buffer()
+                            ('paper_size', str, 'A4'),          # paper size of the images, one of A3, A4, A5, Legal, Letter
                         # mandatory entries
                             ('site_name', str, None),
                             ('longitude', str, None),
@@ -101,7 +102,7 @@ class Config(dict):
             'Capture': (
                         ("Audio", str, 'pyaudio'),  # soundcard: alsaaudio or pyaudio ; server
                         ("Card", str, 'External'),  # alsaaudio: card name for capture
-                        ("Device", str, DEVICE_DEFAULT),         # USe instead of card for alsaaudio
+                        ("Device", str, DEVICE_DEFAULT),    # Use instead of card for alsaaudio
                         ("PeriodSize", int, 128)            # alsaaudio: period size for capture
                        ),
 
@@ -117,8 +118,7 @@ class Config(dict):
                         ("email_port", str, ""),            # your email server's port (SMPT)
                         ("email_tls", str, "no"),           # your email server requires TLS yes/no
                         ("email_login", str, ""),           # if your server requires a login
-                        ("email_password", str, ""),        # if your server requires a password
-                        ("paper_size", str, "A4")           # paper size of the mailed image, one of A3, A4, A5, Legal, Letter
+                        ("email_password", str, "")         # if your server requires a password
                      ),
             'FTP': (
                     ('automatic_upload',  str, "no"),   # yes/no: to upload the file to the remote FTP server
@@ -217,12 +217,13 @@ class Config(dict):
             self.config_err = "'hourly_save' must be either 'YES' or 'NO' in supersid.cfg. Please check."
             return
 
-        # 'email_tls' must be UPPER CASE
-        self['email_tls'] = self['email_tls'].upper()
-        if self['email_tls'] not in ('YES', 'NO'):
-            self.config_ok = False
-            self.config_err = "'email_tls' must be either 'YES' or 'NO' in supersid.cfg. Please check."
-            return
+        # when present, 'email_tls' must be UPPER CASE
+        if 'email_tls' in self:
+            self['email_tls'] = self['email_tls'].upper()
+            if self['email_tls'] not in ('YES', 'NO'):
+                self.config_ok = False
+                self.config_err = "'email_tls' must be either 'YES' or 'NO' in supersid.cfg. Please check."
+                return
 
         # 'paper_size' must be UPPER CASE
         self['paper_size'] = self['paper_size'].upper()
