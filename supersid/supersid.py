@@ -38,7 +38,7 @@ class SuperSID():
 
     running = False  # class attribute indicates the SID application running
 
-    def __init__(self, config_file, read_file=None):
+    def __init__(self, config_file, read_file=None, viewer=None):
         self.version = "EG 1.4 20150801"
         self.timer = None
         self.sampler = None
@@ -47,6 +47,8 @@ class SuperSID():
         # read the configuration file or exit
         self.config = readConfig(args.cfg_filename)
         self.config["supersid_version"] = self.version
+        if viewer is not None:
+            self.config['viewer'] = viewer
 
         # Create Logger -
         # Logger will read an existing file if specified
@@ -246,8 +248,12 @@ if __name__ == '__main__':
                         type=exist_file,
                         default=CONFIG_FILE_NAME,
                         help="Supersid configuration file")
+    parser.add_argument("-v", "--viewer",
+                        default=None,
+                        choices=['text', 'tk', 'wx'],
+                        help="viewer (overrides viewer setting in the configuration file)")
     args = parser.parse_args()
 
-    sid = SuperSID(config_file=args.cfg_filename, read_file=args.filename)
+    sid = SuperSID(config_file=args.cfg_filename, read_file=args.filename, viewer=args.viewer)
     sid.run()
     sid.close()
