@@ -97,16 +97,16 @@ class Config(dict):
             ),
 
             'Capture': (
-                ("Audio", str, 'alsaaudio'),        # soundcard: alsaaudio, sounddevice, pyaudio
-                ("Card", str, 'plughw:CARD=Generic,DEV=0'), # alsaaudio, sounddevice, pyaudio: card name for capture
-                ("Device", str, ''),                # alsaaudio: obsolete (all are using fully qualified Card names)
+                ("Audio", str, 'alsaaudio'),        # audio module: alsaaudio, sounddevice, pyaudio
+                ("Device", str, 'plughw:CARD=Generic,DEV=0'), # alsaaudio, sounddevice, pyaudio: Device name for capture
+                ("Card", str, ''),                  # alsaaudio: obsolete (all audio modules are using fully qualified Device names)
                 ("PeriodSize", int, 1024),          # alsaaudio: period size for capture
-                ("Format", str, 'S16_LE'),          # alsaaudio: format S16_LE, S24_3LE, S24_LE
+                ("Format", str, 'S16_LE'),          # alsaaudio: format S16_LE, S24_3LE, S32_LE
             ),
 
             'Linux': (                              # obsolete
                 ("Audio", str, 'alsaaudio'),        # obsolete
-                ("Card", str, 'plughw:CARD=Generic,DEV=0'),  # obsolete
+                ("Card", str, ''),                  # obsolete
                 ("PeriodSize", int, 1024),          # obsolete
             ),
 
@@ -130,9 +130,9 @@ class Config(dict):
 
         if sys.platform.startswith('win32'):
             sections['Capture'] = (
-                ("Audio", str, 'sounddevice'),                          # soundcard: sounddevice, pyaudio
-                ("Card", str, 'MME: Microsoft Sound Mapper - Input'),   # sounddevice, pyaudio: card name for capture
-                ("Format", str, 'S16_LE'),                              # alsaaudio: format S16_LE, S24_3LE, S24_LE
+                ("Audio", str, 'sounddevice'),                          # audio module: sounddevice, pyaudio
+                ("Device", str, 'MME: Microsoft Sound Mapper - Input'), # sounddevice, pyaudio: Device name for capture
+                ("Format", str, 'S16_LE'),                              # alsaaudio: format S16_LE, S24_3LE, S32_LE
             )
 
         self.sectionfound = set()
@@ -159,7 +159,6 @@ class Config(dict):
                     self.sectionfound.add(section)
 
         if "Linux" in self.sectionfound:
-            self.config_ok = False
             print ("\n*** WARNING***\nSection [Linux] is obsolete.\nPlease replace it by [Capture] in your .cfg files.\n")
 
         # Getting the stations parameters
@@ -275,11 +274,10 @@ class Config(dict):
         if "Audio" not in self:
             self["Audio"] = "sounddevice"
 
-        # obsolete Device
-        if 'Device' in self:
-            if self['Device']:
-                self.config_ok = False
-                print ("\n*** WARNING***\n'Device' is obsolete.\nPlease replace it by fully qualified 'Card' in your .cfg files.\n")
+        # obsolete Card
+        if 'Card' in self:
+            if self['Card']:
+                print ("\n*** WARNING***\n'Card' is obsolete.\nPlease replace it by fully qualified 'Device' in your .cfg files.\n")
                 return
 
         # when present, 'Format' must be one of the supported formats (relevant for the format conversion in sampler.py for alsaaudio)

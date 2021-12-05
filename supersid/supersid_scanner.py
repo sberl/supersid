@@ -232,13 +232,13 @@ if __name__ == '__main__':
 
         config = readConfig(args.config_file)
         config.supersid_check()
-        card = pyaudio_soundcard(config['Card'], RATE)
-        frames = card.capture(SEC)
-        card.close()
+        device = pyaudio_soundcard(config['Device'], RATE, 'S16_LE')
+        frames = device.capture(SEC)
+        device.close()
 
         wf = wave.open("record_test.wav", 'wb')
         wf.setnchannels(1)
-        wf.setsampwidth(card.pa_lib.get_sample_size(card.FORMAT))
+        wf.setsampwidth(device.pa_lib.get_sample_size(device.FORMAT_MAP[device.format]))
         wf.setframerate(RATE)
         wf.writeframes(bytearray(frames))
         wf.close()

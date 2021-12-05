@@ -9,7 +9,7 @@ This is pure Model, no wx import possible else Thread conflict
 
 The Sampler class will use an audio 'device' to capture 1 second of sound.
 This 'device' can be a local sound card:
-     - controlled by pyaudio on Windows or other system
+     - controlled by sounddevice or pyaudio on Windows or other system
      - controlled by alsaaudio on Linux
     or this 'device' can be a remote server
      - client mode accessing server thru TCP/IP socket (to be implemented)
@@ -23,6 +23,7 @@ This 'device' can be a local sound card:
 import sys
 import time
 import argparse
+import traceback
 from struct import unpack as st_unpack
 from numpy import array
 from matplotlib.mlab import psd as mlab_psd
@@ -52,7 +53,7 @@ try:
         print()
         try:
             print("Accessing '{}' at {} Hz via alsaaudio format '{}', ...".format(device, sampling_rate, format))
-            sc = alsaaudio_soundcard(device, sampling_rate, format, periodsize)
+            sc = alsaaudio_soundcard('', device, sampling_rate, format, periodsize)
             sc.info()
             return True
         except alsaaudio.ALSAAudioError as err:
@@ -76,20 +77,38 @@ try:
             S32_LE: 4,
         }
 
-        def __init__(self, device, audio_sampling_rate, format, periodsize):
-            """Initialize the ALSA audio sampler."""
-            print("alsaaudio device '{}', sampling rate {}, format {}, periodsize {}".format(device, audio_sampling_rate, format, periodsize))
+        def __init__(self, card, device, audio_sampling_rate, format, periodsize):
+            """
+            Initialize the ALSA audio sampler.
+            card is deprecated but still present for backward compatibility
+            device is preferred
+            """
             self.duration = None    # time to capture 1 sec of data excluding the format conversion
             self.format = format
             self.audio_sampling_rate = audio_sampling_rate
-            self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
-                                     alsaaudio.PCM_NORMAL,
-                                     channels=1,
-                                     rate=audio_sampling_rate,
-                                     format=self.FORMAT_MAP[self.format],
-                                     periodsize=periodsize,
-                                     device=device)
-            self.name = "alsaaudio '{}'".format(device)
+            if card != '':
+                # deprecated configuration keyword Card, use Device instead
+                device = 'sysdefault:CARD=' + card  # guess the intended device name
+                print("alsaaudio card '{}', sampling rate {}, format {}, periodsize {}".format(card, audio_sampling_rate, format, periodsize))
+                self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
+                                         alsaaudio.PCM_NORMAL,
+                                         channels=1,
+                                         rate=audio_sampling_rate,
+                                         format=self.FORMAT_MAP[self.format],
+                                         periodsize=periodsize,
+                                         #card=card) # deprecated since pyalsaaudio 0.8.0, it will internally build the device name as "default:CARD=" + card
+                                         device=device)
+                self.name = "alsaaudio Device guessed as '{}'".format(device)
+            else:
+                print("alsaaudio device '{}', sampling rate {}, format {}, periodsize {}".format(device, audio_sampling_rate, format, periodsize))
+                self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
+                                         alsaaudio.PCM_NORMAL,
+                                         channels=1,
+                                         rate=audio_sampling_rate,
+                                         format=self.FORMAT_MAP[self.format],
+                                         periodsize=periodsize,
+                                         device=device)
+                self.name = "alsaaudio '{}'".format(device)
 
         def capture_1sec(self):
             raw_data = b''
@@ -270,7 +289,7 @@ try:
         }
 
         def __init__(self, device_name, audio_sampling_rate, format):
-            print("pyaudio device '{}', sampling rate {}, format {}", device_name, audio_sampling_rate, format)
+            print("pyaudio device '{}', sampling rate {}, format {}".format(device_name, audio_sampling_rate, format))
             self.duration = None    # time to capture 1 sec of data excluding the format conversion
             self.format = format
             self.CHUNK = 1024
@@ -345,7 +364,7 @@ try:
                     data = self.pa_stream.read(self.CHUNK, exception_on_overflow=False)  # TODO: investigate exception_on_overflow=True, ignoring overflows seems not to be the best idea
                     frames.extend(data)
                 except IOError as err:
-                    print("IOError reading card:", str(err))
+                    print("IOError reading device:", str(err))
                     if -9981 == err.errno: # input overflow:
                         # this should not happen with exception_on_overflow=False
                         pass
@@ -392,18 +411,19 @@ class Sampler():
         try:
             if controller.config['Audio'] == 'alsaaudio':
                 self.capture_device = alsaaudio_soundcard(
-                    controller.config['Card'],
+                    controller.config['Card'],  # deprecated
+                    controller.config['Device'],
                     audio_sampling_rate,
                     controller.config['Format'],
                     controller.config['PeriodSize'])
             elif controller.config['Audio'] == 'sounddevice':
                 self.capture_device = sounddevice_soundcard(
-                    controller.config['Card'],
+                    controller.config['Device'],
                     audio_sampling_rate,
                     controller.config['Format'])
             elif controller.config['Audio'] == 'pyaudio':
                 self.capture_device = pyaudio_soundcard(
-                    controller.config['Card'],
+                    controller.config['Device'],
                     audio_sampling_rate,
                     controller.config['Format'])
             else:
@@ -415,7 +435,7 @@ class Sampler():
             self.display_error_message("Could not open capture device. Please check your .cfg file or hardware.")
             print ("Error", controller.config['Audio'])
             print(err)
-            print("To debugg: remove the try/except clause to get detail on what exception is triggered.")
+            print(traceback.format_exc())
 
         if self.sampler_ok:
             print("-", self.capture_device.name)

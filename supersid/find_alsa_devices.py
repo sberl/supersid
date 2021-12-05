@@ -353,7 +353,7 @@ class arecord(alsa):
             hw_params = self.get_pcm_hw_params(pcm)
             if hw_params:
                 interfaces.append({
-                    'card': pcm[3:],
+                    'device': pcm[3:],
                     'formats': hw_params['FORMAT'],
                     'rates':  hw_params['RATE'],
                     'channels': hw_params['CHANNELS'],
@@ -530,15 +530,15 @@ try:
                     print("WARNING: 'speaker-test' inctance could not be created, there will be no frequency generated for the loop back test")
             test_log = []
             tested_pcm_devices = []
-            print("audio_sampling_rate, Audio, Card, Format, PeriodSize, regression, result[, duration][, peak frequency / generated frequency = frequency ratio]")
+            print("audio_sampling_rate, Audio, Device, Format, PeriodSize, regression, result[, duration][, peak frequency / generated frequency = frequency ratio]")
             for pcm_device in self.pcm_devices:
                 if test_card is not None:
                     if test_card not in pcm_device:
                         print('skip', pcm_device)
-                        continue    # if the card to be tested is configured but the current card doesn't match, skip the test
+                        continue    # if the card to be tested is configured but the current device doesn't match, skip the test
                 for interface in interfaces:
-                    card = interface['card']
-                    if ((card in pcm_device) or (card[:card.find(',DEV=')] in pcm_device)) \
+                    device = interface['device']
+                    if ((device in pcm_device) or (device[:device.find(',DEV=')] in pcm_device)) \
                         and (pcm_device not in tested_pcm_devices):
                         tested_pcm_devices.append(pcm_device)
                         for rate in interface['rates']:
@@ -546,8 +546,8 @@ try:
                             if st is not None:
                                 generated_frequency = rate // 3
                                 st.start_test_tone(
-                                    test_tone if test_tone is not None   # preferably use the card configured for the test tone
-                                    else card,                           # else fall back to the same card which is tested
+                                    test_tone if test_tone is not None   # preferably use the device configured for the test tone
+                                    else device,                         # else fall back to the same device which is tested
                                     rate,                                # use the same sample rate as for the capturing
                                     generated_frequency                  # adapt the frequency to the sample rate, theoretic max would be rate // 2
                                 )
@@ -557,7 +557,7 @@ try:
                                 for i in range(regression):
                                     result, data, duration, peak_freq = self.test_configuration(pcm_device, rate, alsaaudio_format, periodsize)
                                     test_log.append({
-                                        'Card': pcm_device,
+                                        'Device': pcm_device,
                                         'audio_sampling_rate': rate,
                                         'Format': asound_format,
                                         'PeriodSize': periodsize,
@@ -590,11 +590,11 @@ try:
             df = df[(df['frequency_ratio'] >= 0.999) & (df['frequency_ratio'] <= 1.001)]  # drop frequency_ratio not similar deviating more than 1 %% from the ideal 1.0
             df['candidate'] = None
             num_candidates = 0
-            for Card in df['Card'].unique():
+            for Device in df['Device'].unique():
                 for audio_sampling_rate in df['audio_sampling_rate'].unique():
                     for Format in df['Format'].unique():
                         for PeriodSize in df['PeriodSize'].unique():
-                            index = df[(df['Card'] == Card) & (df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format) & (df['PeriodSize'] == PeriodSize)].index
+                            index = df[(df['Device'] == Device) & (df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format) & (df['PeriodSize'] == PeriodSize)].index
                             if len(index) == regression:
                                 num_candidates += 1
                                 df.loc[index, 'candidate'] = num_candidates
@@ -611,7 +611,7 @@ try:
                 df = df[df['i'] == regression]   # drop all but one line per setting
                 df = df.reset_index(drop=True)
                 pd.set_option('display.max_rows', None)    # display all candidates
-                print(df[['Card', 'audio_sampling_rate', 'Format', 'PeriodSize']])
+                print(df[['Device', 'audio_sampling_rate', 'Format', 'PeriodSize']])
                 print()
 
                 audio_sampling_rate = df['audio_sampling_rate'].max()
@@ -621,16 +621,16 @@ try:
                     print("This is the supersid.cfg setting of the best candidate:")
                 else:
                     print("These are the supersid.cfg settings of the best candidates:")
-                for Card in df['Card'].unique():
+                for Device in df['Device'].unique():
                     for PeriodSize in df['PeriodSize'].unique():
-                        index =  df[(df['Card'] == Card) & (df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format) & (df['PeriodSize'] == PeriodSize)].index
+                        index =  df[(df['Device'] == Device) & (df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format) & (df['PeriodSize'] == PeriodSize)].index
                         if (len(index)):
-                            print("# candidate '{}', {}, {}, {}".format(Card, audio_sampling_rate, Format, PeriodSize))
+                            print("# candidate '{}', {}, {}, {}".format(Device, audio_sampling_rate, Format, PeriodSize))
                             print('[PARAMETERS]')
                             print('audio_sampling_rate = {}'.format(audio_sampling_rate))
                             print('[Capture]')
                             print('Audio = alsaaudio')
-                            print('Card = {}'.format(Card))
+                            print('Device = {}'.format(Device))
                             print('Format = {}'.format(Format))
                             print('PeriodSize = {}'.format(PeriodSize))
                             print()
@@ -649,8 +649,8 @@ try:
                 print("   Connect a speaker.")
                 print("   Use the command below and replace the device name with the one to be verified.")
                 print("   speaker-test -Dplughw:CARD=Generic,DEV=0 -c 2 -t sine -f 440 -X ")
-                print("n: Try command line options -t/--test-tone and -c/--card")
-                print("   Connect line out of the -t interface with line in of the -c interface.")
+                print("n: Try command line options -t/--test-tone and -d/--device")
+                print("   Connect line out of the -t interface with line in of the -d interface.")
                 print("y: Continue reading ...")
                 print()
                 print("Q: Is the user who is executing the scripts part of the audio group?")
@@ -660,7 +660,7 @@ try:
                 print("   logout and login in order to have the changes take effect")
                 print("y: Continue reading ...")
                 print()
-                print("The card may not be suitable, the drivers may not be up to date, ...")
+                print("The device may not be suitable, the drivers may not be up to date, ...")
                 print("You need to ask a search engine or an expert for help about fixing audio issues.")
 
 except ImportError:
@@ -671,7 +671,7 @@ except ImportError:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description="""
 Test the audio capturing capability with the python module 'alsaaudio'.
-Combinations of card, sampling-rate, format, periodsitze are tested.
+Combinations of device, sampling-rate, format, periodsitze are tested.
 Each combination is regression tested as specified by -r/--regression.
 The list of tests which will be done can be queried with -l/--list.
 
@@ -692,10 +692,10 @@ The deviation from 10000 depends on the frequency resolution of the FFT.
 
 It may happen that a sound device is not capable of generating a reliable
 test tone at the same time when capturing data. In this case use the
-parameters -t/--test-tone in combination with -c/--card.
+parameters -t/--test-tone in combination with -d/--device.
 The test tone will be generated from the device given as -t/--test-tone.
-The card specified with -c/--card will be tested. In this cae the line out
-of the -t device shall be connected to teh line in of the -c device.
+The device specified with -d/--device will be tested. In this case the line out
+of the -t device shall be connected to the line in of the -d device.
 If you want to connect to an external frequency generator instead, set
 -t/--test-tone=external and connect to the external frequency generator.
 
@@ -734,7 +734,7 @@ audio_sampling_rate = 192000
 
 [Capture]
 Audio = alsaaudio
-Card = plughw:CARD=Generic,DEV=0
+Device = plughw:CARD=Generic,DEV=0
 Format = S24_3LE
 PeriodSize = 1024
 """.format(__file__))
@@ -744,17 +744,17 @@ PeriodSize = 1024
 default=1024, if the computer runs out of memory,
 select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
     parser.add_argument("-r", "--regression", help="regressions with the same settings, default=10", type=int, default=10)
-    parser.add_argument("-t", "--test-tone", help="Format: external or CARD=xxxx, the card to be used for the test tone generation", default=None)
-    parser.add_argument("-c", "--card", help="Format: CARD=xxxx, the card to be tested", default=None)
+    parser.add_argument("-t", "--test-tone", help='Format: "external" or "CARD=xxxx", the device to be used for the test tone generation', default=None)
+    parser.add_argument("-d", "--device", help='Format: "CARD=xxxx", the device to be tested', default=None)
     args = parser.parse_args()
 
     t_start = time.time()
 
-    if args.test_tone or args.card:
+    if args.test_tone or args.device:
         if args.test_tone is None:
             parser.print_help()
             sys.exit(1)
-        if args.card is None:
+        if args.device is None:
             parser.print_help()
             sys.exit(1)
 
@@ -774,7 +774,7 @@ select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
             device_list = alsaaudio.pcms(alsaaudio.PCM_CAPTURE)
             for device in device_list:
                 interfaces.append({
-                    'card': device,
+                    'device': device,
                     'rates': DEFAULT_RATES,
                     'formats': DEFAULT_FORMATS,
                     'channels': DEFAULT_CHANNELS,
@@ -790,7 +790,7 @@ select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
             interfaces = ar.get_capture_interfaces()
 
     for interface in interfaces:
-        print(interface['card'])
+        print(interface['device'])
         print('\trates:', interface['rates'])
         print('\tformats:', interface['formats'])
         print('\tchannels:', interface['channels'])
@@ -800,7 +800,7 @@ select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
 
     print()
     if ALSAAUDIO_IS_PRESENT:
-        alsaaudio_tester().test(interfaces, args.periodsize, args.regression, args.card, args.test_tone)
+        alsaaudio_tester().test(interfaces, args.periodsize, args.regression, args.device, args.test_tone)
     else:
         print("ERROR: 'alsaaudio' is not available. Thus the alsaaudio test is not available.")
 
