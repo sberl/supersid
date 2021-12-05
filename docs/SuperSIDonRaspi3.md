@@ -52,7 +52,7 @@ Numpy also requires a special package (for opening `shared object (.so)` files):
 ### 3.1) optional virtual environment
 
 This step is optional. Creating your own environment allows to install libraries in all freedom,
-without `sudo` and ensure you have a coherent and working set of libraries (soundcard).
+without `sudo` and ensure you have a coherent and working set of libraries (sound card).
 If your Raspi is dedicated to SuperSID then you can skip this step and install all globally.
 
 From /home/pi:
@@ -149,9 +149,9 @@ SD card of 16 MB or more
 ```
 
 
-## 5) Choose your USB Soundcard
+## 5) Choose your USB Sound Card
 
-Execute first the command `alsamixer` to ensure that the card is recorgnized and in proper order of functioning.
+Execute first the command `alsamixer` to ensure that the sound card is recorgnized and in proper order of functioning.
 Make sure that sound can be captured from it, and that the input volume is between 80 and 90.
 
 Read the help of find_alsa_devices.py and follow it.
@@ -186,7 +186,7 @@ In one console generate the test frequency.
 In another console search for the suitable device. Replace 'plughw:CARD=Dongle,DEV=0' with the device of interrest.
 ```console
     $ cd ~/supersid/supersid
-    $ python3 -u find_alsa_devices.py -t=external -c=plughw:CARD=Dongle,DEV=0 2>&1 | grep OK
+    $ python3 -u find_alsa_devices.py -t=external -d="plughw:CARD=Dongle,DEV=0" 2>&1 | grep OK
 ```
 
 Lets assume, you got the output below (actually it is much longer, this is just an interresting snippet).
@@ -236,7 +236,7 @@ The corresponding lines of the configuration file 'supersid.cfg':
 
     [Capture]
     Audio = alsaaudio
-    Card = plughw:CARD=Dongle,DEV=0
+    Device = plughw:CARD=Dongle,DEV=0
     Format = S24_3LE
     PeriodSize = 1024
 ```

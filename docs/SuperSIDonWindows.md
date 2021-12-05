@@ -110,9 +110,9 @@ To update (pull) to the latest version, do:
 ```
 
 
-## 3) Choose your Soundcard
+## 3) Choose your Sound Card
 
-Identify the available audio library / host API / audio card / sample rate combinations. If you have grep available, you can filter the results.
+Identify the available audio library / host API / audio device / sample rate combinations. If you have grep available, you can filter the results.
 
 The [Thesycon USB Descriptor Dumper](https://www.thesycon.de/eng/usb_descriptordumper.shtml) may give you some insights about the device capabilities. I.e. supportde sample rate and bits per sample.
 
@@ -160,7 +160,7 @@ The corresponding lines of the configuration file 'supersid.cfg':
 
     [Capture]
     Audio = sounddevice
-    Card = MME: Microsoft Sound Mapper - Input
+    Device = MME: Microsoft Sound Mapper - Input
     Format = S32_LE
 ```
 

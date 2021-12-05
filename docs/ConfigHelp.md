@@ -35,7 +35,7 @@ This section groups most of the parameters identifying your SuperSID monitor. So
   
 ### Log Parameters
 
-  * audio_sampling_rate: **48000** or **96000** (you can experiment with other value as long as your card support them)
+  * audio_sampling_rate: **48000** or **96000** (you can experiment with other value as long as your device supports them)
   * log_interval: number of second between two reading. Default is '**5**' seconds. Reading/sound capture last one second.
   * log_type: **filtered** or **raw**. When **filtered** is indicated, *bema_wing* function is called to smoothen raw data before writting the file else in **raw** mode, captured data are written 'as is'. Note that *sidfile.py* can be used as an utility to apply 'bema_wing' function to an existing file (raw or not) to smoothen its data.
   * data_path: fully qualified path where files will be written. If not mentioned then '../Data/' is used. If the path is relative, then it is relative to the script folder.
@@ -75,7 +75,8 @@ Each station to monitor is enumerated from 1 till n=*number_of_stations*. For ea
 This section can be omitted if you plan to use the 'pyaudio' library. If you want to use the "alsaaudio" library then you can declare:
 
   * Audio: python library to use **alsaaudio** (default for Linux), **sounddevice** (default for Windows) or **pyaudio**
-  * Card: card name for capture. **plughw:CARD=Generic,DEV=0** (default for Linux), **MME: Microsoft Sound Mapper - Input** (default for Windows).
+  * Card: [for alsaaudio only] card name for capture. The card name is incomplete, thus alsaaudio is guessing the device name. This is deprecated, use Device instead.
+  * Device: device name for capture. **plughw:CARD=Generic,DEV=0** (default for Linux), **MME: Microsoft Sound Mapper - Input** (default for Windows).
   * Format: **S16_LE** (default), **S24_3LE**, **S32_LE**
   * PeriodSize: [for alsaaudio only] period size for capture. Default is '1024'.
   
