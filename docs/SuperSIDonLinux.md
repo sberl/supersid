@@ -54,12 +54,6 @@ Optional: Virtualenv management for Python:
     $ sudo apt-get install mkvirtualenv
 ```
 
-Numpy also requires a special package (for opening `shared object (.so)` files):
-```console
-    $ sudo apt-get install libatlas-base-dev
-```
-
-
 ## 3) Installing SuperSID
 
 ### 3.1) optional virtual environment
@@ -91,6 +85,7 @@ You can do so exactly like you would do in linux, for an local installation insi
     $ sudo apt-get install python3-matplotlib
     $ sudo apt-get install python3-pip
     $ sudo apt-get install libasound2-dev
+    $ sudo apt-get install libatlas-base-dev
     $ sudo apt-get install python3-numpy
     $ sudo apt-get install python3-pandas
     $ cd ~/supersid
@@ -113,7 +108,7 @@ The installation is time consuming.
 
 This guide is an adapted version of [wxPython Python 3 Ubuntu 20.04 Installation](https://tutorialforlinux.com/2020/03/15/step-by-step-wxpython-python-3-ubuntu-20-04-installation/2/),
 using the preinstalled Python 3.8.10. If the Pi seems to freeze, leave it alone for a while. Give it 15-20 minutes.
-You can use `top` to monitor the memory usage. If the free Swap is 0 and the available memory close to 0, 
+You can use `top` to monitor the memory usage. If the free Swap is 0 and the available memory close to 0,
 and it doesn't recover unplug it, (optionally enable the virtenv) and restart by using your last command.
 Usually, the 'pip install'. Above all don't panic.
 
@@ -127,7 +122,7 @@ SD card of 16 MB or more
 
 ```console
     $ cat /proc/cpuinfo | grep Model
-    Model           : Raspberry Pi 400 Rev 1.0 
+    Model           : Raspberry Pi 400 Rev 1.0
 ```
 
 ```console
@@ -167,7 +162,7 @@ Then connetc line out of the sound card with line in of the same sound card.
 The execution may take some minutes. Idealy a working configuration is found and the supersid.cfg settings are reported in the end.
 If this fails, you may want to connect a frequency generator to the line in and set it to 10 kHz.
 
-The frequency generator may by 
+The frequency generator may by
 
 - a real frequency generator device
 - a tablet or a smartphone running a frequency generator app
