@@ -17,6 +17,14 @@ import tkinter.messagebox as MessageBox
 import tkinter.filedialog as FileDialog
 
 
+class Formatter(object):
+    def __init__(self):
+        pass
+    def __call__(self, x, y):
+        strength = pow(10, (y/10.0))
+        return "frequency=%.0f  " % x + " power=%.3f  " % y + " strength=%.0f" % strength
+
+
 class tkSidViewer():
     """Create the Tkinter GUI."""
 
@@ -30,6 +38,7 @@ class tkSidViewer():
         self.controller = controller  # previously referred as 'parent'
         self.tk_root = tk.Tk()
         self.tk_root.title("supersid @ " + self.controller.config['site_name'])
+        self.running = False
 
         # All Menus creation
         menubar = tk.Menu(self.tk_root)
@@ -75,7 +84,7 @@ class tkSidViewer():
         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
         self.axes = self.psd_figure.add_subplot(111)
-        # self.axes.hold(False)
+        self.axes.format_coord = Formatter()
 
         # StatusBar
         self.statusbar_txt = tk.StringVar()
@@ -90,17 +99,20 @@ class tkSidViewer():
     def run(self):
         self.need_refresh = False
         self.refresh_psd()  # start the re-draw loop
+        self.running = True
         self.tk_root.mainloop()
+        self.running = False
 
     def close(self, force_close=True):
         if not force_close and MessageBox.askyesno("Confirm exit",
                                                    "Are you sure you want to exit SuperSID?"):
+            self.running = False
             self.tk_root.destroy()
 
     def status_display(self, message, level=0, field=0):
         """Update the main frame by changing the message in status bar."""
-        # print(message)
-        self.statusbar_txt.set(message)
+        if self.running:
+            self.statusbar_txt.set(message)
 
     def get_psd(self, data, NFFT, FS):
         """Call 'psd' within axes, both calculates and plots the spectrum."""
@@ -154,7 +166,10 @@ class tkSidViewer():
                 saved_files = self.controller.save_current_buffers(filename,
                                                                    log_type='filtered',
                                                                    log_format='supersid')
-        MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
+            else:
+                saved_files = None
+        if saved_files:
+            MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
 
     def on_about(self):
         """Display the About box message."""

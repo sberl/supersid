@@ -16,30 +16,35 @@ Note: len(config.stations) == config['number_of_stations'] - sanity check -
 #   20150801:
 #   - add the [FTP] section
 #
+import sys
 import os.path
 import configparser
+import argparse
+from supersid_common import *
 
-# constant for log_type
+# constant for 'log_type'
 FILTERED, RAW = 'filtered', 'raw'
+
 # constant for station parameters
 CALL_SIGN, FREQUENCY, COLOR = 'call_sign', 'frequency', 'color'
-# constant for log_format
+
+# constant for 'log_format'
 SID_FORMAT, SUPERSID_FORMAT = 'sid_format', 'supersid_format'
+
 # with 5 decimals timestamp
 SUPERSID_EXTENDED, BOTH_EXTENDED = 'supersid_extended', 'both_extended'
-# Default value for alsaaudio Device parameter. Should be something the
-# alsaaudio library would never accept.
-DEVICE_DEFAULT = 'FOOBAR1234xyz'
+
+# constants for alsaaudio 'Format'
+S16_LE, S24_3LE, S32_LE = 'S16_LE', 'S24_3LE', 'S32_LE'
+
+# the default configuration path, can be overridden on command line
+CONFIG_FILE_NAME = script_relative_to_cwd_relative("../Config/supersid.cfg")
 
 
 class Config(dict):
     """Dictionary containing the key/values pair read from a .cfg file."""
 
-    # default locations for historical reasons
-    CONFIG_PATH_NAME = "../Config/"  # can be overridden on command line
-    DATA_PATH_NAME = "../Data/"  # can be overwritten by 'data_path'
-
-    def __init__(self, filename="supersid.cfg"):
+    def __init__(self, filename):
         """Read the given .cfg file or tries to find one.
 
         Config file is formatted as a .ini windows file
@@ -53,14 +58,7 @@ class Config(dict):
         self.config_err = ""        # Parsing failure error message
         config_parser = configparser.ConfigParser()
 
-        if filename == "supersid.cfg":  # let's look in various places
-            self.filenames = config_parser.read(
-                [Config.CONFIG_PATH_NAME + filename,  # historic location
-                    os.path.join('.', filename),      # current location
-                    os.path.expanduser(os.path.join('~', filename))])  # $home
-        else:
-            # a specific file has been given
-            self.filenames = config_parser.read(filename)
+        self.filenames = config_parser.read(filename)
 
         if len(self.filenames) == 0:
             self.config_ok = False
@@ -75,59 +73,67 @@ class Config(dict):
         """
         sections = {
             'PARAMETERS': (
-                        # optional entries
-                            ('contact', str, None),             # email of the SuperSID owner
-                            ('hourly_save', str, "no"),         # new flag: yes/no to save every hours
-                            ('data_path', str, ""),             # new: to override DATA_PATH_NAME by user
-                            ('log_format', str, SID_FORMAT),    # sid_format (default), supersid_format
-                            ('mode', str, 'Standalone'),        # Server, Client, Standalone (default)
-                            ('viewer', str, 'tk'),              # text, wx, tk (default)
-                            ('bema_wing', int, 6),              # beta_wing for sidfile.filter_buffer()
-                            ('paper_size', str, 'A4'),          # paper size of the images, one of A3, A4, A5, Legal, Letter
-                        # mandatory entries
-                            ('site_name', str, None),
-                            ('longitude', str, None),
-                            ('latitude', str, None),
-                            ('utc_offset', str, None),
-                            ('time_zone',  str, None),
-                            ('monitor_id', str, None),
-                            ('log_type',  str, None),  # 'filtered' or 'raw'
-
-                            ('audio_sampling_rate', int, None),
-                            ('log_interval', int, None),
-                            ('number_of_stations', int, None),
-                            ('scaling_factor', float, None)
-                          ),
+                # optional entries
+                ('hourly_save', str, "no"),         # new flag: yes/no to save every hours
+                ('data_path', str, "../Data/"),     # data path configuration by the user
+                ('log_format', str, SID_FORMAT),    # sid_format (default), supersid_format
+                ('mode', str, 'Standalone'),        # Server, Client, Standalone (default)
+                ('viewer', str, 'tk'),              # text, wx, tk (default)
+                ('bema_wing', int, 6),              # beta_wing for sidfile.filter_buffer()
+                ('paper_size', str, 'A4'),          # paper size of the images, one of A3, A4, A5, Legal, Letter
+                # mandatory entries
+                ('contact', str, None),             # email of the SuperSID owner
+                ('site_name', str, None),
+                ('longitude', str, None),
+                ('latitude', str, None),
+                ('utc_offset', str, None),
+                ('time_zone',  str, None),
+                ('monitor_id', str, None),
+                ('log_type',  str, None),           # 'filtered' or 'raw'
+                ('audio_sampling_rate', int, None),
+                ('log_interval', int, None),
+                ('number_of_stations', int, None),
+                ('scaling_factor', float, None),
+            ),
 
             'Capture': (
-                        ("Audio", str, 'pyaudio'),  # soundcard: alsaaudio or pyaudio ; server
-                        ("Card", str, 'External'),  # alsaaudio: card name for capture
-                        ("Device", str, DEVICE_DEFAULT),    # Use instead of card for alsaaudio
-                        ("PeriodSize", int, 128)            # alsaaudio: period size for capture
-                       ),
+                ("Audio", str, 'alsaaudio'),        # audio module: alsaaudio, sounddevice, pyaudio
+                ("Device", str, 'plughw:CARD=Generic,DEV=0'), # alsaaudio, sounddevice, pyaudio: Device name for capture
+                ("Card", str, ''),                  # alsaaudio: obsolete (all audio modules are using fully qualified Device names)
+                ("PeriodSize", int, 1024),          # alsaaudio: period size for capture
+                ("Format", str, 'S16_LE'),          # alsaaudio: format S16_LE, S24_3LE, S32_LE
+            ),
 
-            'Linux': (
-                        ("Audio", str, 'pyaudio'),          # soundcard: alsaaudio or pyaudio ; server
-                        ("Card", str, 'External'),          # alsaaudio: card name for capture
-                        ("PeriodSize", int, 128)            # alsaaudio: period size for capture
-                     ),
+            'Linux': (                              # obsolete
+                ("Audio", str, 'alsaaudio'),        # obsolete
+                ("Card", str, ''),                  # obsolete
+                ("PeriodSize", int, 1024),          # obsolete
+            ),
 
             'Email': (
-                        ("from_mail", str, ""),             # sender email
-                        ("email_server", str, ""),          # your email server (SMPT)
-                        ("email_port", str, ""),            # your email server's port (SMPT)
-                        ("email_tls", str, "no"),           # your email server requires TLS yes/no
-                        ("email_login", str, ""),           # if your server requires a login
-                        ("email_password", str, "")         # if your server requires a password
-                     ),
+                ("from_mail", str, ""),             # sender email
+                ("email_server", str, ""),          # your email server (SMPT)
+                ("email_port", str, ""),            # your email server's port (SMPT)
+                ("email_tls", str, "no"),           # your email server requires TLS yes/no
+                ("email_login", str, ""),           # if your server requires a login
+                ("email_password", str, ""),        # if your server requires a password
+            ),
+
             'FTP': (
-                    ('automatic_upload',  str, "no"),   # yes/no: to upload the file to the remote FTP server
-                    ('ftp_server',  str, ""),           # address of the server like sid-ftp.stanford.edu
-                    ('ftp_directory', str, ""),         # remote target directory to write the files
-                    ('local_tmp', str, ""),             # local tmp folder to generate files before upload
-                    ('call_signs', str, "")             # list of stations to upload (sub-set of [stations])
-                   ),
-            } # End of sections
+                ('automatic_upload',  str, "no"),   # yes/no: to upload the file to the remote FTP server
+                ('ftp_server',  str, ""),           # address of the server like sid-ftp.stanford.edu
+                ('ftp_directory', str, ""),         # remote target directory to write the files
+                ('local_tmp', str, ""),             # local tmp folder to generate files before upload
+                ('call_signs', str, ""),            # list of stations to upload (sub-set of [stations])
+            ),
+        } # End of sections
+
+        if sys.platform.startswith('win32'):
+            sections['Capture'] = (
+                ("Audio", str, 'sounddevice'),                          # audio module: sounddevice, pyaudio
+                ("Device", str, 'MME: Microsoft Sound Mapper - Input'), # sounddevice, pyaudio: Device name for capture
+                ("Format", str, 'S16_LE'),                              # alsaaudio: format S16_LE, S24_3LE, S32_LE
+            )
 
         self.sectionfound = set()
         for section, fields in sections.items():
@@ -153,8 +159,7 @@ class Config(dict):
                     self.sectionfound.add(section)
 
         if "Linux" in self.sectionfound:
-            print ("\n*** WARNING***\nSection [Linux] is obsolete. \
-                   Please replace it by [Capture] in your .cfg files.\n")
+            print ("\n*** WARNING***\nSection [Linux] is obsolete.\nPlease replace it by [Capture] in your .cfg files.\n")
 
         # Getting the stations parameters
         self.stations = []  # now defined as a list of dictionaries
@@ -243,40 +248,87 @@ class Config(dict):
         if self['log_format'] not in (SID_FORMAT, SUPERSID_FORMAT,
                                       SUPERSID_EXTENDED, BOTH_EXTENDED):
             self.config_ok = False
-            self.config_err = "'log_format' must be either 'sid_format' or 'supersid_format'/'supersid_extended'."
+            self.config_err = "'log_format' must be either one of '{}', '{}', '{}', '{}'.".format(
+                SID_FORMAT, SUPERSID_FORMAT, SUPERSID_EXTENDED, BOTH_EXTENDED)
             return
 
         # Check the 'data_path' validity and create it as a Config instance property
-        self.data_path = os.path.normpath(self['data_path']
-                                          or Config.DATA_PATH_NAME) + os.sep
+        self['data_path'] = script_relative_to_cwd_relative(self['data_path']) + os.sep
+        self.data_path = self['data_path']
         if not os.path.isdir(self.data_path):
             self.config_ok = False
             self.config_err = "'data_path' does not point to a valid directory:\n" + self.data_path
             return
 
-        # default audio to pyaudio if not declared
-        if "Audio" not in self:
-            self["Audio"] = "pyaudio"
+        # when present, 'local_tmp' must be a folder
+        if 'local_tmp' in self:
+            self['local_tmp'] = script_relative_to_cwd_relative(self['local_tmp']) + os.sep
+            self.local_tmp = self['local_tmp']
+            if not os.path.isdir(self.local_tmp):
+                self.config_ok = False
+                self.config_err = "'local_tmp' does not point to a valid directory:\n" + self.local_tmp
+                return
 
-        # Just one choice: 'plot_offset = 0', for now
-        # not in the expected parameters list
-        self['plot_offset'] = 0
+        # default audio to sounddevice if not declared
+        # sounddevice is available for Windows and Linux and it seems to yield better results than pyaudio
+        if "Audio" not in self:
+            self["Audio"] = "sounddevice"
+
+        # obsolete Card
+        if 'Card' in self:
+            if self['Card']:
+                print ("\n*** WARNING***\n'Card' is obsolete.\nPlease replace it by fully qualified 'Device' in your .cfg files.\n")
+                return
+
+        # when present, 'Format' must be one of the supported formats (relevant for the format conversion in sampler.py for alsaaudio)
+        if 'Format' in self:
+            if self['Format'] not in [S16_LE, S24_3LE, S32_LE]:
+                self.config_ok = False
+                self.config_err = "'log_format' must be either one of '{}', '{}', '{}'.".format(S16_LE, S24_3LE, S32_LE)
+                return
+
+
+def readConfig(cfg_filename):
+    """
+    read and return the configuration or terminate the program
+    """
+    cfg = Config(cfg_filename)
+    cfg.supersid_check()
+    if cfg.config_ok:
+        assert(1 == len(cfg.filenames))
+        print("Config file '{}' read successfully".format(cfg.filenames[0]))
+    else:
+        print ("Error:", cfg.config_err)
+        sys.exit(1)
+    return cfg
+
+
+def printConfig(cfg):
+    """
+    print the configuration in a nice format
+    """
+    assert(1 == len(cfg.filenames))
+    print("--- Config file " + "-"*26)
+    print("\t{}".format(cfg.filenames[0]))
+    print("--- Sections " + "-"*29)
+    for section in sorted(cfg.sectionfound):
+        print("\t{}".format(section))
+    print("--- Key Value pairs " + "-"*22)
+    for k, v in sorted(cfg.items()):
+        print("\t{} = {}".format(k, v))
+    print("--- Stations " + "-"*29)
+    for st in cfg.stations:
+        print("\tcall_sign = {}, frequency = {}, color = {}".format(st['call_sign'], st['frequency'], st['color']))
 
 
 if __name__ == '__main__':
-    import sys
-    # one argument: the .cfg file to read
-    cfg = Config(sys.argv[1])
-    cfg.supersid_check()
-    if cfg.config_ok:
-        print (cfg.filenames, "read successfully:")
-    else:
-        print ("Error:", cfg.config_err)
-    for section in sorted(cfg.sectionfound):
-        print ("-", section)
-    print("-"*20)
-    for k, v in sorted(cfg.items()):
-        print (k, "=", v)
-    print("-"*20)
-    for st in cfg.stations:
-        print (st)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", dest="cfg_filename",
+                        type=exist_file,
+                        default=CONFIG_FILE_NAME,
+                        help="Supersid configuration file")
+    args = parser.parse_args()
+
+    # read the configuration file or exit
+    cfg = readConfig(args.cfg_filename)
+    printConfig(cfg)

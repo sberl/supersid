@@ -6,7 +6,6 @@ version 1.3
 Segregation MVC
 
 First, it reads the .cfg file specified on the command line
-(unique accepted parameter) or in ../Config
 Then it creates its necessary elements:
     - Model: Logger, Sampler
     - Viewer: Viewer
@@ -26,8 +25,9 @@ from matplotlib.mlab import psd as mlab_psd
 # SuperSID Package classes
 from sidtimer import SidTimer
 from sampler import Sampler
-from config import Config
+from config import readConfig, CONFIG_FILE_NAME
 from logger import Logger
+from supersid_common import exist_file
 
 
 class SuperSID():
@@ -38,26 +38,17 @@ class SuperSID():
 
     running = False  # class attribute indicates the SID application running
 
-    def __init__(self, config_file='', read_file=None):
+    def __init__(self, config_file, read_file=None, viewer=None):
         self.version = "EG 1.4 20150801"
         self.timer = None
         self.sampler = None
         self.viewer = None
 
-        # Read Config file here
-        print("Reading supersid.cfg ...", end='')
-        # this script accepts a .cfg file as optional argument else we default
-        # so that the "historical location" or the local path are explored
-        self.config = Config(os.path.expanduser(config_file) or "supersid.cfg")
-        # once the .cfg read, some sanity checks are necessary
-        self.config.supersid_check()
-        if not self.config.config_ok:
-            print("ERROR:", self.config.config_err)
-            sys.exit(1)
-        else:
-            # good for debugging: what .cfg file(s) were actually read
-            print(self.config.filenames)
+        # read the configuration file or exit
+        self.config = readConfig(args.cfg_filename)
         self.config["supersid_version"] = self.version
+        if viewer is not None:
+            self.config['viewer'] = viewer
 
         # Create Logger -
         # Logger will read an existing file if specified
@@ -106,8 +97,7 @@ class SuperSID():
 
         # Create Sampler to collect audio buffer (sound card or other server)
         self.sampler = Sampler(self,
-                               audio_sampling_rate=self.config['audio_sampling_rate'],
-                               NFFT=1024)
+                               audio_sampling_rate=self.config['audio_sampling_rate'])
         if not self.sampler.sampler_ok:
             self.close()
             sys.exit(3)
@@ -249,22 +239,21 @@ class SuperSID():
         return msg
 
 
-# -----------------------------------------------------------------------------
-def exist_file(x):
-    """'type' for argparse - checks that file exists but does not open."""
-    if not os.path.isfile(x):
-        raise argparse.ArgumentError("{0} does not exist".format(x))
-    return x
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--read", dest="filename", required=False,
                         type=exist_file,
                         help="Read raw file and continue recording")
-    parser.add_argument('config_file', nargs='?', default='')
-    args, unk = parser.parse_known_args()
+    parser.add_argument("-c", "--config", dest="cfg_filename",
+                        type=exist_file,
+                        default=CONFIG_FILE_NAME,
+                        help="Supersid configuration file")
+    parser.add_argument("-v", "--viewer",
+                        default=None,
+                        choices=['text', 'tk', 'wx'],
+                        help="viewer (overrides viewer setting in the configuration file)")
+    args = parser.parse_args()
 
-    sid = SuperSID(config_file=args.config_file, read_file=args.filename)
+    sid = SuperSID(config_file=args.cfg_filename, read_file=args.filename, viewer=args.viewer)
     sid.run()
     sid.close()
