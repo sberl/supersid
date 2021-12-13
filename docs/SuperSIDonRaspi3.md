@@ -41,12 +41,6 @@ Optional: Virtualenv management for Python:
     $ sudo apt-get install mkvirtualenv
 ```
 
-Numpy also requires a special package (for opening `shared object (.so)` files):
-```console
-    $ sudo apt-get install libatlas-base-dev
-```
-
-
 ## 3) Installing SuperSID
 
 ### 3.1) optional virtual environment
@@ -77,6 +71,8 @@ You can do so exactly like you would do in linux, for an local installation insi
 ```console
     $ sudo apt-get install python3-matplotlib
     $ sudo apt-get install libasound2-dev
+    $ sudo apt-get install libatlas-base-dev
+
     $ cd ~/supersid
     $ pip3 install -r requirements.txt
 ```
@@ -97,7 +93,7 @@ The installation is time consuming.
 
 This guide is an adapted short form of [Build WxPython On Raspberry Pi](https://wiki.wxpython.org/BuildWxPythonOnRaspberryPi),
 using the preinstalled Python 3.7. If the Pi seems to freeze, leave it alone for a while. Give it 15-20 minutes.
-You can use `top` to monitor the memory usage. If the free Swap is 0 and the available memory close to 0, 
+You can use `top` to monitor the memory usage. If the free Swap is 0 and the available memory close to 0,
 and it doesn't recover unplug it, (optionally enable the virtenv) and restart by using your last command.
 Usually, the 'pip install'. Above all don't panic.
 
@@ -166,7 +162,7 @@ Then connetc line out of the sound card with line in of the same sound card.
 The execution may take some minutes. Idealy a working configuration is found and the supersid.cfg settings are reported in the end.
 If this fails, you may want to connect a frequency generator to the line in and set it to 10 kHz.
 
-The frequency generator may by 
+The frequency generator may by
 
 - a real frequency generator device
 - a tablet or a smartphone running a frequency generator app
