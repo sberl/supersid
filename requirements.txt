@@ -1,6 +1,7 @@
 matplotlib
 numpy
-pyalsaaudio
+pandas
+pyalsaaudio>=0.9.0
 pyparsing
 python-dateutil
 six

@@ -9,13 +9,12 @@ Each Viewer must implement:
 - close(): cleaning up
 - status_display(): display a message in a status bar or equivalent
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 import sys
 from threading import Timer
 from time import sleep
 from _getch import _Getch
 
-from config import FILTERED, RAW
+from config import FILTERED, RAW, printConfig
 
 
 class textSidViewer:
@@ -76,13 +75,12 @@ class textSidViewer:
         elif s == '?':
             self.print_menu()
         elif s == 'c':
-            print("\nConfig file(s):", self.controller.config.filenames)
-            for key in sorted(self.controller.config.keys()):
-                print("\t%s = %s" % (key, str(self.controller.config[key])))
-            print("Stations:", self.controller.config.stations)
+            printConfig(self.controller.config)
+            self.print_menu()
         elif s == 'v':
             print("\n")
             print(self.controller.about_app())
+            self.print_menu()
         else:
             sys.stdout.write('\a')  # terminal bell
         # call again in half a second to check if a new key has been pressed

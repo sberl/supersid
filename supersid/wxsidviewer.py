@@ -10,16 +10,16 @@ Each Viewer must implement:
 - close(): cleaning up
 - status_display(): display a message in a status bar or equivalent
 """
-from __future__ import print_function
 import matplotlib
 # matplotlib.use('WXAgg') # select back-end before pylab
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 import wx
-from wx.lib.pubsub import Publisher
+import wx.adv
 
 import supersid_plot as SSP
 from config import FILTERED, RAW
+from supersid_common import *
 
 
 class wxSidViewer(wx.Frame):
@@ -37,6 +37,8 @@ class wxSidViewer(wx.Frame):
 
         Creation of the Frame with menu and graph display using matplotlib
         """
+        self.running = False
+
         matplotlib.use('WXAgg')  # select back-end before pylab
         # the application MUST created first
         self.app = wx.App(redirect=False)
@@ -51,7 +53,7 @@ class wxSidViewer(wx.Frame):
 
         # Icon
         try:
-            self.SetIcon(wx.Icon("supersid_icon.png", wx.BITMAP_TYPE_PNG))
+            self.SetIcon(wx.Icon(script_relative_to_cwd_relative("supersid_icon.png"), wx.BITMAP_TYPE_PNG))
         finally:
             pass
 
@@ -98,7 +100,6 @@ class wxSidViewer(wx.Frame):
 
         psd_sizer.Add(self.canvas, 1, wx.EXPAND)
         self.axes = psd_figure.add_subplot(111)
-        self.axes.hold(False)
 
         # StatusBar
         self.status_bar = self.CreateStatusBar()
@@ -110,35 +111,36 @@ class wxSidViewer(wx.Frame):
         self.Center(True)
         self.Show()
 
-        # create a pubsub receiver for refresh after data capture
-        # ref. link on threads
-        Publisher().subscribe(self.updateDisplay, "update")
-
     def run(self):
         """Implement main loop for the application."""
+        self.running = True
         self.app.MainLoop()
+        self.running = False
 
     def updateDisplay(self, msg):
         """Receive data from thread and updates the display.
 
         graph and statusbar
         """
-        try:
-            self.canvas.draw()
-            self.status_display(msg.data)
-        except:
-            pass
+        if self.running:
+            try:
+                self.canvas.draw()
+                self.status_display(msg.data)
+            except:
+                pass
 
     def get_axes(self):
         return self.axes
 
     def status_display(self, message, level=0, field=0):
-        if level == 1:
-            wx.CallAfter(self.status_display, message)
-        elif level == 2:
-            wx.CallAfter(Publisher().sendMessage, "update", message)
-        else:
-            self.status_bar.SetStatusText(message, field)
+        if self.running:
+            if level == 1:
+                wx.CallAfter(self.status_display, message)
+            elif level == 2:
+                wx.CallAfter(self.status_display, message)
+                wx.CallAfter(self.updateDisplay, message)
+            else:
+                self.status_bar.SetStatusText(message, field)
 
     def on_close(self, event):
         """Request to close by the user."""
@@ -146,7 +148,7 @@ class wxSidViewer(wx.Frame):
 
     def close(self):
         """Request to close by the controller."""
-        self.app.Exit()
+        self.running = False
         self.Destroy()
 
     def on_exit(self, event):
@@ -165,7 +167,7 @@ class wxSidViewer(wx.Frame):
         """
         filenames = self.controller.save_current_buffers(log_format='supersid_format')
         print("plotting", filenames)
-        SSP.do_main(filenames)
+        SSP.do_main(filenames, config=self.controller.config)
 
     def on_plot_files(self, event):
         """Select multiple files and call supersid_plot module for display."""
@@ -178,7 +180,7 @@ class wxSidViewer(wx.Frame):
         if filedialog.ShowModal() == wx.ID_OK:
             filelist = ""
             for u_filename in filedialog.GetFilenames():
-                filelist = str(filelist + "../Data/" + str(u_filename) + ",")
+                filelist = str(filelist + self.controller.config.data_path + str(u_filename) + ",")
             filelist = filelist.rstrip(',')  # remove last comma
 
             ssp = SSP.SUPERSID_PLOT()
@@ -194,12 +196,12 @@ class wxSidViewer(wx.Frame):
 
     def on_about(self, event):
         """Open an About message box."""
-        info = wx.AboutDialogInfo()
-        info.SetIcon(wx.Icon('supersid_icon.png', wx.BITMAP_TYPE_PNG))
+        info = wx.adv.AboutDialogInfo()
+        info.SetIcon(wx.Icon(script_relative_to_cwd_relative('supersid_icon.png'), wx.BITMAP_TYPE_PNG))
         info.SetName('SuperSID')
         info.SetDescription(self.controller.about_app())
         info.SetCopyright('(c) Stanford Solar Center and Eric Gibert')
-        wx.AboutBox(info)
+        wx.adv.AboutBox(info)
 
     def on_click(self, event):  # MLP mouse event
         """Following user click on the graph.
@@ -231,6 +233,7 @@ class wxSidViewer(wx.Frame):
     def get_psd(self, data, NFFT, FS):
         """By calling 'psd' within axes, calculates and plots the spectrum."""
         try:
+            self.axes.clear()
             Pxx, freqs = self.axes.psd(data, NFFT=NFFT, Fs=FS)
         except wx.PyDeadObjectError:
             exit(3)

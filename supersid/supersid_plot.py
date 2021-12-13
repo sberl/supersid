@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
 Plot SuperSID data files.
 
 supersid_plot
-version: 1.3.1 enhanced for Python 2.7 and 3.3
+version: 1.3.1 enhanced for Python 3
 Original Copyright: Stanford Solar Center - 2008
 Copyright: Eric Gibert - 2012
 
@@ -13,7 +13,6 @@ Draw multi-stations graphs
 Offer the possibility to generate PDF and email it (perfect for batch mode)
 Offer the possibility to fetch NOAA XRA data and add them on the plot
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 import sys
 import datetime
 import time
@@ -23,24 +22,35 @@ import glob
 # matplolib tools
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter as ff
-from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.dates
 # Internet and Email modules
+import mimetypes
 import smtplib
-try:  # python 2.7 vs. Python 3.3
-    import urllib2
-    from email.MIMEText import MIMEText
-except ImportError:
-    import urllib.request
-    import urllib.error
-    from email.mime.text import MIMEText
+import urllib.request
+import urllib.error
+from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders, utils
 import argparse
 # SuperSID modules
 from sidfile import SidFile
-from config import Config
+from config import readConfig, printConfig, CONFIG_FILE_NAME
+from supersid_common import exist_file
+
+try:
+    clock = time.process_time   # new in Python 3.3
+except:
+    clock = time.clock          # removed in Python 3.8
+
+
+PAPER_SIZE = {
+    'A3': (29.7 / 2.54, 42.0 / 2.54),
+    'A4': (21.0 / 2.54, 29.7 / 2.54),
+    'A5': (14.8 / 2.54, 21.0 / 2.54),
+    'LEGAL': (8.5, 14),
+    'LETTER': (8.5, 11)
+}
 
 
 def sendMail(config, To_mail, msgBody, PDFfile):
@@ -66,7 +76,10 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     msg['Date'] = utils.formatdate(localtime=1)
 
     # attach the PDF file
-    ctype, encoding = ('application/pdf', None)
+    ctype, encoding = mimetypes.guess_type(PDFfile)
+    if ctype is None:
+        ctype = 'application/octet-stream'
+        print("MIME type for '{}' is unknown. Falling back to '{}'".format(PDFfile, ctype))
     maintype, subtype = ctype.split('/', 1)
     with open(PDFfile, 'rb') as pdf:
         att = MIMEBase(maintype, subtype)
@@ -76,9 +89,11 @@ def sendMail(config, To_mail, msgBody, PDFfile):
         msg.attach(att)
 
     # Establish an SMTP object by connecting to your mail server
-    s = smtplib.SMTP()
+    s = smtplib.SMTP(mailserver, mailport)
     print("Connect to:", mailserver, mailport)
     s.connect(mailserver, port=mailport)
+    if 'YES' == config.get("email_tls", ""):
+        s.starttls()
     if mailserveruser:
         s.login(mailserveruser, mailserverpasswd)
     # Send the email - real from, real to, extra headers and content ...
@@ -103,6 +118,13 @@ class SUPERSID_PLOT():
         m = t.month
         d = t.day
         return '%(y)04d-%(m)02d-%(d)02d --' % {'y': y, 'm': m, 'd': d}
+
+    def get_station_color(self, config, call_sign):
+        if config:
+            for station in config.stations:
+                if call_sign == station['call_sign']:
+                    return station['color'] or None
+        return None
 
     def plot_filelist(self, filelist, showPlot=True, eMail=None, pdf=None,
                       web=False, config=None):
@@ -157,19 +179,22 @@ class SUPERSID_PLOT():
         colorStation = {}
         colorIdx = 0
 
-        time.clock()
+        clock()
         for filename in sorted(filenames):
             figTitle.append(os.path.basename(filename)[:-4]) # extension .csv assumed
             sFile = SidFile(filename)
             for station in sFile.stations:
                 # Does this station already have a color? if not, reserve one
                 if station not in colorStation:
-                    colorStation[station] = colorList[colorIdx % len(colorList)] + '-'  # format like 'b-'
-                    colorIdx += 1
+                    colorStation[station] = self.get_station_color(config, station)
+                    if (colorStation[station] is None):
+                        colorStation[station] = colorList[colorIdx % len(colorList)] + '-'  # format like 'b-'
+                        colorIdx += 1
                 # Add points to the plot
                 plt.plot_date(sFile.timestamp,
                               sFile.get_station_data(station),
-                              colorStation[station])
+                              colorStation[station],
+                              label=station)
                 # Extra housekeeping
                 maxData = max(max(sFile.get_station_data(station)),
                               maxData)  # maxData will be used later to put the XRA labels up
@@ -186,21 +211,15 @@ class SUPERSID_PLOT():
                     #ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
                     NOAA_URL = 'ftp://ftp.swpc.noaa.gov/pub/indices/events/%sevents.txt' % (day)
                     response = None
-                    if sys.version[0]<'3':  # python 2.7 vs. Python 3.3
-                        try:
-                            response = urllib2.urlopen(NOAA_URL)
-                        except urllib2.HTTPError as err:
-                            print (err, "\n", NOAA_URL)
-                    else:
-                        try:
-                            response = urllib.request.urlopen(NOAA_URL)
-                        except urllib.error.HTTPError as err:
-                            print (err, "\n", NOAA_URL)
+                    try:
+                        response = urllib.request.urlopen(NOAA_URL)
+                    except urllib.error.HTTPError as err:
+                        print (err, "\n", NOAA_URL)
                     lastXRAlen = len(XRAlist) # save temporarly current number of XRA events in memory
                     if response:
                         for webline in response.read().splitlines():
                             if sys.version[0] >= '3':
-                                webline = str(webline, 'utf-8')  # Python 3: cast bytes to str
+                                webline = str(webline, 'utf-8')  # cast bytes to str
                             fields = webline.split()
                             if len(fields) >= 9 and not fields[0].startswith("#"):
                                 if fields[1] == '+':
@@ -230,7 +249,7 @@ class SUPERSID_PLOT():
                 # keep track of the days
                 daysList.add(sFile.startTime)
 
-        print ("All files read in", time.clock(), "sec.")
+        print ("All files read in", clock(), "sec.")
 
         if web:  # add the lines marking the retrieved flares from NOAA
             alternate = 0
@@ -242,11 +261,12 @@ class SUPERSID_PLOT():
                          bbox={'facecolor': 'w', 'alpha': 0.5, 'fill': True})
                 alternate = 0 if alternate == 1 else 1
 
-        # plot/page size / figure size with on A4 paper
+        # plot/page size / figure size with standard paper
+        height, width = PAPER_SIZE[config.get("paper_size", "")]    # exchange width and height to get landscape orientation
         if len(daysList) == 1:
-            fig.set_size_inches(29.7 / 2.54, 21.0 / 2.54, forward=True)
+            fig.set_size_inches(width, height, forward=True)
         else:  # allow PDF poster for many days (monthly graph) --> use Adobe PDF Reader --> Print --> Poster mode
-            fig.set_size_inches((29.7 / 2.54) * (len(daysList)/2.0), (21.0 / 2.54) / 2.0, forward=True)
+            fig.set_size_inches((width) * (len(daysList)/2.0), (height) / 2.0, forward=True)
         fig.subplots_adjust(bottom=0.08, left=0.05, right=0.98, top=0.95)
 
         # some cosmetics on the figure
@@ -260,18 +280,13 @@ class SUPERSID_PLOT():
 
         fig.suptitle(", ".join(figTitle))
 
-        xLegend = 0.03
-        for station, color in colorStation.items():
-            fig.text(xLegend, 0.93, station, color=color[0],
-                     fontsize=12, bbox={'fc': "w", 'pad': 10, 'ec': color[0]})
-            xLegend += 0.05
+        plt.legend()
+        plt.tight_layout()
 
         # actions requested by user
         if pdf or eMail:
             # in case option eMail is given
-            # but not pdfpp = PdfPages(pdf or 'Image.pdf')
-            plt.savefig(pp, format='pdf')
-            pp.close()
+            plt.savefig(pdf or 'Image.pdf')
         if showPlot:
             plt.show()
         if eMail:
@@ -298,8 +313,9 @@ if __name__ == '__main__':
      Usage:   supersid_plot.py  "filename*.csv"\n
      Note: " are optional on Windows, mandatory on *nix\n
      Other options:  supersid_plot.py -h\n""")
-    parser.add_argument("-c", "--config", dest="cfg_filename", required=False,
-                        default='', help="SuperSID Configuration file")
+    parser.add_argument("-c", "--config", dest="cfg_filename",
+                        type=exist_file,
+                        default=CONFIG_FILE_NAME, help="Supersid configuration file")
     parser.add_argument("-f", "--file", dest="filename",
                         help="Read SID and SuperSID csv file(s). Wildcards accepted.",
                         metavar="FILE|FILE*.csv")
@@ -330,22 +346,17 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--verbose",
                         action="store_true", dest="verbose", default=False,
                         help="Print more messages.")
-    (args, unk) = parser.parse_known_args()
-    # print ("Options:",args)
-    # print ("Files:", unk)
-    if args.cfg_filename:
-        config = Config(args.cfg_filename)
-        if args.verbose:
-            print(args.cfg_filename, "read as config file.")
-            for k, v in config.items():
-                print(k, "=", v)
-            for s in config.stations:
-                print("Station:", s)
-    else:
-        config = {"site_name": ""}
-    # print (config)
+    parser.add_argument('file_list', metavar='file.csv', type=exist_file, nargs='*',
+                    help='file(s) to be plotted')
+    args = parser.parse_args()
+
+    # read the configuration file or exit
+    config = readConfig(args.cfg_filename)
+    if args.verbose:
+        printConfig(config)
+
     if args.filename is None:  # no --file option specified
-        if len(unk) > 0:
+        if len(args.file_list) > 0:
             # last non options arguments are assumed to be a list of file names
             filenames = ",".join(unk)
         else:
@@ -357,7 +368,7 @@ if __name__ == '__main__':
             # stations can be given as a comma delimited string
             # SuperSID id is unique
             lstFileNames = []
-            data_path = config.get("data_path", None) or "../Data"
+            data_path = config.get("data_path")
             if args.station_id is None:  # file name like supersid file format
                 lstFileNames.append("%s/%s_%04d-%02d-%02d.csv" %
                                     (data_path,
@@ -388,7 +399,7 @@ if __name__ == '__main__':
     if filenames:
         do_main(filenames,
                 showPlot=args.showPlot,
-                eMail=args.email or config.get("to_mail", None),
+                eMail=args.email,
                 pdf=args.pdffilename,
                 web=args.webData,
                 config=config)

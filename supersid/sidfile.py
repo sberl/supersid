@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """A Class to handle SID and SuperSID formatted files.
 
 Name:        sidfile.py
@@ -16,11 +16,11 @@ Licence:     Open to All
 20150801:
     - truncate ['utc_starttime'] to 19 chars
 """
-from __future__ import print_function   # use the new Python 3 'print' function
 from datetime import datetime, timedelta
 import numpy
 
 from config import FILTERED, RAW
+from supersid_common import exist_file
 
 USAGE = """
 Provide some utilities to manipulate SID/SuperSID files:
@@ -187,7 +187,7 @@ class SidFile():
         as .%f for second decimals
         """
         # necessary to convert timestamp string (extended or not) to datetime
-        # AND decode byte array to string to float for python 3
+        # AND decode byte array to string to float
         converters_dict = {0: SidFile._StringToDatetime}
         for i in range(len(self.stations)):
             converters_dict[i+1] = SidFile._StringToFloat
@@ -236,7 +236,7 @@ class SidFile():
 
     @classmethod
     def _StringToDatetime(cls, strTimestamp):
-        if type(strTimestamp) is not str:  # i.e. byte array in Python 3
+        if type(strTimestamp) is not str:  # i.e. byte array
             strTimestamp = strTimestamp.decode('utf-8')
         try:
             dts = datetime.strptime(strTimestamp, SidFile._timestamp_format)
@@ -251,7 +251,7 @@ class SidFile():
 
     @classmethod
     def _StringToFloat(cls, strNumber):
-        if type(strNumber) is not str:  # i.e. byte array in Python 3
+        if type(strNumber) is not str:  # i.e. byte array
             strNumber = strNumber.decode('utf-8')
         return float(strNumber)
 
@@ -260,7 +260,12 @@ class SidFile():
 
         by adding LogInterval seconds to UTC_StartTime.
         """
-        self.timestamp = numpy.empty(len(self.data[0]), dtype=datetime)
+        if 1 == len(self.data.shape):
+            # self.data is one deminsional if one station is configured
+            self.timestamp = numpy.empty(len(self.data), dtype=datetime)
+        elif 2 == len(self.data.shape):
+            # self.data is two deminsional if more than one station is configured
+            self.timestamp = numpy.empty(len(self.data[0]), dtype=datetime)
         # add 'interval' seconds to UTC_StartTime for each entries
         interval = timedelta(seconds=self.LogInterval)
         currentTimestamp = self.startTime
@@ -291,7 +296,13 @@ class SidFile():
         """Return the numpy array of the given station's data."""
         try:
             idx = self.get_station_index(stationId)
-            return self.data[idx]
+            if 1 == len(self.data.shape):
+                # self.data is one deminsional if one station is configured
+                assert(0 == idx)
+                return self.data
+            elif 2 == len(self.data.shape):
+                # self.data is two deminsional if more than one station is configured
+                return self.data[idx]
         except ValueError:
             return []
 
@@ -362,8 +373,13 @@ class SidFile():
                                        if 'monitor_id' in self.sid_params
                                        else self.sid_params['monitorid'])
         if isSuperSid:
-            hdr += "# Stations = %s\n" % self.sid_params['stations']
-            hdr += "# Frequencies = %s\n" % self.sid_params['frequencies']
+            # if only one station is configured, self.sid_params['stations'] is not present
+            if 'stations' in self.sid_params:
+                hdr += "# Stations = %s\n" % self.sid_params['stations']
+                hdr += "# Frequencies = %s\n" % self.sid_params['frequencies']
+            else:
+                hdr += "# Stations = %s\n" % self.sid_params['stationid']
+                hdr += "# Frequencies = %s\n" % self.sid_params['frequency']
         else:
             hdr += "# StationID = %s\n" % self.sid_params['stationid']
             hdr += "# Frequency = %s\n" % self.sid_params['frequency']
@@ -493,16 +509,6 @@ if __name__ == '__main__':
     from os import path
     import argparse
 
-    def exist_file(x):
-        """
-        Check that file exists, but does not open it.
-
-        'Type' for argparse -
-        """
-        if not path.isfile(x):
-            raise argparse.ArgumentError("{0} does not exist".format(x))
-        return x
-
     # /original/path/name.merge.ext
     fmerge = lambda x: "%s.merge%s" % path.splitext(x)
 
@@ -523,7 +529,7 @@ if __name__ == '__main__':
     parser.add_argument("-b", "--bema_wing", dest="bema_wing", required=False,
                         type=int, default=6,
                         help="Width of the window used in filtering a.k.a. 'bema_wing' (default=6)")
-    args, unk = parser.parse_known_args()
+    args = parser.parse_args()
     if args.filename_info:
         sid = SidFile(args.filename_info, force_read_timestamp=True)
         print("-" * 5, "Header information", "-" * 5)

@@ -1,4 +1,4 @@
-#!python3
+#!/usr/bin/env python3
 """
 Retrieve data from NOAA regarding X-ray solar flares (GOES).
 
@@ -17,8 +17,11 @@ Parameters
 
 import urllib.request
 import urllib.error
+import os
 from os import path
 from datetime import datetime, date
+
+from supersid_common import *
 
 
 class NOAA_flares(object):
@@ -83,7 +86,11 @@ class NOAA_flares(object):
         """
         file_name = "goes-xrs-report_{}.txt".format(self.day[:4]) if self.day[:4] != "2015"  \
                                                     else "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
-        file_path = path.join("..", "Private", file_name)  # must exists else create supersid/Private
+
+        folder = script_relative_to_cwd_relative(path.join("..", "Private"))
+        if not path.isdir(folder):  # create folder ../Private if it does not exist
+            os.mkdir(folder)
+        file_path = path.join(folder, file_name)
         if not path.isfile(file_path):
             try:
                 url = path.join(self.ngdc_URL, file_name)
@@ -118,7 +125,7 @@ class NOAA_flares(object):
             print(err, "\n")
         else:
             for webline in response.read().splitlines():
-                fields = str(webline, 'utf-8').split()  # Python 3: cast bytes to str then split
+                fields = str(webline, 'utf-8').split()  # cast bytes to str then split
                 if len(fields) >= 9 and not fields[0].startswith("#"):
                     if fields[1] == '+': fields.remove('+')
                     if fields[6] in ('XRA',):  # maybe other event types could be of interrest

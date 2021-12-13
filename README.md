@@ -9,16 +9,16 @@ Monitoring the Sudden Ionospheric Disturbances (SID) is an easy yet exciting Hom
 
 The default SuperSID project software runs on Windows OS to record the pre-amplified signal received by the antenna with a “SuperSID Monitor”. 
 
-This *SuperSID* project is an Open Source implementation that runs on Linux and Windows. The scripts are executable by Python 2.7 and Python 3, at your choice.
+This *SuperSID* project is an Open Source implementation that runs on Linux and Windows. The scripts are executable by Python 3.
 
-This *SuperSID* includes a text mode which allows to turn your Raspberry Pi in a SID monitor (tested on Raspbian Wheezy & Pidora distro). TkInter in the default GUI to ensure Python 2 and 3 compatibility (but wxPython is still supported for Python 2 only).
+This *SuperSID* includes a text mode which allows to turn your Raspberry Pi into a SID monitor (tested on Raspbian Wheezy & Pidora distro). TkInter in the default GUI to ensure Python 3 compatibility.
 
 
 |Original Project  |Open Source SuperSID Project
 |------------------|--------------------------------------
 |Desktop/Laptop PC |Desktop/Laptop PC/Raspberry Pi (512Mb)
 |Windows OS        |Linux and Windows OS
-|Python 2.7        |Python 2.7 or 3.3+
+|Python 2.7        |Python 3.3+
 |Any Soundcard     |USB External Soundcard
 |SuperSID Monitor pre-amp.  |Direct connection to External Soundcard
 
