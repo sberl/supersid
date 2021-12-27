@@ -41,8 +41,9 @@ This section groups most of the parameters identifying your SuperSID monitor. So
   * data_path: fully qualified path where files will be written. If not mentioned then '../Data/' is used. If the path is relative, then it is relative to the script folder.
   * log_format:
     - **sid_format**: one file per station with first data column as timestamp and second data column as captured value
-    - **supersid_format**: one file for all station. No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 0:00:00UTC.
-    - **supersid_extended**: one file for all station. First data column is extended timestamp HH:MM:SS.mmmmm and following data column as one per station.
+    - **supersid_format**: one file for all stations. No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 0:00:00UTC.
+    - **supersid_extended**: one file for all stations. First data column is extended timestamp HH:MM:SS.mmmmm and following data column as one per station.
+    - **both_extended**: one file per station and one file for all stations in extended format.
   * hourly_save: **yes** / **no** (default). If **yes** then a raw file is written every hour to limit data loss.
   
 ### FTP to Standford server
