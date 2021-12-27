@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 """
-Send SID data files to Standford FTP server.
+Send SID data files to Stanford FTP server.
 
-Name:        ftp_to_Standford.py
+Name:        ftp_to_stanford.py
 Author:      Eric Gibert
 
 Created:     10-08-2012 as send_to_standford.py
