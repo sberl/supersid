@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 """
-Send SID data files to Standford FTP server.
+Send SID data files to stanford.edu FTP server.
 
-Name:        ftp_to_Standford.py
+Name:        ftp_to_stanford.py
 Author:      Eric Gibert
 
 Created:     10-08-2012 as send_to_standford.py
@@ -18,7 +18,7 @@ Script's Arguments:
     [data_path/<monitor_id>_YYYY_MM_DD.csv]
 [filename1 filename2 ...]: optional list of files to send
 
-New section in the configuration file:
+Example section in the configuration file:
 [FTP]
 automatic_upload = yes
 ftp_server = sid-ftp.stanford.edu
@@ -121,8 +121,9 @@ if __name__ == '__main__':
         else:
             print("Error:", input_file, "does not exist.")
 
-    # TODO: fill files_to_send with glob.glob("{}{}{}*.csv".format(cfg['local_tmp'], path.sep, cfg['site_name']))
-    #       -> this will retry to send files which were not transmitted so far
+    # TODO: fill files_to_send with
+    # glob.glob("{}{}{}*.csv".format(cfg['local_tmp'], path.sep, cfg['site_name']))
+    #     -> this will retry to send files which were not transmitted so far
     # now sending the files by FTP
     if files_to_send and cfg['automatic_upload'] == 'YES':
         print("Opening FTP session with", cfg['ftp_server'])
