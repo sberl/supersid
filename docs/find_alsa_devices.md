@@ -41,7 +41,7 @@ The list of tests which will be done can be queried with -l/--list.
 
 As kind of a last resort -b/--brute-force can be used.
 In case of brute force, all 'alsaaudio' PCMs are tested with various
-baudrates and formats. Do not use --brute-force unless there is no result
+sample rates and formats. Do not use --brute-force unless there is no result
 otherwise.
 
 -s/--save-wav saves wave files of the one second recordings.
