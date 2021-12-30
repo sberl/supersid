@@ -2,7 +2,7 @@
 
 ## Preparation
 
-[Set up your Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi) with the image **Raspberry OS (32-bit)**. AT the date of the installation this corresponds to *buster*.
+[Set up your Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi) with the image **Raspberry OS (32-bit)**. At the date of the installation this corresponds to *buster*.
 Boot on the new micro-SD card, follow normal process for any fresh system install. Connect to the internet.
 
 Execute the classic:
@@ -10,14 +10,11 @@ Execute the classic:
     $ sudo apt-get update
     $ sudo apt-get upgrade
 ```
-After the setup is complete, click on the Raspberry icon in the upper left of the screen.
-From the drop down, choose Preferences > Raspberry Pi Configuration.
-Under the Interface tab, Enable SSH & VNC - this will allow you to access the RPi remotely from your PC.
-In a terminal window type fbset to find the current screen resolution and record it.
-In the terminal window
-Type the command sudo raspi-config
-Under Advanced Options choose Expand Filesystem
-Move your cursor to the upper right of the window and hover over the icon that will show the wlan0 (WiFi) address that your router has assigned to the RPi.  Record this address (192.168.1.xxx) if you intend to run the RPi headless using RealVNC.  
+If you intend to access your system remotely you must enable SSH and VNC.   
+To do this, click on the Raspberry icon in the upper left of the screen.   
+From the drop down, choose Preferences > Raspberry Pi Configuration. Under the Interface tab, Enable SSH & VNC.      
+Move your cursor to the upper right of the window and hover over the icon that will show the wlan0 (WiFi) address that your router has assigned to the RPi. You will need to record this address (192.168.1.xxx) in order to access via SSH or VNC.   
+When complete, open a terminal window type fbset to find the current screen resolution and record it.   
 
 ## 1) Get the latest supersid software
 
@@ -327,10 +324,11 @@ Edit the file to add the information for your station.
 
 Viewer can be either text or tk.  Text is a basic text display.  The tk parameter will display the spectrograph which is useful in positioning the antenna for the strongest signals.  
 
-In the [FTP] section of supersid.cfg, set “automatic_upload” to yes if you wish to send your data to Stanford.  Add the stations that you wish to send under “call_signs”.  Separate the stations with commas without spaces.  The file to be sent must be in supersid_format - one file for all stations.  Using “log_format=both_extended” in the supersid.cfg file will create a file in supersid_format and also a file for each station in sid_format.  The sid_format files can be useful if a plot file of an individual station is desired.
+Once you are confident that you are reliably collecting good data (with a recognizable sunrise signature) you can begin to FTP data to Stanford.   
+In the [FTP] section of supersid.cfg, set “automatic_upload” to yes and add the stations that you wish to send under “call_signs”.  Separate the stations with commas without spaces.  The file to be sent must be in supersid_format - one file for all stations.  Using “log_format=both_extended” in the supersid.cfg file will create the necessary file in supersid_format and also a file for each station in sid_format.  The sid_format files can be useful if a plot file of an individual station is desired.   
 The supersid.cfg file uses the /home/pi/tmp directory to store the files to be sent via ftp.
-Sending the ftp is accomplished by the program ftp_to_stanford.py
-Crontab can be used to run the program at a specific time each day.
+Sending the ftp is accomplished by the program ftp_to_stanford.py   
+Using the following procedure, crontab can be used to run the program at a specific time each day.   
 In a terminal window create a script in the /home/pi directory by typing nano ftp_stanford.sh   The script should contain the following: 
 
 #!/bin/bash   
@@ -354,7 +352,7 @@ Add the following at the bottom of the file:
 
 Save the file and exit.
 
-In this case, the script will run at 5 minutes after 1800 hours (midnight UTC) and create a log file showing the results.  Adjust this to reflect your timezone. 
+You must determine when midnight UTC occurs in your time zone. In this case, the script will run at 5 minutes after 1800 hours and create a log file showing the results.  
 
 ## 8) Start the SuperSID program
 
@@ -427,10 +425,10 @@ For an interactive plot that enables you to turn stations off/on:
 
 For the above, use the file in supersid_format that contains all of the stations as listed in your supersid.cfg.
 
-For a plot that can be sent via email:   
-./supersid_plot.py -e -n -f ../Data/filename.csv -c ../Config/email.cfg
+For a plot that will be sent via email:   
+./supersid_plot.py -n -f ../Data/filename.csv -c ../Config/supersid.cfg -e xxxx@gmail.com
 
-The email.cfg file in the supersid/Config directory must be filled out with your information.
+The supersid.cfg file must include the [Email] section containing the appropriate information.
 
 supersid_plot arguments:
 
