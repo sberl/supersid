@@ -41,10 +41,13 @@ The list of tests which will be done can be queried with -l/--list.
 
 As kind of a last resort -b/--brute-force can be used.
 In case of brute force, all 'alsaaudio' PCMs are tested with various
-sample rates and formats. Do not use --brute-force unless there is no result
+sampling rates and formats. Do not use --brute-force unless there is no result
 otherwise.
 
 -s/--save-wav saves wave files of the one second recordings.
+
+Saving wave files is not meant for everyday use.
+This option has been added for analysis and troubleshooting mainly during the development phase.
 
 -v/--verbose produces verbose output mentioning the called external executables and the saved files.
 
@@ -257,7 +260,7 @@ Example
 ```
 
 
-## Test a single device with loopback and save wav files of the recordings, be verbose
+## Test a single device with loopback and save wave files of the recordings, be verbose
 
 Connect the line out of U0x41e0x30d3 to the line in of U0x41e0x30d3.
 
