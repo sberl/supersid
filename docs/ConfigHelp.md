@@ -43,7 +43,7 @@ This section groups most of the parameters identifying your SuperSID monitor. So
     - **sid_format**: one file per station with first data column as timestamp and second data column as captured value
     - **supersid_format**: one file for all stations. No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 0:00:00UTC.
     - **supersid_extended**: one file for all stations. First data column is extended timestamp HH:MM:SS.mmmmm and following data column as one per station.
-    - **both_extended**: one file per station and one file for all stations in extended format.
+    - **both_extended**: one file per station and one file for all stations in supersid_extended format.
   * hourly_save: **yes** / **no** (default). If **yes** then a raw file is written every hour to limit data loss.
   
 ### FTP to Standford server
@@ -88,7 +88,6 @@ This section can be omitted if you plan to use the 'pyaudio' library. If you wan
 The 'supersid_plot.py' program can send you an email with the attached plot as a PDF file. In order to use this feature, you must provide the information necessary to contact your email server as well as which email to use.
 
   * from_mail: sender's email
-  * to_mail: recipient's email
   * email_server: email server to use (SMPT)
   * email_port: email server's port (SMPT)
   * email_tls: email server requires TLS **yes** / **no** (default)
