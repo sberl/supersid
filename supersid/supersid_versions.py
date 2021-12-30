@@ -42,7 +42,7 @@ tested_versions = {
     'python-dateutil': {'versions': ['2.8.2'], 'requirement': 'mandatory'},
 
     # pandas dependencies
-    'pandas': {'versions': ['1.3.5'], 'requirement': 'mandatory'},
+    'pandas': {'versions': ['1.3.4','1.3.5'], 'requirement': 'mandatory'},
 
     # sounddevice dependencies
     'sounddevice': {'versions': ['0.4.3'], 'requirement': 'optional'},
