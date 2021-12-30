@@ -39,13 +39,6 @@ from supersid_common import exist_file
 
 
 if __name__ == '__main__':
-    def exist_file(file_name):
-        """Check that file exists but does not open it."""
-        if not path.isfile(file_name):
-            raise argparse.ArgumentError(
-                "{0} does not exist".format(file_name))
-        return file_name
-
     parser = argparse.ArgumentParser(description="Upload data files to server")
     parser.add_argument("-c", "--config", dest="cfg_filename",
                         type=exist_file,
