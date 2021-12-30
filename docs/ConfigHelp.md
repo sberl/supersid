@@ -1,6 +1,6 @@
 # File Naming Convention and Location
 
-SuperSID uses the parameters set in the provided configuration file passed as argument on the command line. By convention, the file name is "supersid.cfg".
+SuperSID uses the parameters set in the provided configuration file passed as an argument on the command line. By convention, the file name is "supersid.cfg".
 It is possible to have more than one configuration file to launch the SuperSID application with different parameters. For example to specify different list of Stations to monitor or to choose between graphic or text mode interface.
 
 The file can be located in any accessible directory provided that the fully qualified path is given. In case no path is provided, the default path '../Config/supersid.cfg' will be used.
@@ -35,19 +35,20 @@ This section groups most of the parameters identifying your SuperSID monitor. So
   
 ### Log Parameters
 
-  * audio_sampling_rate: **48000** or **96000** (you can experiment with other value as long as your device supports them)
-  * log_interval: number of second between two reading. Default is '**5**' seconds. Reading/sound capture last one second.
-  * log_type: **filtered** or **raw**. When **filtered** is indicated, *bema_wing* function is called to smoothen raw data before writting the file else in **raw** mode, captured data are written 'as is'. Note that *sidfile.py* can be used as an utility to apply 'bema_wing' function to an existing file (raw or not) to smoothen its data.
+  * audio_sampling_rate: **48000** or **96000** (you can experiment with other values as long as your device supports them)
+  * log_interval: number of seconds between two readings. Default is '**5**' seconds. Reading/sound capture lasts one second.
+  * log_type: **filtered** or **raw**. When **filtered** is indicated, *bema_wing* function is called to smoothen the raw data before writting the file else in **raw** mode, captured data are written 'as is'. Note that *sidfile.py* can be used as an utility to apply 'bema_wing' function to an existing file (raw or not) to smoothen its data.
   * data_path: fully qualified path where files will be written. If not mentioned then '../Data/' is used. If the path is relative, then it is relative to the script folder.
   * log_format:
     - **sid_format**: one file per station with first data column as timestamp and second data column as captured value
-    - **supersid_format**: one file for all station. No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 0:00:00UTC.
-    - **supersid_extended**: one file for all station. First data column is extended timestamp HH:MM:SS.mmmmm and following data column as one per station.
+    - **supersid_format**: one file for all stations. No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 0:00:00UTC.
+    - **supersid_extended**: one file for all stations. First data column is extended timestamp HH:MM:SS.mmmmm and following data column as one per station.
+    - **both_extended**: one file per station and one file for all stations in supersid_extended format.
   * hourly_save: **yes** / **no** (default). If **yes** then a raw file is written every hour to limit data loss.
   
 ### FTP to Standford server
 
-Version 1.4: FTP information are no longer part of the [PARAMETERS] section. Refer to the [FTP] section below.
+Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refer to the [FTP] section below.
   
 ### Extra
 
@@ -102,7 +103,7 @@ Group all parameters to send data to an FTP server i.e. Standford data repositor
   * automatic_upload: [yes/no] if set to 'yes' then trigger the FTP data upload
   * ftp_server: URL of the server (sid-ftp.stanford.edu)
   * ftp_directory: target folder on the FTP server where files should be written (on Standford's server: /incoming/SuperSID/NEW/)
-  * local_tmp: local temporary directpry used to write the files before their upload. If not mentioned then '../outgoing/' is used. If the path is relative, then it is relative to the script folder.
+  * local_tmp: local temporary directory used to write the files before their upload. If not mentioned then '../outgoing/' is used. If the path is relative, then it is relative to the script folder.
   * call_signs: list of recorded stations to upload. Not all recorded stations might be of interrest: list only the most relevant one(s).
 
 ## Comments
