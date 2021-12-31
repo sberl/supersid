@@ -60,17 +60,7 @@ class SuperSID():
         # Create the viewer based on the .cfg specification (or set default):
         # Note: the list of Viewers can be extended provided they implement
         # the same interface
-        if self.config['viewer'] == 'wx':
-            # GUI Frame to display real-time VLF Spectrum based on wxPython
-            # special case: 'wx' module might not be installed (text mode only)
-            try:
-                from wxsidviewer import wxSidViewer
-                self.viewer = wxSidViewer(self)
-                wx_imported = True
-            except ImportError:
-                print("'wx' module not imported.")
-                wx_imported = False
-        elif self.config['viewer'] == 'tk':
+        if self.config['viewer'] == 'tk':
             # GUI Frame to display real-time VLF Spectrum based on
             # tkinter
             from tksidviewer import tkSidViewer
@@ -85,12 +75,15 @@ class SuperSID():
 
         # Assign desired PSD function for calculation after capture
         # currently: using matplotlib's psd
-        if ((self.config['viewer'] == 'wx' and wx_imported)
-                or self.config['viewer'] == 'tk'):
+        if (self.config['viewer'] == 'tk'):
             # calculate psd and draw result in one call
             self.psd = self.viewer.get_psd
+        elif self.config['viewer'] == 'text':
+            # calculate psd only
+            self.psd = mlab_psd
         else:
-            self.psd = mlab_psd             # calculation only
+            # just a precaution in case another viewer will be added in future
+            raise(NotImplementedError)
 
         # calculate Stations' buffer_size
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
@@ -207,7 +200,7 @@ class SuperSID():
     def on_close(self):
         self.close()
 
-    def run(self, wx_app=None):
+    def run(self):
         """Start the application as infinite loop accordingly to need."""
         self.__class__.running = True
         self.viewer.run()
@@ -253,7 +246,7 @@ if __name__ == '__main__':
                         help="Supersid configuration file")
     parser.add_argument("-v", "--viewer",
                         default=None,
-                        choices=['text', 'tk', 'wx'],
+                        choices=['text', 'tk'],
                         help="viewer (overrides viewer setting in the configuration file)")
     args = parser.parse_args()
 

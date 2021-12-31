@@ -78,7 +78,7 @@ class Config(dict):
                 ('data_path', str, "../Data/"),     # data path configuration by the user
                 ('log_format', str, SID_FORMAT),    # sid_format (default), supersid_format
                 ('mode', str, 'Standalone'),        # Server, Client, Standalone (default)
-                ('viewer', str, 'tk'),              # text, wx, tk (default)
+                ('viewer', str, 'tk'),              # text, tk (default)
                 ('bema_wing', int, 6),              # beta_wing for sidfile.filter_buffer()
                 ('paper_size', str, 'A4'),          # paper size of the images, one of A3, A4, A5, Legal, Letter
                 # mandatory entries
@@ -250,6 +250,13 @@ class Config(dict):
             self.config_ok = False
             self.config_err = "'log_format' must be either one of '{}', '{}', '{}', '{}'.".format(
                 SID_FORMAT, SUPERSID_FORMAT, SUPERSID_EXTENDED, BOTH_EXTENDED)
+            return
+
+        # check viewer
+        self['viewer'] = self['viewer'].lower()
+        if self['viewer'] not in ('text', 'tk'):
+            self.config_ok = False
+            self.config_err = "'viewer' must be either one of 'text', 'tk'."
             return
 
         # Check the 'data_path' validity and create it as a Config instance property

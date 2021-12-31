@@ -54,7 +54,7 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
 
   * scaling_factor:
   * mode: [ignored] **Server**, **Client**, **Standalone** (default) . Reserved for future client/server dev.
-  * viewer: **text** for text mode light interface, **wx** for *wxPython* GUI or **tk** for TkInter GUI (default)
+  * viewer: **text** for text mode light interface or **tk** for TkInter GUI (default).
   * bema_wing: beta_wing parameter for sidfile.filter_buffer() calculation. Default is '**6**'.
   * paper_size: one of **A3**, **A4**, **A5**, **Legal**, **Letter**
   * number_of_stations: specify the number of stations to monitor. Each station is described within its own section.

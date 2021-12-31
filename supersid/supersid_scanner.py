@@ -174,12 +174,10 @@ class SuperSID_scanner():
     def on_close(self):
         self.close()
 
-    def run(self, wx_app = None):
+    def run(self):
         """Start the application as infinite loop accordingly to need."""
         self.__class__.running = True
-        if self.config['viewer'] == 'wx':
-            wx_app.MainLoop()
-        elif self.config['viewer'] == 'text':
+        if self.config['viewer'] == 'text':
             try:
                 while(self.__class__.running):
                     sleep(1)
