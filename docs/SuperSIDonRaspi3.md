@@ -96,66 +96,7 @@ Optional and not required. Install when you want to test additonal audio librari
 ```
 
 
-## 4) Optional: Build and install wxPython
-
-Build and install wxPython only if you really want to have wxPython, e.g. to test the scripts with 'viewer=wx' on the Pi.
-The installation is time consuming.
-
-This guide is an adapted short form of [Build WxPython On Raspberry Pi](https://wiki.wxpython.org/BuildWxPythonOnRaspberryPi),
-using the preinstalled Python 3.7. If the Pi seems to freeze, leave it alone for a while. Give it 15-20 minutes.
-You can use `top` to monitor the memory usage. If the free Swap is 0 and the available memory close to 0,
-and it doesn't recover unplug it, (optionally enable the virtenv) and restart by using your last command.
-Usually, the 'pip install'. Above all don't panic.
-
-### 4.1) Preconditions
-SD card of 16 MB or more
-
-```console
-    $ cat /etc/os-release | grep PRETTY_NAME
-    PRETTY_NAME="Raspbian GNU/Linux 10 (buster)"
-```
-
-```console
-    $ cat /proc/cpuinfo | grep Model
-    Model           : Raspberry Pi 3 Model B Rev 1.2
-```
-
-```console
-    $ python3 --version
-    Python 3.7.3
-```
-
-### 4.2) Install the dependencies
-```console
-    $ sudo apt-get install dpkg-dev build-essential libjpeg-dev libtiff-dev libsdl1.2-dev libgstreamer-plugins-base0.10-dev libnotify-dev freeglut3 freeglut3-dev libwebkitgtk-dev libghc-gtk3-dev libwxgtk3.0-gtk3-dev python3.7-dev
-```
-
-### 4.3) Limit the number of parallel make jobs
-```console
-    $ sudo mv /usr/bin/make /usr/bin/make.org
-    $ sudo nano /usr/bin/make
-        make.org $* --jobs=2
-        # save and exit with Ctrl+s, Ctrl+x
-    $ sudo chmod a+x /usr/bin/make
-```
-
-### 4.4) Get and install wxPython
-```console
-    $ cd ~
-    $ wget https://files.pythonhosted.org/packages/b9/8b/31267dd6d026a082faed35ec8d97522c0236f2e083bf15aff64d982215e1/wxPython-4.0.7.post2.tar.gz
-    $ tar xf wxPython-4.0.7.post2.tar.gz
-    $ cd wxPython-4.0.7.post2
-    $ pip3 install Pygments==2.5.1
-    $ pip3 install -r requirements.txt
-    $ python3 build.py build bdist_wheel
-    $ cd ~/wxPython-4.0.7.post2/dist
-    $ pip3 install wxPython-4.0.7.post2-cp37-cp37m-linux_armv7l.whl
-    $ cd ~/wxPython-4.0.7.post2/demo
-    $ python3 demo.py
-```
-
-
-## 5) Choose your USB Sound Card
+## 4) Choose your USB Sound Card
 
 Execute first the command `alsamixer` to ensure that the sound card is recognized and in proper order of functioning.
 Use F6 to choose the sound card you will be using.
@@ -249,7 +190,7 @@ The corresponding lines of the configuration file 'supersid.cfg':
 ```
 
 
-## 6) Troubleshooting issues with the sound card.
+## 5) Troubleshooting issues with the sound card.
 This section is not meant as an exhaustive discussion how to detect and configure the sound card but
 more as a list of tools which may help to do so. For further details you'll have to use search engines.
 
@@ -314,7 +255,7 @@ Generate a test tome and connect line out to line in.
 ```
 
 
-## 7) Edit your supersid\Config\supersid.cfg file
+## 6) Edit your supersid\Config\supersid.cfg file
 
 See [ConfigHelp.md](https://github.com/sberl/supersid/blob/master/docs/ConfigHelp.md)
 
@@ -354,18 +295,18 @@ Save the file and exit.
 
 You must determine when midnight UTC occurs in your time zone. In this case, the script will run at 5 minutes after 1800 hours and create a log file showing the results.  
 
-## 8) Start the SuperSID program
+## 7) Start the SuperSID program
 
 ```console
     $ cd ~/supersid/supersid
     $ ./supersid.py -c ../Config/supersid.cfg
 ```
 
-## 9) SD Card Backup
+## 8) SD Card Backup
 
 It is advisable to make a copy of your SD card once you determine that everything is set up and working.  Under Accessories there is a utility called SD Card Copier that can be used along with a USB SD card reader to clone your card.
 
-## 10) Automatic Restart After Power Outage
+## 9) Automatic Restart After Power Outage
 
 If you would like this option, do the following:
 
@@ -387,12 +328,12 @@ In the /home/pi directory, create a file called runSID.sh
 ```
 add the following to the file:
 
-
-#!/bin/sh   
-sleep 30   
-cd /home/pi/supersid/supersid   
-./supersid.py   
-
+```
+    #!/bin/sh   
+    sleep 30   
+    cd /home/pi/supersid/supersid   
+    ./supersid.py   
+```
 
 Save and Exit
 
@@ -403,7 +344,7 @@ Make it executable by doing:
 ```
 
 
-## 11) Plot commands
+## 10) Plot commands
 
 In a terminal window, navigate to /home/pi/supersid/supersid
 

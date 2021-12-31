@@ -126,55 +126,7 @@ libraries:
     $ sudo apt-get install python3-pyaudio
 ```
 
-## 4) Optional: Build and install wxPython
-
-Build and install wxPython only if you really want to have wxPython, e.g. to
-test the scripts with 'viewer=wx' with Ubuntu 20.04. The installation is time
-consuming.
-
-This guide is an adapted version of [wxPython Python 3 Ubuntu 20.04
-Installation]
-(https://tutorialforlinux.com/2020/03/15/step-by-step-wxpython-python-3-ubuntu-20-04-installation/2/),
-using the preinstalled Python 3.8.10. If the Pi seems to freeze, leave it alone
-for a while. Give it 15-20 minutes. You can use `top` to monitor the memory
-usage. If the free Swap is 0 and the available memory close to 0, and it doesn't
-recover unplug it, (optionally enable the virtenv) and restart by using your
-last command. Usually, the 'pip install'. Above all don't panic.
-
-### 4.1) Preconditions
-SD card of 16 MB or more
-
-```console
-    $ cat /etc/os-release | grep PRETTY_NAME
-    PRETTY_NAME="Ubuntu 20.04.3 LTS"
-```
-
-```console
-    $ cat /proc/cpuinfo | grep Model
-    Model           : Raspberry Pi 400 Rev 1.0
-```
-
-```console
-    $ python3 --version
-    Python 3.8.10
-```
-
-### 4.2) Install the dependencies
-```console
-    $ sudo apt-get install make gcc libgtk-3-dev libgstreamer-gl1.0-0 freeglut3 freeglut3-dev python3-gst-1.0 libglib2.0-dev ubuntu-restricted-extras libgstreamer-plugins-base1.0-dev
-```
-
-### 4.3) Get and install wxPython
-```console
-    $ python3 -m pip install wxPython
-    $ python3
-    import wx
-    wx.__version__
-    exit()
-```
-
-
-## 5) Choose your USB Sound Card
+## 4) Choose your USB Sound Card
 
 First execute the command `alsamixer` to ensure that the sound card is
 recognized and functioning properly. Make sure that sound can be
@@ -289,7 +241,7 @@ The corresponding lines of the configuration file 'supersid.cfg':
 ```
 
 
-## 6) Troubleshooting issues with the sound card.
+## 5) Troubleshooting issues with the sound card.
 This section is not meant as an exhaustive discussion how to detect and
 configure the sound card, but more as a list of tools which may help you to do
 so. For further details you'll have to use search engines. If this fails, you
@@ -367,12 +319,12 @@ Generate a test tome and connect line out to line in.
 ```
 
 
-## 7) Adapt the your supersid\Config\supersid.cfg file
+## 6) Adapt the your supersid\Config\supersid.cfg file
 
 See [ConfigHelp.md](./ConfigHelp.md)
 
 
-## 8) Start the SuperSID program
+## 7) Start the SuperSID program
 
 ```console
     $ cd ~/supersid/supersid

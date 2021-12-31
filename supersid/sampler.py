@@ -5,8 +5,6 @@ Sampler handles audio data capture.
 Also handles calculating PSD, extracting signal strengths at monitored
 frequencies, saving spectrum and spectrogram (image) to png file
 
-This is pure Model, no wx import possible else Thread conflict
-
 The Sampler class will use an audio 'device' to capture 1 second of sound.
 This 'device' can be a local sound card:
      - controlled by sounddevice or pyaudio on Windows or other system
