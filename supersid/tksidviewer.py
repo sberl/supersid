@@ -12,7 +12,6 @@ import tkinter.messagebox as MessageBox
 import tkinter.filedialog as FileDialog
 
 import matplotlib
-# matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
@@ -73,26 +72,32 @@ class tkSidViewer():
         menubar.add_cascade(label="Help", menu=helpmenu)
 
         self.tk_root.config(menu=menubar)
+        self.tk_root.state('zoomed')    # start full screen
+        self.tk_root.bind("<Configure>", self.onsize)
 
         # FigureCanvas
         self.psd_figure = Figure(facecolor='beige')
         self.canvas = FigureCanvas(self.psd_figure, master=self.tk_root)
         self.canvas.draw()
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root)
         self.toolbar.update()
-        self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.axes = self.psd_figure.add_subplot(111)
         self.axes.format_coord = Formatter()
+        self.axes.set_ylabel("Power Spectral Density (dB/Hz)")  # add the psd labels manually for proper layout at startup
+        self.axes.set_xlabel("Frequency")                       # add the psd labels manually for proper layout at startup
+        self.axes.set_xlim([0, self.controller.config['audio_sampling_rate'] // 2])    # use the entire x-axis for data
 
         # StatusBar
         self.statusbar_txt = tk.StringVar()
         self.label = tk.Label(self.tk_root, bd=1, relief=tk.SUNKEN,
                               anchor=tk.W,
                               textvariable=self.statusbar_txt,
-                              font=('arial', 12, 'normal'))
+                              font=('arial', 12, 'normal'),
+                              width=1)  # avoid image resizing when the length of statusbar_txt changes
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
         self.need_refresh = False
@@ -110,6 +115,26 @@ class tkSidViewer():
             self.running = False
             self.tk_root.destroy()
 
+    def onsize(self, event):
+        """
+        Resize the figure to fill the available space.
+        The border is defined by left_gap, bottom_gap, right_gap, top_gap.
+        """
+        width = self.tk_root.winfo_width()
+        height = self.tk_root.winfo_height()
+
+        left_gap = 20   # px
+        bottom_gap = 20 # px
+        right_gap = 10  # px
+        top_gap = 10    # px
+
+        left = left_gap / width
+        bottom = bottom_gap / height
+        right = (width - right_gap) / width
+        top = (height - top_gap) / height
+        self.psd_figure.subplots_adjust(left=left, bottom=bottom, right=right, top=top)
+        self.psd_figure.tight_layout()
+
     def status_display(self, message, level=0, field=0):
         """Update the main frame by changing the message in status bar."""
         if self.running:
@@ -120,16 +145,18 @@ class tkSidViewer():
         try:
             self.axes.clear()
             Pxx, freqs = self.axes.psd(data, NFFT=NFFT, Fs=FS)
+            self.axes.set_xlim([0, self.controller.config['audio_sampling_rate'] // 2])    # use the entire x-axis for data
             self.need_refresh = True
         except RuntimeError as err_re:
             print("Warning:", err_re)
             Pxx, freqs = None, None
         else:
-            bottom_max, top_max = self.axes.get_ylim()
+            bottom, top = self.axes.get_ylim()
+            dist = top - bottom
             for s in self.controller.config.stations:
                 freq = int(s['frequency'])
                 self.axes.axvline(x=freq, color='r')
-                self.axes.text(freq, top_max * 0.9, s['call_sign'],
+                self.axes.text(freq, bottom + (dist * 0.95), s['call_sign'],
                                horizontalalignment='center',
                                bbox={'facecolor': 'w', 'alpha': 0.5,
                                      'fill': True})
