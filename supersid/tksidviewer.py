@@ -15,6 +15,11 @@ import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
+import sys
+import subprocess
+
+from supersid_common import *
+
 
 class Formatter(object):
     def __init__(self):
@@ -63,9 +68,15 @@ class tkSidViewer():
         self.tk_root.bind_all("<Control-f>", self.save_file)
         self.tk_root.bind_all("<Control-e>", self.save_file)
         self.tk_root.bind_all("<Control-s>", self.save_file)
+        self.tk_root.bind_all("<Control-p>", self.on_plot)
         # user click on the [X] to close the window
         self.tk_root.protocol("WM_DELETE_WINDOW", lambda: self.close(False))
         menubar.add_cascade(label="File", menu=filemenu)
+
+        plotmenu = tk.Menu(menubar, tearoff=0)
+        plotmenu.add_command(label="Plot", command=self.on_plot,
+                             underline=0, accelerator="Ctrl+P")
+        menubar.add_cascade(label="Plot", menu=plotmenu)
 
         helpmenu = tk.Menu(menubar, tearoff=0)
         helpmenu.add_command(label="About...", command=self.on_about)
@@ -198,6 +209,19 @@ class tkSidViewer():
                 saved_files = None
         if saved_files:
             MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
+
+    def on_plot(self, dummy=None):
+        """Save current buffers (raw) and display the data using supersid_plot.
+        Using a separate process to prevent interference with data capture
+        """
+        filenames = self.controller.save_current_buffers(log_format='supersid_format')
+        assert(1 == len(filenames))
+        assert(1 == len(self.controller.config.filenames))
+        print("plotting", filenames[0])
+        subprocess.Popen([
+            sys.executable, script_relative_to_cwd_relative('supersid_plot.py'),
+            '-f', filenames[0],
+            '-c', script_relative_to_cwd_relative(self.controller.config.filenames[0])])
 
     def on_about(self):
         """Display the About box message."""

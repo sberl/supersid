@@ -132,43 +132,46 @@ class SuperSID():
         self.viewer.status_display(message, level=1)
         signal_strengths = []
         try:
-            data = self.sampler.capture_1sec()  # return list of signal strength
-            Pxx, freqs = self.psd(data, self.sampler.NFFT,
-                                  self.sampler.audio_sampling_rate)
-            for binSample in self.sampler.monitored_bins:
-                signal_strengths.append(Pxx[binSample])
+            data = self.sampler.capture_1sec()  # return list of signal strength, may set sampler_ok = False
+            if self.sampler.sampler_ok:
+                Pxx, freqs = self.psd(data, self.sampler.NFFT,
+                                      self.sampler.audio_sampling_rate)
+                for binSample in self.sampler.monitored_bins:
+                    signal_strengths.append(Pxx[binSample])
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
         except TypeError as err_te:
             print("Warning:", err_te)
+        
+        # in case of an exception, signal_strengths may not have the expected length
+        while len(signal_strengths) < len(self.sampler.monitored_bins):
+            signal_strengths.append(0.0)
 
-        # ensure that one thread at the time accesses the sid_file's' buffers
-        with self.timer.lock:
-            # do we need to save some files (hourly) or switch to a new day?
-            if self.timer.utc_now.minute == 0 and self.timer.utc_now.second < self.config['log_interval']:
-                if self.config['hourly_save'] == 'YES':
-                    fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
-                        self.logger.sid_file.sid_params['utc_starttime'][:10])
-                    self.save_current_buffers(filename=fileName,
-                                              log_type='raw',
-                                              log_format='supersid_extended')
-                # a new day!
-                if self.timer.utc_now.hour == 0:
-                    # use log_type and log_format(s) requested by the user
-                    # in the .cfg
-                    for log_format in self.config['log_format'].split(','):
-                        self.save_current_buffers(log_type=self.config['log_type'],
-                                                  log_format=log_format)
-                    self.clear_all_data_buffers()
-            # Save signal strengths into memory buffers
-            # prepare message for status bar
-            message = self.timer.get_utc_now() + "  [%d]  " % current_index
-            for station, strength in zip(self.config.stations,
-                                         signal_strengths):
-                station['raw_buffer'][current_index] = strength
-                message += station['call_sign'] + "=%f " % strength
-            self.logger.sid_file.timestamp[current_index] = utc_now
+        # do we need to save some files (hourly) or switch to a new day?
+        if self.timer.utc_now.minute == 0 and self.timer.utc_now.second < self.config['log_interval']:
+            if self.config['hourly_save'] == 'YES':
+                fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
+                    self.logger.sid_file.sid_params['utc_starttime'][:10])
+                self.save_current_buffers(filename=fileName,
+                                          log_type='raw',
+                                          log_format='supersid_extended')
+            # a new day!
+            if self.timer.utc_now.hour == 0:
+                # use log_type and log_format(s) requested by the user
+                # in the .cfg
+                for log_format in self.config['log_format'].split(','):
+                    self.save_current_buffers(log_type=self.config['log_type'],
+                                              log_format=log_format)
+                self.clear_all_data_buffers()
+        # Save signal strengths into memory buffers
+        # prepare message for status bar
+        message = self.timer.get_utc_now() + "  [%d]  " % current_index
+        for station, strength in zip(self.config.stations,
+                                     signal_strengths):
+            station['raw_buffer'][current_index] = strength
+            message += station['call_sign'] + "=%f " % strength
+        self.logger.sid_file.timestamp[current_index] = utc_now
 
         # end of this thread/need to handle to View to display
         # captured data & message
