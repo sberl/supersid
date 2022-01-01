@@ -61,7 +61,6 @@ class tkSidViewer():
                              command=lambda: self.save_file('s'),
                              underline=5, accelerator="Ctrl+S")
         filemenu.add_separator()
-        # ,underline=1,accelerator="Ctrl+X")
         filemenu.add_command(label="Exit",
                              command=lambda: self.close(force_close=False))
         self.tk_root.bind_all("<Control-r>", self.save_file)
@@ -83,7 +82,21 @@ class tkSidViewer():
         menubar.add_cascade(label="Help", menu=helpmenu)
 
         self.tk_root.config(menu=menubar)
-        self.tk_root.state('zoomed')    # start full screen
+        try:
+            # full screen, works in Windows but not in Linux
+            self.tk_root.state('zoomed')
+        except:
+            try:
+                # large window but doesn't match the screen in Windows
+                w, h = self.tk_root.winfo_screenwidth(), self.tk_root.winfo_screenheight()
+                self.tk_root.geometry("%dx%d+0+0" % (w, h))
+            except:
+                try:
+                    # full screen, but not resizeable
+                    self.tk_root.attributes("-fullscreen", True)
+                except:
+                    pass
+
         self.tk_root.bind("<Configure>", self.onsize)
 
         # FigureCanvas
