@@ -75,6 +75,10 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
   * scaling_factor:
   * mode: [ignored] **Server**, **Client**, **Standalone** (default) . Reserved for future client/server dev.
   * viewer: **text** for text mode light interface or **tk** for TkInter GUI (default).
+  * psd_min: float, min value for the y axis of the psd graph, **NaN** (default) means automatic scaling
+  * psd_max: float, max value for the y axis of the psd graph, **NaN** (default) means automatic scaling
+  * psd_ticks: int, number of ticks for the y axis of the psd graph, **0** (default) means automatic ticks.
+    Fixed number of 'psd_ticks' works only in conjunction with 'psd_min' and 'psd_max'.
   * bema_wing: beta_wing parameter for sidfile.filter_buffer() calculation. Default is '**6**'.
   * paper_size: one of **A3**, **A4**, **A5**, **Legal**, **Letter**
   * number_of_stations: specify the number of stations to monitor. Each station is described within its own section.

@@ -98,6 +98,9 @@ class Config(dict):
                 ('log_interval', int, None),
                 ('number_of_stations', int, None),
                 ('scaling_factor', float, None),
+                ('psd_min', float, float('NaN')),   # min value for the y axis of the psd graph, 'NaN' means automatic scaling
+                ('psd_max', float, float('NaN')),   # max value for the y axis of the psd graph, 'NaN' means automatic scaling
+                ('psd_ticks', int, 0),              # number of ticks for the y axis of the psd graph, 0 means automatic ticks
             ),
 
             'Capture': (
