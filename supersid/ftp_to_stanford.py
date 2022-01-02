@@ -26,6 +26,16 @@ ftp_directory = /incoming/SuperSID/NEW/
 local_tmp = /home/eric/supersid/Private/tmp
 call_signs = NWC:10000,JJI:100000
 
+2022-01-02 Steve Berl Note:
+This code seems to do 2 independent things. That should probably be divided
+into 2 separate scripts.
+
+It converts a SuperSID format file to 1 or more SID format files. This is done
+because the Stanford ingestion scripts do not seem to recognize the SuperSID
+format properly.
+
+Then it sends this file via FTP to the server at Stanford.
+
 """
 import argparse
 from os import path
@@ -47,8 +57,8 @@ if __name__ == '__main__':
     parser.add_argument("-y", "--yesterday", action="store_true",
                         dest="askYesterday", default=False,
                         help="Yesterday's date is used for the file name.")
-    parser.add_argument('file_list', metavar='file.csv', type=exist_file, nargs='*',
-                        help='file(s) to be sent via FTP')
+    parser.add_argument('file_list', metavar='file.csv', type=exist_file,
+                        nargs='*', help='file(s) to be sent via FTP')
     args = parser.parse_args()
 
     # read the configuration file or exit
@@ -57,17 +67,22 @@ if __name__ == '__main__':
         print("Error: 'local_tmp' has to be configured for FTP")
         sys.exit(1)
 
-    # what stations are to be selected from the input file(s) ?
+    # If call_signs not configured, then take all the configured stations.
     stations = (cfg['call_signs'].split(",")
                 if cfg['call_signs'] else
-                [s['call_sign'] for s in cfg.stations])  # else all stations
+                [s['call_sign'] for s in cfg.stations])
 
     # file list
     if args.askYesterday:
         yesterday = datetime.utcnow() - timedelta(days=1)
-        args.file_list.append("{}{}{}_{}-{:02d}-{:02d}.csv".format(cfg['data_path'],
-                         path.sep, cfg['site_name'],
-                         yesterday.year, yesterday.month, yesterday.day))
+        # This creates path/name for SuperSID format file. It does not find
+        # SID format files from yesterday.
+        args.file_list.append("{}{}{}_{}-{:02d}-{:02d}.csv".format(
+                                cfg['data_path'],
+                                path.sep, cfg['site_name'],
+                                yesterday.year, yesterday.month,
+                                yesterday.day))
+    # print("Filelist: ", args.file_list)
     # generate all the SID files ready to send in the local_tmp file
     files_to_send = []  # TODO: remove files_to_send
     for input_file in args.file_list:
@@ -88,7 +103,7 @@ if __name__ == '__main__':
 
                 if station_name not in sid.stations:
                     # strange: the desired station in not found in the file
-                    print("Warning:", station_name,
+                    print("Warning: ", station_name,
                           "is not in the data file", input_file)
                     continue
 
