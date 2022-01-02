@@ -11,6 +11,8 @@ import tkinter as tk
 import tkinter.messagebox as MessageBox
 import tkinter.filedialog as FileDialog
 
+import math
+import numpy as np
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -113,7 +115,7 @@ class tkSidViewer():
         self.axes.format_coord = Formatter()
         self.axes.set_ylabel("Power Spectral Density (dB/Hz)")  # add the psd labels manually for proper layout at startup
         self.axes.set_xlabel("Frequency")                       # add the psd labels manually for proper layout at startup
-        self.axes.set_xlim([0, self.controller.config['audio_sampling_rate'] // 2])    # use the entire x-axis for data
+        self.set_graph_limits()
 
         # StatusBar
         self.statusbar_txt = tk.StringVar()
@@ -164,12 +166,26 @@ class tkSidViewer():
         if self.running:
             self.statusbar_txt.set(message)
 
+    def set_graph_limits(self):
+        self.axes.set_xlim([0, self.controller.config['audio_sampling_rate'] // 2])    # use the entire x-axis for data
+        psd_min = self.controller.config['psd_min']
+        psd_max = self.controller.config['psd_max']
+        psd_ticks = self.controller.config['psd_ticks']
+        if not math.isnan(psd_min):
+            # set minimum for the y-axis if not configured as NaN
+            self.axes.set_ylim(bottom=psd_min)
+        if not math.isnan(psd_max):
+            # set maximum for the y-axis if not configured as NaN
+            self.axes.set_ylim(top=psd_max)
+        if psd_ticks and (not math.isnan(psd_min)) and (not math.isnan(psd_max)):
+            self.axes.set_yticks(np.linspace(psd_min, psd_max, psd_ticks))
+
     def get_psd(self, data, NFFT, FS):
         """Call 'psd' within axes, both calculates and plots the spectrum."""
         try:
             self.axes.clear()
             Pxx, freqs = self.axes.psd(data, NFFT=NFFT, Fs=FS)
-            self.axes.set_xlim([0, self.controller.config['audio_sampling_rate'] // 2])    # use the entire x-axis for data
+            self.set_graph_limits()
             self.need_refresh = True
         except RuntimeError as err_re:
             print("Warning:", err_re)
