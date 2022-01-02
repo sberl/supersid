@@ -176,7 +176,7 @@ SD card of 16 MB or more
 
 ## 5) Choose your USB Sound Card
 
-First xecute the command `alsamixer` to ensure that the sound card is
+First execute the command `alsamixer` to ensure that the sound card is
 recognized and functioning properly. Make sure that sound can be
 captured from it, and that the input volume is between 80 and 90.
 
