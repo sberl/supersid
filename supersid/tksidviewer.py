@@ -211,7 +211,7 @@ class tkSidViewer():
                                                                log_format='both')
         elif param == 'e':
             saved_files = self.controller.save_current_buffers(log_type='raw',
-                                                               log_format='supersid_extended')
+                                                               log_format='both_extended')
         elif param == 's':
             filename = self.AskSaveasFilename()
             if filename:

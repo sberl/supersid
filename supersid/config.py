@@ -31,8 +31,12 @@ CALL_SIGN, FREQUENCY, COLOR = 'call_sign', 'frequency', 'color'
 # constant for 'log_format'
 SID_FORMAT, SUPERSID_FORMAT = 'sid_format', 'supersid_format'
 
-# with 5 decimals timestamp
-SUPERSID_EXTENDED, BOTH_EXTENDED = 'supersid_extended', 'both_extended'
+# constant for 'log_format' with 5 decimals timestamp
+SID_EXTENDED, SUPERSID_EXTENDED = 'sid_extended', 'supersid_extended'
+
+# constant for 'log_format'
+BOTH = 'both'                    # combines 'sid_format' and 'supersid_format'
+BOTH_EXTENDED = 'both_extended'  # combines 'sid_extended' and 'supersid_extended'
 
 # constants for alsaaudio 'Format'
 S16_LE, S24_3LE, S32_LE = 'S16_LE', 'S24_3LE', 'S32_LE'
@@ -245,11 +249,10 @@ class Config(dict):
 
         # check log_format
         self['log_format'] = self['log_format'].lower()
-        if self['log_format'] not in (SID_FORMAT, SUPERSID_FORMAT,
-                                      SUPERSID_EXTENDED, BOTH_EXTENDED):
+        log_formats = [SID_FORMAT, SUPERSID_FORMAT, SID_EXTENDED, SUPERSID_EXTENDED, BOTH, BOTH_EXTENDED]
+        if self['log_format'] not in log_formats:
             self.config_ok = False
-            self.config_err = "'log_format' must be either one of '{}', '{}', '{}', '{}'.".format(
-                SID_FORMAT, SUPERSID_FORMAT, SUPERSID_EXTENDED, BOTH_EXTENDED)
+            self.config_err = "'log_format' must be either one of {}'.".format(log_formats)
             return
 
         # check viewer

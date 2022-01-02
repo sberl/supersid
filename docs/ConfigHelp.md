@@ -35,15 +35,29 @@ This section groups most of the parameters identifying your SuperSID monitor. So
   
 ### Log Parameters
 
-  * audio_sampling_rate: **48000** or **96000** (you can experiment with other values as long as your device supports them)
+  * audio_sampling_rate: **48000**, **96000** or **192000** (you can experiment with other values as long as your device supports them)
   * log_interval: number of seconds between two readings. Default is '**5**' seconds. Reading/sound capture lasts one second.
   * log_type: **filtered** or **raw**. When **filtered** is indicated, *bema_wing* function is called to smoothen the raw data before writting the file else in **raw** mode, captured data are written 'as is'. Note that *sidfile.py* can be used as an utility to apply 'bema_wing' function to an existing file (raw or not) to smoothen its data.
   * data_path: fully qualified path where files will be written. If not mentioned then '../Data/' is used. If the path is relative, then it is relative to the script folder.
   * log_format:
-    - **sid_format**: one file per station with first data column as timestamp and second data column as captured value
-    - **supersid_format**: one file for all stations. No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 0:00:00UTC.
-    - **supersid_extended**: one file for all stations. First data column is extended timestamp HH:MM:SS.mmmmm and following data column as one per station.
-    - **both_extended**: one file per station and one file for all stations in supersid_extended format.
+    - **sid_format**:<br />
+      One file per station.<br />
+      First data column as timestamp with *log_interval* increment, starting at at 00:00:00 UTC.<br />
+      Second data column as captured value of the station.
+    - **sid_extended**:<br />
+      One file per station.<br />
+      First data column is extended timestamp HH:MM:SS.mmmmmm,<br />
+      Second data column as captured value of the station.
+    - **supersid_format**:<br />
+      All stations combined in one file.<br />
+      No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 00:00:00 UTC.<br />
+      One data column per station with the captured values.
+    - **supersid_extended**:<br />
+      All stations combined in one file.<br />
+      First data column is extended timestamp HH:MM:SS.mmmmmm,<br />
+      followed by one data column per station with the captured values.
+    - **both**: The combination of **sid_format** and **supersid_format**.
+    - **both_extended**: The combination of **sid_extended** and **supersid_extended**.
   * hourly_save: **yes** / **no** (default). If **yes** then a raw file is written every hour to limit data loss.
   
 ### FTP to Standford server
