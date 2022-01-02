@@ -136,7 +136,7 @@ class SuperSID():
             print("Data len:", len(data))
         except TypeError as err_te:
             print("Warning:", err_te)
-        
+
         # in case of an exception, signal_strengths may not have the expected length
         while len(signal_strengths) < len(self.sampler.monitored_bins):
             signal_strengths.append(0.0)
@@ -151,11 +151,10 @@ class SuperSID():
                                           log_format='supersid_extended')
             # a new day!
             if self.timer.utc_now.hour == 0:
-                # use log_type and log_format(s) requested by the user
+                # use log_type and log_format requested by the user
                 # in the .cfg
-                for log_format in self.config['log_format'].split(','):
-                    self.save_current_buffers(log_type=self.config['log_type'],
-                                              log_format=log_format)
+                self.save_current_buffers(log_type=self.config['log_type'],
+                                          log_format=self.config['log_format'])
                 self.clear_all_data_buffers()
         # Save signal strengths into memory buffers
         # prepare message for status bar
@@ -176,11 +175,11 @@ class SuperSID():
 
         log_type = raw or filtered
         log_format = sid_format
-                    | sid_extended
-                    | supersid_format
-                    | supersid_extended
-                    | both
-                    | both_extended
+                   | sid_extended
+                   | supersid_format
+                   | supersid_extended
+                   | both
+                   | both_extended
         """
         filenames = []
         if log_format.startswith('both') or log_format.startswith('sid'):
