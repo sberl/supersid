@@ -18,6 +18,7 @@ Then it creates its necessary elements:
 import sys
 import os.path
 import argparse
+import subprocess
 
 # matplotlib ONLY used in Controller for its PSD function, not for any graphic
 from matplotlib.mlab import psd as mlab_psd
@@ -27,7 +28,7 @@ from sidtimer import SidTimer
 from sampler import Sampler
 from config import readConfig, CONFIG_FILE_NAME
 from logger import Logger
-from supersid_common import exist_file
+from supersid_common import exist_file, script_relative_to_cwd_relative
 
 
 class SuperSID():
@@ -109,6 +110,37 @@ class SuperSID():
         """Clear the current memory buffers and pass to the next day."""
         self.logger.sid_file.clear_buffer(next_day=True)
 
+    def ftp_to_stanford(self):
+        """
+        Call 'ftp_to_stanford.py -y' in a separate process to prevent
+        interference with data capture.
+
+        As of today, the -y option of ftp_to_stanford.py expects to find
+        a supersid formated file of yesterday with the name
+        <data_path>/<site_name>_yyyy-mm-dd.csv.
+
+        Files with this naming scheme are created with either one of
+            log_format = supersid_format
+            log_format = supersid_extended
+            log_format = both
+            log_format = both_extended
+
+        These configurations are not suitable for 'ftp_to_stanford.py -y':
+            log_format = sid_format
+            log_format = sid_extended
+
+        The files for the upload are generated into the 'local_tmp' folder
+        of the [FTP] section. By default this is the directory '../outgoing'.
+
+        Automatic ftp upload is performed only if 'automatic_upload = yes'
+        is set.
+
+        """
+        subprocess.Popen([
+            sys.executable, script_relative_to_cwd_relative('ftp_to_stanford.py'),
+                '-y',
+                '-c', script_relative_to_cwd_relative(self.config.filenames[0])])
+
     def on_timer(self):
         """Call when timer expires.
 
@@ -156,6 +188,7 @@ class SuperSID():
                 self.save_current_buffers(log_type=self.config['log_type'],
                                           log_format=self.config['log_format'])
                 self.clear_all_data_buffers()
+                self.ftp_to_stanford()
         # Save signal strengths into memory buffers
         # prepare message for status bar
         message = self.timer.get_utc_now() + "  [%d]  " % current_index

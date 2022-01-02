@@ -80,7 +80,7 @@ class Config(dict):
                 # optional entries
                 ('hourly_save', str, "no"),         # new flag: yes/no to save every hours
                 ('data_path', str, "../Data/"),     # data path configuration by the user
-                ('log_format', str, SID_FORMAT),    # sid_format (default), supersid_format
+                ('log_format', str, SUPERSID_EXTENDED),    # SUPERSID_EXTENDED (default), suitable for automatic FTP upload
                 ('mode', str, 'Standalone'),        # Server, Client, Standalone (default)
                 ('viewer', str, 'tk'),              # text, tk (default)
                 ('bema_wing', int, 6),              # beta_wing for sidfile.filter_buffer()
@@ -252,7 +252,14 @@ class Config(dict):
         log_formats = [SID_FORMAT, SUPERSID_FORMAT, SID_EXTENDED, SUPERSID_EXTENDED, BOTH, BOTH_EXTENDED]
         if self['log_format'] not in log_formats:
             self.config_ok = False
-            self.config_err = "'log_format' must be either one of {}'.".format(log_formats)
+            self.config_err = "'log_format' must be either one of {}.".format(log_formats)
+            return
+
+        # check log_format on conjunction with automatic_upload
+        log_formats_for_automatic_upload = [SUPERSID_FORMAT, SUPERSID_EXTENDED, BOTH, BOTH_EXTENDED]
+        if (self['automatic_upload'] == 'yes') and (self['log_format'] not in log_formats_for_automatic_upload):
+            self.config_ok = False
+            self.config_err = "'log_format' must be either one of {} for 'automatic_upload = yes'.".format(log_formats_for_automatic_upload)
             return
 
         # check viewer
