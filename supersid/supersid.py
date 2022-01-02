@@ -19,9 +19,6 @@ import sys
 import os.path
 import argparse
 
-# matplotlib ONLY used in Controller for its PSD function, not for any graphic
-from matplotlib.mlab import psd as mlab_psd
-
 # SuperSID Package classes
 from sidtimer import SidTimer
 from sampler import Sampler
@@ -80,7 +77,7 @@ class SuperSID():
             self.psd = self.viewer.get_psd
         elif self.config['viewer'] == 'text':
             # calculate psd only
-            self.psd = mlab_psd
+            self.psd = self.viewer.get_psd
         else:
             # just a precaution in case another viewer will be added in future
             raise(NotImplementedError)
@@ -129,14 +126,15 @@ class SuperSID():
             if self.sampler.sampler_ok:
                 Pxx, freqs = self.psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
-                for binSample in self.sampler.monitored_bins:
-                    signal_strengths.append(Pxx[binSample])
+                if Pxx is not None:
+                    for channel, binSample in zip(self.sampler.monitored_channels, self.sampler.monitored_bins):
+                        signal_strengths.append(Pxx[channel][binSample])
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
         except TypeError as err_te:
             print("Warning:", err_te)
-        
+
         # in case of an exception, signal_strengths may not have the expected length
         while len(signal_strengths) < len(self.sampler.monitored_bins):
             signal_strengths.append(0.0)

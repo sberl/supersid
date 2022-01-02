@@ -11,8 +11,6 @@ Help to determine what stations are the strongest
 Can help to orientate the antenna
 """
 import os.path
-# matplotlib ONLY used in Controller for its PSD function, not for any graphic
-from matplotlib.mlab import psd as mlab_psd
 from time import sleep
 import argparse
 
@@ -22,7 +20,7 @@ from sampler import Sampler
 from config import readConfig, CONFIG_FILE_NAME
 from logger import Logger
 from textsidviewer import textSidViewer
-from supersid_common import exist_file
+from supersid_common import exist_file, slugify
 
 
 class SuperSID_scanner():
@@ -48,10 +46,12 @@ class SuperSID_scanner():
         # create an artificial list of stations
         self.config.stations = []
         for freq in range(self.scan_from, self.scan_to+100, 100):
-            new_station = {}
-            new_station['call_sign'] = "ST_%d" % freq
-            new_station['frequency'] = str(freq)
-            new_station['color'] = ''
+            new_station = {
+                'call_sign': "ST_%d" % freq,
+                'frequency': str(freq),
+                'color': '',
+                'channel': 0,
+            }
             self.config.stations.append(new_station)
 
         # Create Logger -
@@ -66,7 +66,7 @@ class SuperSID_scanner():
         # the same interface
         self.config['viewer'] = 'text'  # Light text version aka "console mode"
         self.viewer = textSidViewer(self)
-        self.psd = mlab_psd             # calculation only
+        self.psd = self.viewer.get_psd
 
         # calculate Stations' buffer_size
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
@@ -118,8 +118,8 @@ class SuperSID_scanner():
             print("Data len:", len(data))
 
         signal_strengths = []
-        for binSample in self.sampler.monitored_bins:
-            signal_strengths.append(Pxx[binSample])
+        for channel, bin in zip(self.sampler.monitored_channels, self.sampler.monitored_bins):
+            signal_strengths.append(Pxx[channel][bin])
 
         # Save signal strengths into memory buffers
         # prepare message for status bar
@@ -206,8 +206,8 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--to", dest="scan_to",
                         required=False, type=int, default=24000,
                         help="Scan to the given frequency")
-    parser.add_argument("-r", "--record", dest="record_sec", required=False,
-                        help="record specified seconds of sound - testing pyaudio")
+    parser.add_argument("-r", "--record", dest="record_sec", required=False, type=int,
+                        help="record specified seconds of sound - testing pyaudio with the settings of supersid.cfg")
     parser.add_argument("-c", "--config", dest="config_file",
                         type=exist_file,
                         default=CONFIG_FILE_NAME, help="Supersid configuration file")
@@ -217,25 +217,16 @@ if __name__ == '__main__':
         from sampler import pyaudio_soundcard
         import wave
 
-        # record_sec as x seconds or s,f for sec,frequence
-        if ',' in args.record_sec:
-            sec, freq = args.record_sec.split(',')
-            RATE = int(freq)
-            SEC = int(sec)
-        else:
-            RATE = 44100
-            SEC = int(args.record_sec)
-
         config = readConfig(args.config_file)
         config.supersid_check()
-        device = pyaudio_soundcard(config['Device'], RATE, 'S16_LE')
-        frames = device.capture(SEC)
+        device = pyaudio_soundcard(config['Device'], config['audio_sampling_rate'], config['Format'], config['Channels'])
+        frames = device.capture(args.record_sec)
         device.close()
 
-        wf = wave.open("record_test.wav", 'wb')
-        wf.setnchannels(1)
+        wf = wave.open("pyaudio_{}_{}_{}_{}.wav".format(slugify(config['Device']), config['audio_sampling_rate'], config['Format'], config['Channels']), 'wb')
+        wf.setnchannels(config['Channels'])
         wf.setsampwidth(device.pa_lib.get_sample_size(device.FORMAT_MAP[device.format]))
-        wf.setframerate(RATE)
+        wf.setframerate(config['audio_sampling_rate'])
         wf.writeframes(bytearray(frames))
         wf.close()
 

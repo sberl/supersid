@@ -47,11 +47,11 @@ try:
     audioModule.append("alsaaudio")
 
 
-    def alsaaudio_test(device, sampling_rate, format, periodsize):
+    def alsaaudio_test(device, sampling_rate, format, channels, periodsize):
         print()
         try:
-            print("Accessing '{}' at {} Hz via alsaaudio format '{}', ...".format(device, sampling_rate, format))
-            sc = alsaaudio_soundcard('', device, sampling_rate, format, periodsize)
+            print("Accessing '{}' at {} Hz via alsaaudio format {}, channels {}...".format(device, sampling_rate, format, channels))
+            sc = alsaaudio_soundcard('', device, sampling_rate, format, channels, periodsize)
             sc.info()
             return True
         except alsaaudio.ALSAAudioError as err:
@@ -75,7 +75,7 @@ try:
             S32_LE: 4,
         }
 
-        def __init__(self, card, device, audio_sampling_rate, format, periodsize):
+        def __init__(self, card, device, audio_sampling_rate, format, channels, periodsize):
             """
             Initialize the ALSA audio sampler.
             card is deprecated but still present for backward compatibility
@@ -83,14 +83,15 @@ try:
             """
             self.duration = None    # time to capture 1 sec of data excluding the format conversion
             self.format = format
+            self.channels = channels
             self.audio_sampling_rate = audio_sampling_rate
             if card != '':
                 # deprecated configuration keyword Card, use Device instead
                 device = 'sysdefault:CARD=' + card  # guess the intended device name
-                print("alsaaudio card '{}', sampling rate {}, format {}, periodsize {}".format(card, audio_sampling_rate, format, periodsize))
+                print("alsaaudio card '{}', sampling rate {}, format {}, channels {}, periodsize {}".format(card, audio_sampling_rate, format, channels, periodsize))
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
-                                         channels=1,
+                                         channels=self.channels,
                                          rate=audio_sampling_rate,
                                          format=self.FORMAT_MAP[self.format],
                                          periodsize=periodsize,
@@ -98,10 +99,10 @@ try:
                                          device=device)
                 self.name = "alsaaudio Device guessed as '{}'".format(device)
             else:
-                print("alsaaudio device '{}', sampling rate {}, format {}, periodsize {}".format(device, audio_sampling_rate, format, periodsize))
+                print("alsaaudio device '{}', sampling rate {}, format {}, channels {}, periodsize {}".format(device, audio_sampling_rate, format, channels, periodsize))
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
-                                         channels=1,
+                                         channels=self.channels,
                                          rate=audio_sampling_rate,
                                          format=self.FORMAT_MAP[self.format],
                                          periodsize=periodsize,
@@ -109,8 +110,21 @@ try:
                 self.name = "alsaaudio '{}'".format(device)
 
         def capture_1sec(self):
+            """
+            return one second recording as numpy array
+            after unpacking, the format is
+                for Channels = 1: [left, ..., left]
+                for Channels = 2: [left, right ..., left, right]
+
+            the returned data format is
+                for Channels = 1: [[left], ..., [left]]
+                for Channels = 2: [[left, right], ..., [left, right]]
+
+            access the left channel as unpacked_data[:, 0]
+            access the right channel as unpacked_data[:, 1]
+            """
             raw_data = b''
-            num_bytes = self.FORMAT_LENGTHS[self.format] * self.audio_sampling_rate
+            num_bytes = self.FORMAT_LENGTHS[self.format] * self.channels * self.audio_sampling_rate
             t = time.time()
             while len(raw_data) < num_bytes:
                 length, data = self.inp.read()
@@ -119,15 +133,17 @@ try:
             self.duration = time.time() - t
             raw_data = raw_data[:num_bytes]   # truncate to one second, if we received too much
             if self.format == S16_LE:
-                return array(st_unpack("<%ih" % self.audio_sampling_rate, raw_data))
+                unpacked_data = array(st_unpack("<%ih" % (self.audio_sampling_rate * self.channels), raw_data))
+                return unpacked_data.reshape((self.audio_sampling_rate, self.channels))
             elif self.format == S24_3LE:
                 unpacked_data = []
-                for i in range(self.audio_sampling_rate):
+                for i in range(self.audio_sampling_rate * self.channels):
                     chunk = raw_data[i*3:i*3+3]
                     unpacked_data.append(st_unpack('<i', chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
-                return array(unpacked_data)
+                return array(unpacked_data).reshape((self.audio_sampling_rate, self.channels))
             elif self.format == S32_LE:
-                return array(st_unpack("<%ii" % self.audio_sampling_rate, raw_data))
+                unpacked_data = array(st_unpack("<%ii" % (self.audio_sampling_rate * self.channels), raw_data))
+                return unpacked_data.reshape((self.audio_sampling_rate, self.channels))
             else:
                 raise NotImplementedError("Format conversion for '{}' is not yet implemented!".format(self.format))
 
@@ -138,10 +154,17 @@ try:
             print(self.name, "at", self.audio_sampling_rate, "Hz")
             try:
                 one_sec = self.capture_1sec()
-                peak_freq = get_peak_freq(one_sec, self.audio_sampling_rate)
-                print("{:6d} {} read from {}, shape {}, format {}, duration {:3.2f} sec, peak freq {} Hz".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, self.format, self.duration, peak_freq))
-                print(one_sec[:10])
-                print("Vector sum", one_sec.sum())
+                text_data = ""
+                text_vector_sum = "Vector sum"
+                peak_freq = []
+                for channel in range(self.channels):
+                    channel_one_sec = one_sec[:, channel]
+                    peak_freq.append(get_peak_freq(channel_one_sec, self.audio_sampling_rate))
+                    text_data += "[{} ... {}], ".format(" ".join(str(i) for i in channel_one_sec[:5]), " ".join(str(i) for i in channel_one_sec[-5:]))
+                    text_vector_sum += " {},".format(channel_one_sec.sum())
+                print("{:6d} {} read from {}, shape {}, format {}, channel {}, duration {:3.2f} sec, peak freq {} Hz".format(len(channel_one_sec), type(one_sec), self.name, one_sec.shape, self.format, channel, self.duration, peak_freq))
+                print(text_data)
+                print(text_vector_sum)
             except Exception as err:
                 print("Exception", type(err), err)
 
@@ -154,11 +177,11 @@ try:
     audioModule.append("sounddevice")
 
 
-    def sounddevice_test(device, sampling_rate, format):
+    def sounddevice_test(device, sampling_rate, format, channels):
         print()
         try:
-            print("Accessing '{}' at {} Hz via sounddevice format '{}', ...".format(device, sampling_rate, format))
-            sc = sounddevice_soundcard(device, sampling_rate, format)
+            print("Accessing '{}' at {} Hz via sounddevice format {}, channels {}...".format(device, sampling_rate, format, channels))
+            sc = sounddevice_soundcard(device, sampling_rate, format, channels)
             sc.info()
             return True
         except Exception as err:
@@ -174,15 +197,16 @@ try:
             S32_LE: 'int32',    # Signed 32 bit samples stored in 4 bytes, Little Endian byte order
         }
 
-        def __init__(self, device_name, audio_sampling_rate, format):
-            print("sounddevice device '{}', sampling rate {}, format {}".format(device_name, audio_sampling_rate, format))
+        def __init__(self, device_name, audio_sampling_rate, format, channels):
+            print("sounddevice device '{}', sampling rate {}, format {}, channels {}".format(device_name, audio_sampling_rate, format, channels))
             self.duration = None    # time to capture 1 sec of data excluding the format conversion
             self.audio_sampling_rate = audio_sampling_rate
             self.device_name = device_name
             self.format = format
+            self.channels = channels
             sounddevice.default.samplerate = audio_sampling_rate
             sounddevice.default.device = self.get_device_by_name(self.device_name)
-            sounddevice.default.channels = 1
+            sounddevice.default.channels = self.channels
             sounddevice.default.latency = 'low'
             sounddevice.default.dtype = 'int16'
             self.name = "sounddevice '{}'".format(self.device_name)
@@ -218,22 +242,33 @@ try:
             return None
 
         def capture_1sec(self):
-            # duration = 1 sec hence
-            # 1 x self.audio_sampling_rate = self.audio_sampling_rate
-            one_sec_record = b''
+            """
+            return one second recording as numpy array
+            after unpacking, the format is
+                for Channels = 1: [left, ..., left]
+                for Channels = 2: [left, right ..., left, right]
+
+            the returned data format is
+                for Channels = 1: [[left], ..., [left]]
+                for Channels = 2: [[left, right], ..., [left, right]]
+
+            access the left channel as unpacked_data[:, 0]
+            access the right channel as unpacked_data[:, 1]
+            """
+            unpacked_data = array([])
             try:
                 t = time.time()
                 if self.format in [S16_LE, S32_LE]:
-                    one_sec_record = sounddevice.rec(frames=self.audio_sampling_rate, dtype=self.FORMAT_MAP[self.format], blocking=True).flatten()
+                    unpacked_data = sounddevice.rec(frames=self.audio_sampling_rate, dtype=self.FORMAT_MAP[self.format], blocking=True).flatten()
                 else:
                     # 'int24' is not supported by sounddevice.rec(), insetad sounddevice.RawInputStream() has to be used in combination with a callback to sonsume the data
                     raise NotImplementedError
                 self.duration = time.time() - t
-                assert(len(one_sec_record) == self.audio_sampling_rate)
+                assert(len(unpacked_data) == (self.audio_sampling_rate * self.channels))
             except sounddevice.PortAudioError as err:
                 print("Error reading device", self.name)
                 print(err)
-            return one_sec_record
+            return unpacked_data.reshape((self.audio_sampling_rate, self.channels))
 
         def close(self):
             pass  # to check later if there is something to do
@@ -243,10 +278,17 @@ try:
             assert(sounddevice.default.device[0] == self.get_device_by_name(self.device_name))  # index 0 of sounddevice.default.device is the input device
             try:
                 one_sec = self.capture_1sec()
-                peak_freq = get_peak_freq(one_sec, self.audio_sampling_rate)
-                print("{:6d} {} read from {}, shape {}, format {}, duration {:3.2f} sec, peak freq {} Hz".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, self.format, self.duration, peak_freq))
-                print(one_sec[:10])
-                print("Vector sum", one_sec.sum())
+                text_data = ""
+                text_vector_sum = "Vector sum"
+                peak_freq = []
+                for channel in range(self.channels):
+                    channel_one_sec = one_sec[:, channel]
+                    peak_freq.append(get_peak_freq(channel_one_sec, self.audio_sampling_rate))
+                    text_data += "[{} ... {}], ".format(" ".join(str(i) for i in channel_one_sec[:5]), " ".join(str(i) for i in channel_one_sec[-5:]))
+                    text_vector_sum += " {},".format(channel_one_sec.sum())
+                print("{:6d} {} read from {}, shape {}, format {}, channel {}, duration {:3.2f} sec, peak freq {} Hz".format(len(channel_one_sec), type(one_sec), self.name, one_sec.shape, self.format, channel, self.duration, peak_freq))
+                print(text_data)
+                print(text_vector_sum)
             except Exception as err:
                 print("Exception", type(err), err)
 
@@ -259,11 +301,11 @@ try:
     audioModule.append("pyaudio")
 
 
-    def pyaudio_test(device, sampling_rate, format):
+    def pyaudio_test(device, sampling_rate, format, channels):
         print()
         try:
-            print("Accessing '{}' at {} Hz via pyaudio format '{}', ...".format(device, sampling_rate, format))
-            sc = pyaudio_soundcard(device, sampling_rate, format)
+            print("Accessing '{}' at {} Hz via pyaudio format {}, channels {}, ...".format(device, sampling_rate, format, channels))
+            sc = pyaudio_soundcard(device, sampling_rate, format, channels)
             sc.info()
             return True
         except Exception as err:
@@ -286,10 +328,11 @@ try:
             S32_LE: 4,
         }
 
-        def __init__(self, device_name, audio_sampling_rate, format):
-            print("pyaudio device '{}', sampling rate {}, format {}".format(device_name, audio_sampling_rate, format))
+        def __init__(self, device_name, audio_sampling_rate, format, channels):
+            print("pyaudio device '{}', sampling rate {}, format {}, channels {}".format(device_name, audio_sampling_rate, format, channels))
             self.duration = None    # time to capture 1 sec of data excluding the format conversion
             self.format = format
+            self.channels = channels
             self.CHUNK = 1024
             self.pa_lib = pyaudio.PyAudio()
             self.device_name = device_name
@@ -297,7 +340,7 @@ try:
             self.audio_sampling_rate = audio_sampling_rate
 
             self.pa_stream = self.pa_lib.open(format=self.FORMAT_MAP[self.format],
-                                              channels=1,
+                                              channels=self.channels,
                                               rate=self.audio_sampling_rate,
                                               input=True,
                                               frames_per_buffer=self.CHUNK,
@@ -337,26 +380,40 @@ try:
             return None
 
         def capture_1sec(self):
+            """
+            return one second recording as numpy array
+            after unpacking, the format is
+                for Channels = 1: [left, ..., left]
+                for Channels = 2: [left, right ..., left, right]
+
+            the returned data format is
+                for Channels = 1: [[left], ..., [left]]
+                for Channels = 2: [[left, right], ..., [left, right]]
+
+            access the left channel as unpacked_data[:, 0]
+            access the right channel as unpacked_data[:, 1]
+            """
             t = time.time()
             raw_data = bytearray(self.capture(1))
             self.duration = time.time() - t
             if self.format == S16_LE:
-                return array(st_unpack("<%ih" % self.audio_sampling_rate, raw_data))
+                unpacked_data = array(st_unpack("<%ih" % (self.audio_sampling_rate * self.channels), raw_data))
+                return unpacked_data.reshape((self.audio_sampling_rate, self.channels))
             elif self.format == S24_3LE:
                 unpacked_data = []
-                for i in range(self.audio_sampling_rate):
+                for i in range(self.audio_sampling_rate * self.channels):
                     chunk = raw_data[i*3:i*3+3]
                     unpacked_data.append(st_unpack('<i', chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
-                return array(unpacked_data)
+                return array(unpacked_data).reshape((self.audio_sampling_rate, self.channels))
             elif self.format == S32_LE:
-                return array(st_unpack("<%ii" % self.audio_sampling_rate, raw_data))
+                unpacked_data = array(st_unpack("<%ii" % (self.audio_sampling_rate * self.channels), raw_data))
+                return unpacked_data.reshape((self.audio_sampling_rate, self.channels))
             else:
                 raise NotImplementedError("Format conversion for '{}' is not yet implemented!".format(self.format))
-            return array(unpacked_data)
 
         def capture(self, secs):
             frames = []
-            expected_number_of_bytes = self.FORMAT_LENGTHS[self.format] * self.audio_sampling_rate * secs
+            expected_number_of_bytes = self.FORMAT_LENGTHS[self.format] * self.audio_sampling_rate * self.channels * secs
             while len(frames) < expected_number_of_bytes:
                 try:
                     data = self.pa_stream.read(self.CHUNK, exception_on_overflow=False)  # TODO: investigate exception_on_overflow=True, ignoring overflows seems not to be the best idea
@@ -379,10 +436,17 @@ try:
             print(self.name, "at", self.audio_sampling_rate, "Hz")
             try:
                 one_sec = self.capture_1sec()
-                peak_freq = get_peak_freq(one_sec, self.audio_sampling_rate)
-                print("{:6d} {} read from {}, shape {}, format {}, duration {:3.2f} sec, peak freq {} Hz".format(len(one_sec), type(one_sec[0]), self.name, one_sec.shape, self.format, self.duration, peak_freq))
-                print(one_sec[:10])
-                print("Vector sum", one_sec.sum())
+                text_data = ""
+                text_vector_sum = "Vector sum"
+                peak_freq = []
+                for channel in range(self.channels):
+                    channel_one_sec = one_sec[:, channel]
+                    peak_freq.append(get_peak_freq(channel_one_sec, self.audio_sampling_rate))
+                    text_data += "[{} ... {}], ".format(" ".join(str(i) for i in channel_one_sec[:5]), " ".join(str(i) for i in channel_one_sec[-5:]))
+                    text_vector_sum += " {},".format(channel_one_sec.sum())
+                print("{:6d} {} read from {}, shape {}, format {}, channel {}, duration {:3.2f} sec, peak freq {} Hz".format(len(channel_one_sec), type(one_sec), self.name, one_sec.shape, self.format, channel, self.duration, peak_freq))
+                print(text_data)
+                print(text_vector_sum)
             except Exception as err:
                 print("Exception", type(err), err)
 
@@ -413,17 +477,20 @@ class Sampler():
                     controller.config['Device'],
                     audio_sampling_rate,
                     controller.config['Format'],
+                    controller.config['Channels'],
                     controller.config['PeriodSize'])
             elif controller.config['Audio'] == 'sounddevice':
                 self.capture_device = sounddevice_soundcard(
                     controller.config['Device'],
                     audio_sampling_rate,
-                    controller.config['Format'])
+                    controller.config['Format'],
+                    controller.config['Channels'])
             elif controller.config['Audio'] == 'pyaudio':
                 self.capture_device = pyaudio_soundcard(
                     controller.config['Device'],
                     audio_sampling_rate,
-                    controller.config['Format'])
+                    controller.config['Format'],
+                    controller.config['Channels'])
             else:
                 self.display_error_message(
                     "Unknown audio module:" + controller.config['Audio'])
@@ -439,8 +506,10 @@ class Sampler():
             print("-", self.capture_device.name)
 
     def set_monitored_frequencies(self, stations):
+        self.monitored_channels = []
         self.monitored_bins = []
         for station in stations:
+            self.monitored_channels.append(station['channel'])
             binSample = int(((int(station['frequency'])
                               * self.NFFT) / self.audio_sampling_rate))
             self.monitored_bins.append(binSample)
@@ -483,15 +552,18 @@ def doTest(args, device, sampling_rate, format):
 
 
 if __name__ == '__main__':
+    SAMPLING_RATES = [44100, 48000, 96000, 192000]
+    FORMATS = [S16_LE, S24_3LE, S32_LE]
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--list", help="list the potential module and device combinations and exit", action='store_true')
     parser.add_argument("-m", "--module", help="audio module", choices=audioModule, default=None)
     parser.add_argument("-d", "--device", help="fully qualified device name", default=None)
-    parser.add_argument("-s", "--sampling-rate", help="sampling rate", type=int, default=None)
-    parser.add_argument("-f", "--format", help="format to be captured", choices=[S16_LE, S24_3LE, S32_LE], default=None)
+    parser.add_argument("-s", "--sampling-rate", help="sampling rate", choices=SAMPLING_RATES, type=int, default=None)
+    parser.add_argument("-f", "--format", help="format to be captured", choices=FORMATS, default=None)
     parser.add_argument("-p", "--periodsize", help="""periodsize parameter of the PCM interface
 default=1024, if the computer runs out of memory,
 select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
+    parser.add_argument("-n", "--channels", help="number of channels, default=1", choices=[1, 2], type=int, default=1)
     args = parser.parse_args()
 
     # -l/--list is an exclusive parameter, exit after execution
@@ -517,10 +589,10 @@ select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
         if 'alsaaudio' in audioModule:
             devices = alsaaudio.pcms()
             for device in devices:
-                for sampling_rate in [48000, 96000, 192000]:
-                    for format in [S16_LE, S24_3LE, S32_LE]:
+                for sampling_rate in SAMPLING_RATES:
+                    for format in FORMATS:
                         if doTest(args, device, sampling_rate, format):
-                            alsaaudio_test(device, sampling_rate, format, args.periodsize)
+                            alsaaudio_test(device, sampling_rate, format, args.channels, args.periodsize)
         else:
             print("not installed.")
 
@@ -528,10 +600,10 @@ select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
         if 'sounddevice' in audioModule:
             devices = sounddevice_soundcard.query_input_devices()
             for device in devices:
-                for sampling_rate in [48000, 96000, 192000]:
-                    for format in [S16_LE, S24_3LE, S32_LE]:
+                for sampling_rate in SAMPLING_RATES:
+                    for format in FORMATS:
                         if doTest(args, device, sampling_rate, format):
-                            sounddevice_test(device, sampling_rate, format)
+                            sounddevice_test(device, sampling_rate, format, args.channels)
         else:
             print("not installed.")
 
@@ -539,9 +611,9 @@ select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
         if 'pyaudio' in audioModule:
             devices = pyaudio_soundcard.query_input_devices()
             for device in devices:
-                for sampling_rate in [48000, 96000, 192000]:
-                    for format in [S16_LE, S24_3LE, S32_LE]:
+                for sampling_rate in SAMPLING_RATES:
+                    for format in FORMATS:
                         if doTest(args, device, sampling_rate, format):
-                            pyaudio_test(device, sampling_rate, format)
+                            pyaudio_test(device, sampling_rate, format, args.channels)
         else:
             print("not installed.")
