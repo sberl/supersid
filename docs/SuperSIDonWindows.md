@@ -63,15 +63,12 @@ Open an `Anaconda Command Promt (Anaconda3)`
     > conda install pandas
     > conda install matplotlib
     > conda install PyAudio
-    > pip install wxPython
     > pip install PyPubSub
     > pip install sounddevice
     > pip install pyephem
 ```
 
 ### 1.2) Install Python 3.9.7 (64 bit) and the Python modules
-Python 3.9 has been chosen because wxPython is available as wheel for Python 3.9 but not for Python 3.10.
-
 - Download [Python 3.9.7 (64-bit)](https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe)
 - Install *python-3.9.7-amd64.exe*
     - Customize installation, keep all selected, Next
@@ -83,7 +80,7 @@ Python 3.9 has been chosen because wxPython is available as wheel for Python 3.9
 Open a `CMD` window.
 ```console
     > "C:\Program Files\Python39\python.exe" -m pip install --upgrade pip
-    > "C:\Program Files\Python39\python.exe" -m pip install matplotlib numpy pyparsing python-dateutil six pyephem wxPython sounddevice pipwin
+    > "C:\Program Files\Python39\python.exe" -m pip install matplotlib numpy pyparsing python-dateutil six pyephem sounddevice pipwin
     > "C:\Program Files\Python39\python.exe" -m pipwin install PyAudio
 ```
 
@@ -139,7 +136,7 @@ The experience with a small set of sound cards leads to following rules of thumb
 
 Caution: The **MME** host API allows to configure higher baudrates than the configuration of the HW or the HW allows.
 It will simply upsample the data in the driver but there is a hard cutof at the limit of the sound card configuration or at the limit of the ADC.
-This cutof will be visible in the graphical viewers of supersid.py (wx or tk).
+This cutof will be visible in the graphical viewer of supersid.py (tk).
 
 Selected:
 ```example

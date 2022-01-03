@@ -121,26 +121,24 @@ class SuperSID_scanner():
         for binSample in self.sampler.monitored_bins:
             signal_strengths.append(Pxx[binSample])
 
-        # ensure that one thread at the time accesses the sid_file's' buffers
-        with self.timer.lock:
-            # Save signal strengths into memory buffers
-            # prepare message for status bar
-            message = self.timer.get_utc_now() + "  [%d]  " % current_index
-            message += "%d" % (self.scan_end_time - self.timer.time_now)
-            for station, strength in zip(self.config.stations,
-                                         signal_strengths):
-                station['raw_buffer'][current_index] = strength
-            self.logger.sid_file.timestamp[current_index] = utc_now
+        # Save signal strengths into memory buffers
+        # prepare message for status bar
+        message = self.timer.get_utc_now() + "  [%d]  " % current_index
+        message += "%d" % (self.scan_end_time - self.timer.time_now)
+        for station, strength in zip(self.config.stations,
+                                     signal_strengths):
+            station['raw_buffer'][current_index] = strength
+        self.logger.sid_file.timestamp[current_index] = utc_now
 
-            # did we complete the expected scanning duration?
-            if self.timer.time_now >= self.scan_end_time:
-                fileName = "scanner_buffers.raw.ext.%s.csv" % (self.logger.sid_file.sid_params['utc_starttime'][:10])
-                fsaved = self.save_current_buffers(filename=fileName,
-                                                   log_type='raw',
-                                                   log_format='supersid_extended')
-                print (fsaved, "saved.")
-                self.close()
-                exit(0)
+        # did we complete the expected scanning duration?
+        if self.timer.time_now >= self.scan_end_time:
+            fileName = "scanner_buffers.raw.ext.%s.csv" % (self.logger.sid_file.sid_params['utc_starttime'][:10])
+            fsaved = self.save_current_buffers(filename=fileName,
+                                               log_type='raw',
+                                               log_format='supersid_extended')
+            print (fsaved, "saved.")
+            self.close()
+            exit(0)
 
         # end of this thread/need to handle to View to
         # display captured data & message
@@ -176,12 +174,10 @@ class SuperSID_scanner():
     def on_close(self):
         self.close()
 
-    def run(self, wx_app = None):
+    def run(self):
         """Start the application as infinite loop accordingly to need."""
         self.__class__.running = True
-        if self.config['viewer'] == 'wx':
-            wx_app.MainLoop()
-        elif self.config['viewer'] == 'text':
+        if self.config['viewer'] == 'text':
             try:
                 while(self.__class__.running):
                     sleep(1)

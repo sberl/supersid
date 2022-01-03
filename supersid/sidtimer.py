@@ -54,19 +54,20 @@ class SidTimer():
         with adjustment if necessary
         i.e. running late/fast then perform callback
         """
-        self.time_now = time.time()
-        self.utc_now = datetime.utcnow()
-        self._timer = threading.Timer(self.interval
-                                      + self.expected_time
-                                      - self.time_now, self._ontimer)
-        self._timer.start()
-        self.data_index = int((self.utc_now.hour
-                               * 3600
-                               + self.utc_now.minute
-                               * 60 + self.utc_now.second) / self.interval)
-        self.expected_time += self.interval
-        # callback to perform tasks
-        self.callback()
+        with self.lock:     # only one timer callback at a time
+            self.time_now = time.time()
+            self.utc_now = datetime.utcnow()
+            self._timer = threading.Timer(self.interval
+                                          + self.expected_time
+                                          - self.time_now, self._ontimer)
+            self._timer.start()
+            self.data_index = int((self.utc_now.hour
+                                   * 3600
+                                   + self.utc_now.minute
+                                   * 60 + self.utc_now.second) / self.interval)
+            self.expected_time += self.interval
+            # callback to perform tasks
+            self.callback()
 
     def stop(self):
         """Cancel the timer currently running in background."""

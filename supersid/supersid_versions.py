@@ -22,11 +22,6 @@ sounddevice==0.4.3
 
 pyephem==9.99
   - ephem [required: Any, installed: 4.1]
-
-wxPython==4.1.1
-  - numpy [required: Any, installed: 1.21.2]
-  - pillow [required: Any, installed: 8.4.0]
-  - six [required: Any, installed: 1.16.0]
 """
 
 
@@ -52,10 +47,6 @@ tested_versions = {
     # pyephem dependencies
     'pyephem': {'versions': ['9.99'], 'requirement': 'mandatory'},
     'ephem': {'versions': ['4.1'], 'requirement': 'mandatory'},
-
-    # wxpython dependencies
-    'wxpython': {'versions': ['4.0.7.post2', '4.1.1'], 'requirement': 'optional'},
-    # numpy, pillow, six are already verified
 
     # standalone
     'python': {'versions': ['3.7.3', '3.8.12', '3.9.7'], 'requirement': 'mandatory'},
