@@ -329,7 +329,15 @@ In the [FTP] section of supersid.cfg, set “automatic_upload” to yes and add 
 The supersid.cfg file uses the /home/pi/tmp directory to store the files to be sent via ftp.
 Sending the ftp is accomplished by the program ftp_to_stanford.py   
 Using the following procedure, crontab can be used to run the program at a specific time each day.   
-In a terminal window create a script in the /home/pi directory by typing **nano ftp_stanford.sh**   The script should contain the following: 
+In a terminal window create a script in the /home/pi directory by typing:
+
+
+```console
+    $ nano ftp_stanford.sh
+```
+
+
+The script should contain the following: 
 
 #!/bin/bash   
 cd ~/supersid/supersid   
@@ -344,7 +352,15 @@ Make it executable by doing:
     $ sudo chmod +x ftp_stanford.sh 
 ```
 
-In a terminal window type **sudo crontab -e**  Choose #1 for the nano editor.  
+In a terminal window type:
+
+
+```console
+    sudo crontab -e
+```
+
+
+Choose #1 for the nano editor.  
 
 Add the following at the bottom of the file:
 
