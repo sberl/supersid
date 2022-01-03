@@ -50,7 +50,9 @@ try:
     def alsaaudio_test(device, sampling_rate, format, periodsize):
         print()
         try:
-            print("Accessing '{}' at {} Hz via alsaaudio format '{}', ...".format(device, sampling_rate, format))
+            print(
+                "Accessing '{}' at {} Hz via alsaaudio format '{}', ..."
+                .format(device, sampling_rate, format))
             sc = alsaaudio_soundcard('', device, sampling_rate, format, periodsize)
             sc.info()
             return True
@@ -87,7 +89,9 @@ try:
             if card != '':
                 # deprecated configuration keyword Card, use Device instead
                 device = 'sysdefault:CARD=' + card  # guess the intended device name
-                print("alsaaudio card '{}', sampling rate {}, format {}, periodsize {}".format(card, audio_sampling_rate, format, periodsize))
+                print(
+                    "alsaaudio card '{}', sampling rate {}, format {}, periodsize {}"
+                    .format(card, audio_sampling_rate, format, periodsize))
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
                                          channels=1,
@@ -98,7 +102,9 @@ try:
                                          device=device)
                 self.name = "alsaaudio Device guessed as '{}'".format(device)
             else:
-                print("alsaaudio device '{}', sampling rate {}, format {}, periodsize {}".format(device, audio_sampling_rate, format, periodsize))
+                print(
+                    "alsaaudio device '{}', sampling rate {}, format {}, periodsize {}"
+                    .format(device, audio_sampling_rate, format, periodsize))
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
                                          channels=1,
@@ -157,7 +163,9 @@ try:
     def sounddevice_test(device, sampling_rate, format):
         print()
         try:
-            print("Accessing '{}' at {} Hz via sounddevice format '{}', ...".format(device, sampling_rate, format))
+            print(
+                "Accessing '{}' at {} Hz via sounddevice format '{}', ..."
+                .format(device, sampling_rate, format))
             sc = sounddevice_soundcard(device, sampling_rate, format)
             sc.info()
             return True
@@ -175,7 +183,9 @@ try:
         }
 
         def __init__(self, device_name, audio_sampling_rate, format):
-            print("sounddevice device '{}', sampling rate {}, format {}".format(device_name, audio_sampling_rate, format))
+            print(
+                "sounddevice device '{}', sampling rate {}, format {}"
+                .format(device_name, audio_sampling_rate, format))
             self.duration = None    # time to capture 1 sec of data excluding the format conversion
             self.audio_sampling_rate = audio_sampling_rate
             self.device_name = device_name
@@ -262,7 +272,9 @@ try:
     def pyaudio_test(device, sampling_rate, format):
         print()
         try:
-            print("Accessing '{}' at {} Hz via pyaudio format '{}', ...".format(device, sampling_rate, format))
+            print(
+                "Accessing '{}' at {} Hz via pyaudio format '{}', ..."
+                .format(device, sampling_rate, format))
             sc = pyaudio_soundcard(device, sampling_rate, format)
             sc.info()
             return True
@@ -287,7 +299,9 @@ try:
         }
 
         def __init__(self, device_name, audio_sampling_rate, format):
-            print("pyaudio device '{}', sampling rate {}, format {}".format(device_name, audio_sampling_rate, format))
+            print(
+                "pyaudio device '{}', sampling rate {}, format {}"
+                .format(device_name, audio_sampling_rate, format))
             self.duration = None    # time to capture 1 sec of data excluding the format conversion
             self.format = format
             self.CHUNK = 1024
