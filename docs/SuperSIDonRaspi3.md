@@ -14,7 +14,7 @@ If you intend to access your system remotely you must enable SSH and VNC.
 To do this, click on the Raspberry icon in the upper left of the screen.   
 From the drop down, choose Preferences > Raspberry Pi Configuration. Under the Interface tab, Enable SSH & VNC.      
 Move your cursor to the upper right of the window and hover over the icon that will show the wlan0 (WiFi) address that your router has assigned to the RPi. You will need to record this address (192.168.1.xxx) in order to access via SSH or VNC.   
-When complete, open a terminal window type fbset to find the current screen resolution and record it.   
+When complete, open a terminal window type fbset to find the current screen resolution and record it.  In the event that VNC gives you the error "currently cannot show desktop" you will have to lower the screen resolution.
 
 ## 1) Get the latest supersid software
 
@@ -329,7 +329,7 @@ In the [FTP] section of supersid.cfg, set “automatic_upload” to yes and add 
 The supersid.cfg file uses the /home/pi/tmp directory to store the files to be sent via ftp.
 Sending the ftp is accomplished by the program ftp_to_stanford.py   
 Using the following procedure, crontab can be used to run the program at a specific time each day.   
-In a terminal window create a script in the /home/pi directory by typing nano ftp_stanford.sh   The script should contain the following: 
+In a terminal window create a script in the /home/pi directory by typing **nano ftp_stanford.sh**   The script should contain the following: 
 
 #!/bin/bash   
 cd ~/supersid/supersid   
@@ -344,7 +344,7 @@ Make it executable by doing:
     $ sudo chmod +x ftp_stanford.sh 
 ```
 
-In a terminal window type sudo crontab -e.  Choose #1 for the nano editor.  
+In a terminal window type **sudo crontab -e**  Choose #1 for the nano editor.  
 
 Add the following at the bottom of the file:
 
