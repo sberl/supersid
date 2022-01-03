@@ -49,7 +49,8 @@ class textSidViewer:
         try:
             Pxx = {}
             for channel in range(self.controller.config['Channels']):
-                Pxx[channel], freqs = mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
+                Pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
         except RuntimeError as err_re:
             print("Warning:", err_re)
             Pxx, freqs = None, None

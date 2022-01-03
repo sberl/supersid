@@ -72,7 +72,7 @@ class SidFile():
                 with open(self.filename, "rt") as fin:
                     self.lines = fin.readlines()
             except IOError as why:
-                print ("Error reading", filename)
+                print("Error reading", filename)
                 print(str(why))
                 exit(1)
 
@@ -117,7 +117,9 @@ class SidFile():
             self.stations = [self.sid_params["stationid"]]
             self.frequencies = [self.sid_params["frequency"]]
         else:
-            print("ERROR: No station ID found in this file or configuration. Please check!")
+            print(
+                "ERROR: No station ID found in this file or configuration. "
+                "Please check!")
             exit(5)
 
         # get the datetime for UTC_StartTime
@@ -129,13 +131,17 @@ class SidFile():
         elif "loginterval" in self.sid_params:
             self.LogInterval = int(self.sid_params["loginterval"])
         else:
-            print ("Warning: Log_Interval is missing! Please check. I assume 5 sec...")
+            print(
+                "Warning: Log_Interval is missing! Please check. I assume 5 "
+                "sec...")
             self.LogInterval, self.sid_params["log_interval"] = 5, 5
 
     def set_all_date_attributes(self, keep_file_date=False):
         if not keep_file_date or "utc_starttime" not in self.sid_params:
             utcnow = datetime.utcnow()
-            self.sid_params["utc_starttime"] = "%d-%02d-%02d 00:00:00" % (utcnow.year, utcnow.month, utcnow.day)
+            self.sid_params["utc_starttime"] = \
+                "%d-%02d-%02d 00:00:00" \
+                % (utcnow.year, utcnow.month, utcnow.day)
             if SidFile._timestamp_format == SidFile._TIMESTAMP_EXTENDED:
                 self.sid_params["utc_starttime"] += ".00000"
         self.UTC_StartTime = self.sid_params["utc_starttime"]
@@ -177,7 +183,7 @@ class SidFile():
                 SidFile._timestamp_format = SidFile._TIMESTAMP_STANDARD
                 self.timestamp_format = SidFile._TIMESTAMP_STANDARD
 
-    def read_data(self, force_read_timestamp = False):
+    def read_data(self, force_read_timestamp=False):
         """Using the self.lines buffer, converts data lines in numpy arrays.
 
             - One array self.data for the data (one column/vector per station)
@@ -195,7 +201,9 @@ class SidFile():
         if self.isSuperSID and not self.is_extended:
             # classic SuperSID file format: one data column per station,
             # no time stamp (has to be generated)
-            print ("Warning: read SuperSid non extended file and generate time stamps.")
+            print(
+                "Warning: read SuperSid non extended file and generate time "
+                "stamps.")
             self.data = numpy.loadtxt(self.lines,
                                       comments='#',
                                       delimiter=",").transpose()
@@ -203,7 +211,9 @@ class SidFile():
         elif self.isSuperSID and self.is_extended:
             # extended SuperSID file format: one extended time stamp then
             # one data column per station
-            print ("Warning: read SuperSid extended file, time stamps are read & converted from file.")
+            print(
+                "Warning: read SuperSid extended file, time stamps are read & "
+                "converted from file.")
             inData = numpy.loadtxt(self.lines, dtype=datetime, comments='#',
                                    delimiter=",", converters=converters_dict)
             self.timestamp = inData[:, 0]  # column 0
@@ -215,10 +225,13 @@ class SidFile():
             #   date str to num conversion takes time
             # self.data must still be a 2 dimensions numpy.array
             #   even so only one vector is contained
-            if len(self.lines) - self.headerNbLines != (60 * 60 * 24) / self.LogInterval \
-                or force_read_timestamp \
-                or self.is_extended:
-                print ("Warning: read SID file, timestamps are read & converted from file.")
+            if (((len(self.lines) - self.headerNbLines)
+                != ((60 * 60 * 24) / self.LogInterval))
+                    or force_read_timestamp
+                    or self.is_extended):
+                print(
+                    "Warning: read SID file, timestamps are read & converted "
+                    "from file.")
                 inData = numpy.loadtxt(self.lines, dtype=datetime,
                                        comments='#', delimiter=",",
                                        converters=converters_dict)
@@ -226,7 +239,9 @@ class SidFile():
                 self.data = numpy.array(inData[:, 1],
                                         dtype=float, ndmin=2)  # column 1
             else:
-                print ("Optimization: read SID file, generate timestamp instead of reading & converting them from file.")
+                print(
+                    "Optimization: read SID file, generate timestamp instead "
+                    "of reading & converting them from file.")
                 self.data = numpy.array(numpy.loadtxt(self.lines, comments='#',
                                                       delimiter=",",
                                                       usecols=(1,)),
@@ -261,10 +276,12 @@ class SidFile():
         by adding LogInterval seconds to UTC_StartTime.
         """
         if 1 == len(self.data.shape):
-            # self.data is one deminsional if one station is configured
+            # self.data is one deminsional
+            # if one station is configured
             self.timestamp = numpy.empty(len(self.data), dtype=datetime)
         elif 2 == len(self.data.shape):
-            # self.data is two deminsional if more than one station is configured
+            # self.data is two deminsional
+            # if more than one station is configured
             self.timestamp = numpy.empty(len(self.data[0]), dtype=datetime)
         # add 'interval' seconds to UTC_StartTime for each entries
         interval = timedelta(seconds=self.LogInterval)
@@ -272,15 +289,18 @@ class SidFile():
         for i in range(len(self.timestamp)):
             self.timestamp[i] = currentTimestamp
             currentTimestamp += interval
-    #
-    #  Facilitator functions
-    #
+
+    #########################
+    # Facilitator functions #
+    #########################
+
     def get_sid_filename(self, station):
         """Return a file name as <Site Name>_<Station>_<UTC Start Date>.csv.
 
         For example RASPI_NWC_2013-08-31.csv
         """
-        site = self.sid_params['site_name'] if 'site_name' in self.sid_params else self.sid_params['site']
+        site = self.sid_params['site_name'] if 'site_name' in self.sid_params \
+            else self.sid_params['site']
         return "%s_%s_%s.csv" % (site, station,
                                  self.sid_params["utc_starttime"][:10])
 
@@ -289,7 +309,8 @@ class SidFile():
 
         For example RASPI_2013-08-31.csv
         """
-        site = self.sid_params['site_name'] if 'site_name' in self.sid_params else self.sid_params['site']
+        site = self.sid_params['site_name'] if 'site_name' in self.sid_params \
+            else self.sid_params['site']
         return "%s_%s.csv" % (site, self.sid_params["utc_starttime"][:10])
 
     def get_station_data(self, stationId):
@@ -297,11 +318,13 @@ class SidFile():
         try:
             idx = self.get_station_index(stationId)
             if 1 == len(self.data.shape):
-                # self.data is one deminsional if one station is configured
+                # self.data is one deminsional
+                # if one station is configured
                 assert(0 == idx)
                 return self.data
             elif 2 == len(self.data.shape):
-                # self.data is two deminsional if more than one station is configured
+                # self.data is two deminsional
+                # if more than one station is configured
                 return self.data[idx]
         except ValueError:
             return []
@@ -373,7 +396,8 @@ class SidFile():
                                        if 'monitor_id' in self.sid_params
                                        else self.sid_params['monitorid'])
         if isSuperSid:
-            # if only one station is configured, self.sid_params['stations'] is not present
+            # if only one station is configured,
+            # self.sid_params['stations'] is not present
             if 'stations' in self.sid_params:
                 hdr += "# Stations = %s\n" % self.sid_params['stations']
                 hdr += "# Frequencies = %s\n" % self.sid_params['frequencies']
@@ -402,7 +426,7 @@ class SidFile():
             self.sid_params['frequency'] = self.frequencies[iStation]
 
         # intermediate buffer to have 'raw' or 'filtered' data
-        if log_type == RAW or apply_bema == False:
+        if log_type == RAW or not apply_bema:
             tmp_data = self.data[iStation]
         else:  # filtered
             tmp_data = SidFile.filter_buffer(self.data[iStation],
@@ -414,7 +438,10 @@ class SidFile():
             hdr = self.create_header(isSuperSid=False, log_type=log_type)
             print(hdr, file=fout, end="")
             # generate the "timestamp, data" serie i.e. data lines
-            timestamp_format = SidFile._TIMESTAMP_EXTENDED if extended else SidFile._TIMESTAMP_STANDARD  ###"%Y-%m-%d %H:%M:%S.%f" if extended else "%Y-%m-%d %H:%M:%S"
+            # "%Y-%m-%d %H:%M:%S.%f" if extended else "%Y-%m-%d %H:%M:%S"
+            timestamp_format = SidFile._TIMESTAMP_EXTENDED \
+                if extended \
+                else SidFile._TIMESTAMP_STANDARD
             for t_stamp, x in zip(self.timestamp, tmp_data):
                 print("%s, %.15f" % (t_stamp.strftime(timestamp_format), x),
                       file=fout)
@@ -431,7 +458,7 @@ class SidFile():
         with open(filename, "wt") as fout:
             print(hdr, file=fout, end="")
             # intermediate buffer to have 'raw' or 'filtered' data
-            if log_type == RAW or apply_bema == False:
+            if log_type == RAW or not apply_bema:
                 tmp_data = self.data
             else:  # filtered
                 tmp_data = []
@@ -459,46 +486,52 @@ class SidFile():
         #               newline="\n", header=hdr)
 
     @classmethod
-    def filter_buffer(cls, raw_buffer, data_interval, bema_wing = 6, gmt_offset = 0):
-            """
-            Return bema filtered version of the buffer,
-            with optional time_zone_offset.
-            BEMA filter uses the minimal found value to represent the
-            data points within a range (bema_window)
-            bema_wing = 6 => window = 13
-            (bema_wing + evaluating point + bema_wing)
-            """
-            length = len(raw_buffer)
-            # Extend 2 wings to  raw data buffer before taking min and average
-            dstack = numpy.hstack((raw_buffer[length-bema_wing:length],
-                                   raw_buffer[0:length],
-                                   raw_buffer[0:bema_wing]))
-            # Fill the 2 wings with the values at the edge
-            dstack[0:bema_wing] = raw_buffer[0]  # dstack[bema_wing]
-            dstack[length+bema_wing:length+bema_wing*2] = raw_buffer[-1]  # dstack[length+bema_wing-1]
-            # Use the lowest point found in window to represent its value
-            dmin = numpy.zeros(len(dstack))
-            for i in range(bema_wing, length+bema_wing):
-                dmin[i] = min(dstack[i-bema_wing:i+bema_wing])
-            # The points beyond the left edge, set to the starting point value
-            dmin[0:bema_wing] = dmin[bema_wing]
-            # The points beyond the right edge, set to the ending point value
-            dmin[length+bema_wing:length+bema_wing*2] = dmin[length+bema_wing-1]
-            # Moving Average. This actually truncates array to original size
+    def filter_buffer(
+            cls, raw_buffer, data_interval, bema_wing=6, gmt_offset=0):
+        """
+        Return bema filtered version of the buffer,
+        with optional time_zone_offset.
+        BEMA filter uses the minimal found value to represent the
+        data points within a range (bema_window)
+        bema_wing = 6 => window = 13
+        (bema_wing + evaluating point + bema_wing)
+        """
+        length = len(raw_buffer)
+        # Extend 2 wings to  raw data buffer before taking min and average
+        dstack = numpy.hstack((raw_buffer[length-bema_wing:length],
+                               raw_buffer[0:length],
+                               raw_buffer[0:bema_wing]))
+        # Fill the 2 wings with the values at the edge
 
-            def movavg(a, n):
-                ret = numpy.cumsum(a, dtype=float)
-                ret[n:] = ret[n:] - ret[:-n]
-                return ret[n - 1:] / n
-            daverage = movavg(dmin, (bema_wing*2+1))
+        # dstack[bema_wing]
+        dstack[0:bema_wing] = raw_buffer[0]
 
-            if gmt_offset == 0:
-                return daverage
-            else:
-                gmt_mark = gmt_offset * (60/data_interval) * 60
-                doffset = numpy.hstack((daverage[gmt_mark:length],
-                                        daverage[0:gmt_mark]))
-                return doffset
+        # dstack[length+bema_wing-1]
+        dstack[length+bema_wing:length+bema_wing*2] = raw_buffer[-1]
+
+        # Use the lowest point found in window to represent its value
+        dmin = numpy.zeros(len(dstack))
+        for i in range(bema_wing, length+bema_wing):
+            dmin[i] = min(dstack[i-bema_wing:i+bema_wing])
+        # The points beyond the left edge, set to the starting point value
+        dmin[0:bema_wing] = dmin[bema_wing]
+        # The points beyond the right edge, set to the ending point value
+        dmin[length+bema_wing:length+bema_wing*2] = dmin[length+bema_wing-1]
+        # Moving Average. This actually truncates array to original size
+
+        def movavg(a, n):
+            ret = numpy.cumsum(a, dtype=float)
+            ret[n:] = ret[n:] - ret[:-n]
+            return ret[n - 1:] / n
+        daverage = movavg(dmin, (bema_wing*2+1))
+
+        if gmt_offset == 0:
+            return daverage
+        else:
+            gmt_mark = gmt_offset * (60/data_interval) * 60
+            doffset = numpy.hstack((daverage[gmt_mark:length],
+                                    daverage[0:gmt_mark]))
+            return doffset
 
 
 # -------------------------------------------------------------------------------
@@ -510,25 +543,46 @@ if __name__ == '__main__':
     import argparse
 
     # /original/path/name.merge.ext
-    fmerge = lambda x: "%s.merge%s" % path.splitext(x)
+    def fmerge(x):
+        return "%s.merge%s" % path.splitext(x)
 
     # check that one or two arguments are given
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--split", dest="filename_split", required=False,
-                        type=exist_file,
-                        help="Split 1 supersid_format in N sid_format / 1 supersid_extended in N sid_extended i.e. one per station")
-    parser.add_argument("-m", "--merge", dest="filename_merge", required=False,
-                        type=exist_file, nargs="*",
-                        help="Merge 2 sid_format in one supersid_format / 2 supersid_extended in one supersid_extended")
-    parser.add_argument("-i", "--info", dest="filename_info", required=False,
-                        type=exist_file,
-                        help="Display information about one file")
-    parser.add_argument("-f", "--filter", dest="filename_filter",
-                        required=False, type=exist_file,
-                        help="Filter a raw file")
-    parser.add_argument("-b", "--bema_wing", dest="bema_wing", required=False,
-                        type=int, default=6,
-                        help="Width of the window used in filtering a.k.a. 'bema_wing' (default=6)")
+    parser.add_argument(
+        "-s", "--split",
+        dest="filename_split",
+        required=False,
+        type=exist_file,
+        help="Split 1 supersid_format in N sid_format / 1 supersid_extended "
+        "in N sid_extended i.e. one per station")
+    parser.add_argument(
+        "-m", "--merge",
+        dest="filename_merge",
+        required=False,
+        type=exist_file,
+        nargs="*",
+        help="Merge 2 sid_format in one supersid_format / 2 supersid_extended "
+        "in one supersid_extended")
+    parser.add_argument(
+        "-i", "--info",
+        dest="filename_info",
+        required=False,
+        type=exist_file,
+        help="Display information about one file")
+    parser.add_argument(
+        "-f", "--filter",
+        dest="filename_filter",
+        required=False,
+        type=exist_file,
+        help="Filter a raw file")
+    parser.add_argument(
+        "-b", "--bema_wing",
+        dest="bema_wing",
+        required=False,
+        type=int,
+        default=6,
+        help="Width of the window used in filtering a.k.a. 'bema_wing' "
+        "(default=6)")
     args = parser.parse_args()
     if args.filename_info:
         sid = SidFile(args.filename_info, force_read_timestamp=True)
@@ -566,20 +620,23 @@ if __name__ == '__main__':
         print("Proceed to split this SuperSID file in %d SID files:"
               % sid.data.shape[0])
         for station in sid.stations:
-            fname = "%s/%s_%s_%s.split.csv" % (path.dirname(sid.filename),
-                                               sid.sid_params['site'],
-                                               station,
-                                               sid.sid_params['utc_starttime'][:10])
+            fname = "{}/{}_{}_{}.split.csv".format(
+                path.dirname(sid.filename),
+                sid.sid_params['site'],
+                station,
+                sid.sid_params['utc_starttime'][:10])
             sid.write_data_sid(station, fname,
                                sid.sid_params['logtype'],
                                apply_bema=False)
             print(fname, "created.")
     elif args.filename_merge:
         # Merge 2 SuperSID files station by station
-        sid1, sid2 = SidFile(args.filename_merge[0]), SidFile(args.filename_merge[1])
+        sid1 = SidFile(args.filename_merge[0])
+        sid2 = SidFile(args.filename_merge[1])
         if sid1.isSuperSID and sid2.isSuperSID:
             for istation in range(len(sid1.stations)):
-                sid1.data[:, istation] += sid2.get_station_data(sid1.stations[istation])
+                sid1.data[:, istation] += \
+                    sid2.get_station_data(sid1.stations[istation])
             sid1.write_data_supersid(fmerge(sid1.filename),
                                      apply_bema=False)
             print(fmerge(sid1.filename), "created.")
@@ -594,7 +651,9 @@ if __name__ == '__main__':
                 supersid = sid2
             station = sid.stations[0]
             if station not in supersid.stations:
-                print("Error: station %s in not found in the superSId file. Cannot merge." % station)
+                print(
+                    "Error: station %s in not found in the superSId file. "
+                    "Cannot merge." % station)
             else:
                 sid.data += supersid.get_station_data(station)
                 sid.write_data_sid(station, fmerge(sid.filename),
@@ -613,7 +672,9 @@ if __name__ == '__main__':
         sid = SidFile(args.filename_filter, force_read_timestamp=True)
         fname = "%s.filtered%s" % path.splitext(args.filename_filter)
         if sid.sid_params['logtype'] != RAW:
-            print("Warning: %s is not a raw file. This might filter an already filtered file." % args.filename_filter)
+            print(
+                "Warning: %s is not a raw file. This might filter an already "
+                "filtered file." % args.filename_filter)
         bema_wing = args.bema_wing if args.bema_wing else 6
         if sid.isSuperSID:
             sid.write_data_supersid(fname, log_type=FILTERED, apply_bema=True,

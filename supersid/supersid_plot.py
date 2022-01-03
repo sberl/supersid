@@ -40,7 +40,7 @@ from supersid_common import exist_file
 
 try:
     clock = time.process_time   # new in Python 3.3
-except:
+except Exception:
     clock = time.clock          # removed in Python 3.8
 
 
@@ -61,8 +61,12 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     senderEmail = config.get("from_mail", "")
     mailserver = config.get("email_server", "")
     mailport = config.get("email_port", "")
-    mailserveruser = config.get("email_login", "")          # <-- set to None if no login required
-    mailserverpasswd = config.get("email_password", "")     # <-- set to None if no login required
+
+    # set mailserveruser to None if no login required
+    mailserveruser = config.get("email_login", "")
+
+    # set mailserverpasswd to None if no login required
+    mailserverpasswd = config.get("email_password", "")
 
     # create the mail message
     msg = MIMEMultipart(_subtype='html')
@@ -79,7 +83,9 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     ctype, encoding = mimetypes.guess_type(PDFfile)
     if ctype is None:
         ctype = 'application/octet-stream'
-        print("MIME type for '{}' is unknown. Falling back to '{}'".format(PDFfile, ctype))
+        print(
+            "MIME type for '{}' is unknown. Falling back to '{}'"
+            .format(PDFfile, ctype))
     maintype, subtype = ctype.split('/', 1)
     with open(PDFfile, 'rb') as pdf:
         att = MIMEBase(maintype, subtype)
@@ -99,20 +105,21 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     # Send the email - real from, real to, extra headers and content ...
     s.sendmail(senderEmail, To_mail, msg.as_string())
     s.close()
-    print ("Email to %s sent." % To_mail)
+    print("Email to %s sent." % To_mail)
 
 
 class SUPERSID_PLOT():
 
     def m2hm(self, x, i):
-        """Small function to format the time on horizontal axis - minor ticks"""
+        """Small function to format the time on horizontal axis, minor ticks"""
         t = matplotlib.dates.num2date(x)
         h = t.hour
         m = t.minute
-        return '%(h)02d:%(m)02d' % {'h':h,'m':m} if h % 2 == 1 else ''  # only for odd hours
+        # only for odd hours
+        return '%(h)02d:%(m)02d' % {'h': h, 'm': m} if h % 2 == 1 else ''
 
     def m2yyyymmdd(self, x, i):
-        """Small function to format the date on horizontal axis - major ticks"""
+        """Small function to format the date on horizontal axis, major ticks"""
         t = matplotlib.dates.num2date(x)
         y = t.year
         m = t.month
@@ -137,11 +144,15 @@ class SUPERSID_PLOT():
         order to draw vetical lines for XRA data.
         """
         emailText = []
-        Tstamp = lambda HHMM: datetime.datetime(year=int(day[:4]),
-                                                month=int(day[4:6]),
-                                                day=int(day[6:8]),
-                                                hour=int(HHMM[:2]),
-                                                minute=int(HHMM[2:]))
+
+        def Tstamp(HHMM):
+            return datetime.datetime(
+                year=int(day[:4]),
+                month=int(day[4:6]),
+                day=int(day[6:8]),
+                hour=int(HHMM[:2]),
+                minute=int(HHMM[2:]))
+
         # Sunrise and sunset shade
         # sun_rise = 6.0
         # sun_set  = 18.0
@@ -149,7 +160,8 @@ class SUPERSID_PLOT():
         # plt.axvspan(sun_set, 24.0, facecolor='blue', alpha=0.2)
 
         if type(filelist) is str:
-            if filelist.find(',') >= 0:  # file1,file2,...,fileN given as script argument
+            # file1,file2,...,fileN given as script argument
+            if filelist.find(',') >= 0:
                 filelist = filelist.split(",")
             else:
                 filelist = (filelist, )
@@ -157,7 +169,7 @@ class SUPERSID_PLOT():
         # use glob for one or more files
         filenames.extend([a for a in itertools.chain.from_iterable(
                 [glob.glob(os.path.expanduser(f)) for f in filelist])])
-        # print (filenames)
+        # print(filenames)
 
         # plot's figure and axis
         fig = plt.figure()
@@ -171,9 +183,16 @@ class SUPERSID_PLOT():
 
         # Get data from files
         maxData, data_length = -1, -1  # impossible values
-        XRAlist = []      # flare list from NOAA
-        daysList = set()  # date of NOAA's pages already retrieved, prevent multiple fetch
-        figTitle = []     # list of file names (w/o path and extension) as figure's title
+
+        # flare list from NOAA
+        XRAlist = []
+
+        # date of NOAA's pages already retrieved, prevent multiple fetch
+        daysList = set()
+
+        # list of file names (w/o path and extension) as figure's title
+        figTitle = []
+
         # one color per station
         colorList = "brgcmy"
         colorStation = {}
@@ -181,14 +200,17 @@ class SUPERSID_PLOT():
 
         clock()
         for filename in sorted(filenames):
-            figTitle.append(os.path.basename(filename)[:-4]) # extension .csv assumed
+            figTitle.append(os.path.basename(filename)[:-4])    # .csv assumed
             sFile = SidFile(filename)
             for station in sFile.stations:
                 # Does this station already have a color? if not, reserve one
                 if station not in colorStation:
-                    colorStation[station] = self.get_station_color(config, station)
+                    colorStation[station] = \
+                        self.get_station_color(config, station)
                     if (colorStation[station] is None):
-                        colorStation[station] = colorList[colorIdx % len(colorList)] + '-'  # format like 'b-'
+                        # format like 'b-'
+                        colorStation[station] = \
+                            colorList[colorIdx % len(colorList)] + '-'
                         colorIdx += 1
                 # Add points to the plot
                 plt.plot_date(sFile.timestamp,
@@ -196,60 +218,83 @@ class SUPERSID_PLOT():
                               colorStation[station],
                               label=station)
                 # Extra housekeeping
-                maxData = max(max(sFile.get_station_data(station)),
-                              maxData)  # maxData will be used later to put the XRA labels up
-                # msg = str(len(sFile.get_station_data(station))) + " points plotted after reading " + os.path.basename(filename)
-                msg = "[{}] {} points plotted after reading {}".format(station, len(sFile.get_station_data(station)), os.path.basename(filename))
-                print (msg)
+
+                # maxData will be used later to put the XRA labels up
+                maxData = max(max(sFile.get_station_data(station)), maxData)
+
+                msg = "[{}] {} points plotted after reading {}".format(
+                    station,
+                    len(sFile.get_station_data(station)),
+                    os.path.basename(filename))
+                print(msg)
                 emailText.append(msg)
 
                 if web and sFile.startTime not in daysList:
-                    # get the XRA data from NOAA website to draw corresponding lines on the plot
-                    # fetch that day's flares on NOAA as not previously accessed
-                    day = sFile.sid_params["utc_starttime"][:10].replace("-","")
-                    #NOAA_URL = 'http://www.swpc.noaa.gov/ftpdir/warehouse/%s/%s_events/%sevents.txt' % (day[:4], day[:4], day)
-                    #ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
+                    # get the XRA data from NOAA website to draw corresponding
+                    # lines on the plot
+                    # fetch that day's flares on NOAA as not previously
+                    # accessed
+                    day = sFile.sid_params["utc_starttime"][:10].replace("-", "")
+                    # NOAA_URL = 'http://www.swpc.noaa.gov/ftpdir/warehouse/%s/%s_events/%sevents.txt' % (day[:4], day[:4], day)
+                    # ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
                     NOAA_URL = 'ftp://ftp.swpc.noaa.gov/pub/indices/events/%sevents.txt' % (day)
                     response = None
                     try:
                         response = urllib.request.urlopen(NOAA_URL)
                     except urllib.error.HTTPError as err:
-                        print (err, "\n", NOAA_URL)
-                    lastXRAlen = len(XRAlist) # save temporarly current number of XRA events in memory
+                        print(err, "\n", NOAA_URL)
+
+                    # save temporarly current number of XRA events in memory
+                    lastXRAlen = len(XRAlist)
                     if response:
                         for webline in response.read().splitlines():
                             if sys.version[0] >= '3':
-                                webline = str(webline, 'utf-8')  # cast bytes to str
+                                # cast bytes to str
+                                webline = str(webline, 'utf-8')
                             fields = webline.split()
-                            if len(fields) >= 9 and not fields[0].startswith("#"):
+                            if ((len(fields) >= 9) and
+                                    (not fields[0].startswith("#"))):
                                 if fields[1] == '+':
                                     fields.remove('+')
-                                if fields[6] in ('XRA', ):  # maybe other event types could be of interrest
-                                    #     eventName,    BeginTime,    MaxTime,      EndTime,      Particulars
-                                    msg = fields[0]+" "+fields[1]+" "+fields[2]+" "+fields[3]+" "+fields[8]
+
+                                # maybe other event types could be of interrest
+                                if fields[6] in ('XRA', ):
+                                    msg = fields[0] + " "   # eventName
+                                    msg += fields[1] + " "  # BeginTime
+                                    msg += fields[2] + " "  # MaxTime
+                                    msg += fields[3] + " "  # EndTime
+                                    msg += fields[8]        # Particulars
                                     emailText.append(msg)
-                                    print (msg)
+                                    print(msg)
                                     try:
-                                        btime = Tstamp(fields[1])   # 'try' necessary as few occurences of --:-- instead of HH:MM exist
-                                    except:
+                                        # 'try' necessary as few occurences of
+                                        # --:-- instead of HH:MM exist
+                                        btime = Tstamp(fields[1])
+                                    except Exception:
                                         pass
                                     try:
                                         mtime = Tstamp(fields[2])
-                                    except:
+                                    except Exception:
                                         mtime = btime
                                     try:
                                         etime = Tstamp(fields[3])
-                                    except:
+                                    except Exception:
                                         etime = mtime
-                                    XRAlist.append( (fields[0], btime, mtime, etime, fields[8]) )  # as a tuple
+                                    XRAlist.append((
+                                        fields[0],
+                                        btime,
+                                        mtime,
+                                        etime,
+                                        fields[8]))  # as a tuple
 
-                    msg = str(len(XRAlist) - lastXRAlen) + " XRA events recorded by NOAA on " + day
+                    msg = str(len(XRAlist) - lastXRAlen) \
+                        + " XRA events recorded by NOAA on " + day
                     emailText.append(msg)
-                    print (msg)
+                    print(msg)
                 # keep track of the days
                 daysList.add(sFile.startTime)
 
-        print ("All files read in", clock(), "sec.")
+        print("All files read in", clock(), "sec.")
 
         if web:  # add the lines marking the retrieved flares from NOAA
             alternate = 0
@@ -262,11 +307,17 @@ class SUPERSID_PLOT():
                 alternate = 0 if alternate == 1 else 1
 
         # plot/page size / figure size with standard paper
-        height, width = PAPER_SIZE[config.get("paper_size", "")]    # exchange width and height to get landscape orientation
+
+        # exchange width and height to get landscape orientation
+        height, width = PAPER_SIZE[config.get("paper_size", "")]
+
         if len(daysList) == 1:
             fig.set_size_inches(width, height, forward=True)
-        else:  # allow PDF poster for many days (monthly graph) --> use Adobe PDF Reader --> Print --> Poster mode
-            fig.set_size_inches((width) * (len(daysList)/2.0), (height) / 2.0, forward=True)
+        else:
+            # allow PDF poster for many days (monthly graph)
+            # --> use Adobe PDF Reader --> Print --> Poster mode
+            fig.set_size_inches(
+                (width) * (len(daysList)/2.0), (height) / 2.0, forward=True)
         fig.subplots_adjust(bottom=0.08, left=0.05, right=0.98, top=0.95)
 
         # some cosmetics on the figure
@@ -313,41 +364,73 @@ if __name__ == '__main__':
      Usage:   supersid_plot.py  "filename*.csv"\n
      Note: " are optional on Windows, mandatory on *nix\n
      Other options:  supersid_plot.py -h\n""")
-    parser.add_argument("-c", "--config", dest="cfg_filename",
-                        type=exist_file,
-                        default=CONFIG_FILE_NAME, help="Supersid configuration file")
-    parser.add_argument("-f", "--file", dest="filename",
-                        help="Read SID and SuperSID csv file(s). Wildcards accepted.",
-                        metavar="FILE|FILE*.csv")
-    parser.add_argument("-p", "--pdf", dest="pdffilename",
-                        help="Write the plot in a PDF file.",
-                        metavar="filename.PDF")
-    parser.add_argument("-e", "--email", dest="email", nargs="?",
-                        help="sends PDF file to the given email",
-                        metavar="address@server.ex")
-    parser.add_argument("-n", "--noplot",
-                        action="store_false", dest="showPlot", default=True,
-                        help="do not display the plot. Usefull in batch mode.")
-    parser.add_argument("-w", "--web",
-                        action="store_true", dest="webData", default=False,
-                        help="Add information on flares (XRA) from NOAA website.")
-    parser.add_argument("-y", "--yesterday",
-                        action="store_true", dest="askYesterday", default=False,
-                        help="Yesterday's date is used for the file name.")
-    parser.add_argument("-t", "--today",
-                        action="store_true", dest="askToday", default=False,
-                        help="Today's date is used for the file name.")
-    parser.add_argument("-i", "--site_id", dest="site_id",
-                        help="Site ID to use in the file name",
-                        metavar="SITE_ID")
-    parser.add_argument("-s", "--station", dest="station_id",
-                        help="Station ID to use in the file name or * for all",
-                        metavar="STAID")
-    parser.add_argument("-v", "--verbose",
-                        action="store_true", dest="verbose", default=False,
-                        help="Print more messages.")
-    parser.add_argument('file_list', metavar='file.csv', type=exist_file, nargs='*',
-                    help='file(s) to be plotted')
+    parser.add_argument(
+        "-c", "--config",
+        dest="cfg_filename",
+        type=exist_file,
+        default=CONFIG_FILE_NAME,
+        help="Supersid configuration file")
+    parser.add_argument(
+        "-f", "--file",
+        dest="filename",
+        help="Read SID and SuperSID csv file(s). Wildcards accepted.",
+        metavar="FILE|FILE*.csv")
+    parser.add_argument(
+        "-p", "--pdf",
+        dest="pdffilename",
+        help="Write the plot in a PDF file.",
+        metavar="filename.PDF")
+    parser.add_argument(
+        "-e", "--email",
+        dest="email", nargs="?",
+        help="sends PDF file to the given email",
+        metavar="address@server.ex")
+    parser.add_argument(
+        "-n", "--noplot",
+        action="store_false",
+        dest="showPlot",
+        default=True,
+        help="do not display the plot. Usefull in batch mode.")
+    parser.add_argument(
+        "-w", "--web",
+        action="store_true",
+        dest="webData",
+        default=False,
+        help="Add information on flares (XRA) from NOAA website.")
+    parser.add_argument(
+        "-y", "--yesterday",
+        action="store_true",
+        dest="askYesterday",
+        default=False,
+        help="Yesterday's date is used for the file name.")
+    parser.add_argument(
+        "-t", "--today",
+        action="store_true",
+        dest="askToday",
+        default=False,
+        help="Today's date is used for the file name.")
+    parser.add_argument(
+        "-i", "--site_id",
+        dest="site_id",
+        help="Site ID to use in the file name",
+        metavar="SITE_ID")
+    parser.add_argument(
+        "-s", "--station",
+        dest="station_id",
+        help="Station ID to use in the file name or * for all",
+        metavar="STAID")
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        dest="verbose",
+        default=False,
+        help="Print more messages.")
+    parser.add_argument(
+        'file_list',
+        metavar='file.csv',
+        type=exist_file,
+        nargs='*',
+        help='file(s) to be plotted')
     args = parser.parse_args()
 
     # read the configuration file or exit
