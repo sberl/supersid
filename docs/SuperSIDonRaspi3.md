@@ -257,43 +257,25 @@ Generate a test tome and connect line out to line in.
 
 ## 6) Edit your supersid\Config\supersid.cfg file
 
-See [ConfigHelp.md](https://github.com/sberl/supersid/blob/master/docs/ConfigHelp.md)
+See [ConfigHelp.md](./ConfigHelp.md)
 
-Using the File Manager, navigate to /home/pi/supersid/Config and open supersid.cfg with the Text Editor.
+Using the File Manager, navigate to ~/supersid/Config and open supersid.cfg with a text editor.
 
-Edit the file to add the information for your station.  
+Edit the file to add the information for your station.
 
-Viewer can be either text or tk.  Text is a basic text display.  The tk parameter will display the spectrograph which is useful in positioning the antenna for the strongest signals.  
+Viewer can be either text or tk.
+The text viewer is a basic text display.
+The tk viewer will display the spectrograph which is useful in positioning the antenna for the strongest signals.
 
-Once you are confident that you are reliably collecting good data (with a recognizable sunrise signature) you can begin to FTP data to Stanford.   
-In the [FTP] section of supersid.cfg, set “automatic_upload” to yes and add the stations that you wish to send under “call_signs”.  Separate the stations with commas without spaces.  The file to be sent must be in supersid_format - one file for all stations.  Using “log_format=both_extended” in the supersid.cfg file will create the necessary file in supersid_format and also a file for each station in sid_format.  The sid_format files can be useful if a plot file of an individual station is desired.   
-The supersid.cfg file uses the /home/pi/tmp directory to store the files to be sent via ftp.
-Sending the ftp is accomplished by the program ftp_to_stanford.py   
-Using the following procedure, crontab can be used to run the program at a specific time each day.   
-In a terminal window create a script in the /home/pi directory by typing nano ftp_stanford.sh   The script should contain the following: 
+Once you are confident that you are reliably collecting good data (with a recognizable sunrise signature) you can begin to FTP data to Stanford.
+In the [FTP] section of supersid.cfg, set 'automatic_upload' to yes and add the stations that you wish to send under 'call_signs'.
+Separate the stations with commas without spaces.  The file to be sent must be in 'supersid_format' or 'supersid_extended' format - one file for all stations.
+Setting 'log_format' to one of 'supersid_format', 'supersid_extended', 'both', 'both_extended' in the supersid.cfg file will create the necessary file.
+'supersid_format' is a good option as it combines the most accuarte timestamp with a compact format.
 
-#!/bin/bash   
-cd ~/supersid/supersid   
-./ftp_to_stanford.py -y -c ~/supersid/Config/supersid.cfg
+Sending the ftp is accomplished by the program ftp_to_stanford.py which is called by supersid.py at midnight (UTC).
+ftp_to_stanford.py uses the '~/supersid/outgoing' directory to store the files to be sent via ftp.
 
-Save the file (Ctrl O) and exit (Ctrl X).
-
-Make it executable by doing:
-
-
-```console
-    $ sudo chmod +x ftp_stanford.sh 
-```
-
-In a terminal window type sudo crontab -e.  Choose #1 for the nano editor.  
-
-Add the following at the bottom of the file:
-
-5 18 * * * /home/pi/ftp_stanford.sh > /home/pi/ftp.log 2>&1
-
-Save the file and exit.
-
-You must determine when midnight UTC occurs in your time zone. In this case, the script will run at 5 minutes after 1800 hours and create a log file showing the results.  
 
 ## 7) Start the SuperSID program
 
