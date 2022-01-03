@@ -56,7 +56,8 @@ class SuperSID():
         # as -r|--read script argument
         self.logger = Logger(self, read_file)
         if 'utc_starttime' not in self.config:
-            self.config['utc_starttime'] = self.logger.sid_file.sid_params["utc_starttime"]
+            self.config['utc_starttime'] = \
+                self.logger.sid_file.sid_params["utc_starttime"]
 
         # Create the viewer based on the .cfg specification (or set default):
         # Note: the list of Viewers can be extended provided they implement
@@ -90,8 +91,9 @@ class SuperSID():
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
 
         # Create Sampler to collect audio buffer (sound card or other server)
-        self.sampler = Sampler(self,
-                               audio_sampling_rate=self.config['audio_sampling_rate'])
+        self.sampler = Sampler(
+            self,
+            audio_sampling_rate=self.config['audio_sampling_rate'])
         if not self.sampler.sampler_ok:
             self.close()
             sys.exit(3)
@@ -137,9 +139,11 @@ class SuperSID():
 
         """
         subprocess.Popen([
-            sys.executable, script_relative_to_cwd_relative('ftp_to_stanford.py'),
-                '-y',
-                '-c', script_relative_to_cwd_relative(self.config.filenames[0])])
+            sys.executable,
+            script_relative_to_cwd_relative('ftp_to_stanford.py'),
+            '-y',
+            '-c',
+            script_relative_to_cwd_relative(self.config.filenames[0])])
 
     def on_timer(self):
         """Call when timer expires.
@@ -157,7 +161,10 @@ class SuperSID():
         self.viewer.status_display(message, level=1)
         signal_strengths = []
         try:
-            data = self.sampler.capture_1sec()  # return list of signal strength, may set sampler_ok = False
+            # capture_1sec() returns list of signal strength,
+            # may set sampler_ok = False
+            data = self.sampler.capture_1sec()
+
             if self.sampler.sampler_ok:
                 Pxx, freqs = self.psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
@@ -169,12 +176,14 @@ class SuperSID():
         except TypeError as err_te:
             print("Warning:", err_te)
 
-        # in case of an exception, signal_strengths may not have the expected length
+        # in case of an exception,
+        # signal_strengths may not have the expected length
         while len(signal_strengths) < len(self.sampler.monitored_bins):
             signal_strengths.append(0.0)
 
         # do we need to save some files (hourly) or switch to a new day?
-        if self.timer.utc_now.minute == 0 and self.timer.utc_now.second < self.config['log_interval']:
+        if ((self.timer.utc_now.minute == 0) and
+                (self.timer.utc_now.second < self.config['log_interval'])):
             if self.config['hourly_save'] == 'YES':
                 fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
                     self.logger.sid_file.sid_params['utc_starttime'][:10])
@@ -217,15 +226,18 @@ class SuperSID():
         filenames = []
         if log_format.startswith('both') or log_format.startswith('sid'):
             # filename is '' to ensure one file per station
-            fnames = self.logger.log_sid_format(self.config.stations, '',
-                                                log_type=log_type,
-                                                extended=log_format.endswith('extended'))
+            fnames = self.logger.log_sid_format(
+                self.config.stations,
+                '',
+                log_type=log_type,
+                extended=log_format.endswith('extended'))
             filenames += fnames
         if log_format.startswith('both') or log_format.startswith('supersid'):
-            fnames = self.logger.log_supersid_format(self.config.stations,
-                                                     filename,
-                                                     log_type=log_type,
-                                                     extended=log_format.endswith('extended'))
+            fnames = self.logger.log_supersid_format(
+                self.config.stations,
+                filename,
+                log_type=log_type,
+                extended=log_format.endswith('extended'))
             filenames += fnames
         return filenames
 
@@ -269,19 +281,25 @@ class SuperSID():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--read", dest="filename", required=False,
-                        type=exist_file,
-                        help="Read raw file and continue recording")
-    parser.add_argument("-c", "--config", dest="cfg_filename",
-                        type=exist_file,
-                        default=CONFIG_FILE_NAME,
-                        help="Supersid configuration file")
-    parser.add_argument("-v", "--viewer",
-                        default=None,
-                        choices=['text', 'tk'],
-                        help="viewer (overrides viewer setting in the configuration file)")
+    parser.add_argument(
+        "-r", "--read", dest="filename", required=False,
+        type=exist_file,
+        help="Read raw file and continue recording")
+    parser.add_argument(
+        "-c", "--config", dest="cfg_filename",
+        type=exist_file,
+        default=CONFIG_FILE_NAME,
+        help="Supersid configuration file")
+    parser.add_argument(
+        "-v", "--viewer",
+        default=None,
+        choices=['text', 'tk'],
+        help="viewer (overrides viewer setting in the configuration file)")
     args = parser.parse_args()
 
-    sid = SuperSID(config_file=args.cfg_filename, read_file=args.filename, viewer=args.viewer)
+    sid = SuperSID(
+        config_file=args.cfg_filename,
+        read_file=args.filename,
+        viewer=args.viewer)
     sid.run()
     sid.close()
