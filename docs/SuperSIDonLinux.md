@@ -126,6 +126,7 @@ libraries:
     $ sudo apt-get install python3-pyaudio
 ```
 
+
 ## 4) Choose your USB Sound Card
 
 First execute the command `alsamixer` to ensure that the sound card is

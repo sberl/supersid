@@ -10,11 +10,13 @@ Execute the classic:
     $ sudo apt-get update
     $ sudo apt-get upgrade
 ```
-If you intend to access your system remotely you must enable SSH and VNC.   
-To do this, click on the Raspberry icon in the upper left of the screen.   
-From the drop down, choose Preferences > Raspberry Pi Configuration. Under the Interface tab, Enable SSH & VNC.      
-Move your cursor to the upper right of the window and hover over the icon that will show the wlan0 (WiFi) address that your router has assigned to the RPi. You will need to record this address (192.168.1.xxx) in order to access via SSH or VNC.   
-When complete, open a terminal window type fbset to find the current screen resolution and record it.   
+
+If you intend to access your system remotely you must enable SSH and VNC.
+To do this, click on the Raspberry icon in the upper left of the screen.
+From the drop down, choose Preferences > Raspberry Pi Configuration. Under the Interface tab, Enable SSH & VNC.
+Move your cursor to the upper right of the window and hover over the icon that will show the wlan0 (WiFi) address that your router has assigned to the RPi. You will need to record this address (192.168.1.xxx) in order to access via SSH or VNC.
+When complete, open a terminal window type fbset to find the current screen resolution and record it.
+
 
 ## 1) Get the latest supersid software
 
@@ -25,19 +27,19 @@ Get the source from GitHub.com
     $ git clone https://github.com/sberl/supersid.git
 ```
 
-To update (pull) to the latest version, do:
-```console
-    ~ $ cd supersid
-    ~/supersid $ git pull
-```
 Now do the following:
 ```console
     ~/supersid $ mkdir Data
     ~/supersid $ mkdir outgoing
 ```
 These directories will be used to store the data that will be sent via ftp to Stanford.
-If your RPi is connected to the internet you can ignore 2. Extra Software and 3.1 optional virtual environment.
-Proceed with the commands under 3.2
+
+To update (pull) to the latest version, do:
+```console
+    $ cd ~/supersid
+    $ git pull
+```
+
 
 ## 2) Extra software
 
@@ -137,7 +139,7 @@ In another console search for the suitable device. Replace 'plughw:CARD=Dongle,D
     $ python3 -u find_alsa_devices.py -t=external -d="plughw:CARD=Dongle,DEV=0" 2>&1 | grep OK
 ```
 
-Let us assume, you got the output below (actually it is much longer, this is just an interresting snippet).
+Let us assume, you got the output below (actually it is much longer, this is just an interesting snippet).
 
 Select a combination with properties in this order:
 
@@ -159,7 +161,7 @@ Select a combination with properties in this order:
 ```
 
 Here 96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024 is a good choice.
-Cross-check with `sampler.py` the settings are working as epected.
+Cross-check with `sampler.py` the settings are working as expected.
 The line with the duration and the peak frequency is the relevant one.
 
 ```console
@@ -281,12 +283,14 @@ ftp_to_stanford.py uses the '~/supersid/outgoing' directory to store the files t
 
 ```console
     $ cd ~/supersid/supersid
-    $ ./supersid.py -c ../Config/supersid.cfg
+    $ ./supersid.py
 ```
+
 
 ## 8) SD Card Backup
 
 It is advisable to make a copy of your SD card once you determine that everything is set up and working.  Under Accessories there is a utility called SD Card Copier that can be used along with a USB SD card reader to clone your card.
+
 
 ## 9) Automatic Restart After Power Outage
 
@@ -298,7 +302,9 @@ If you would like this option, do the following:
 
 add the following to the bottom of the file:
 
-@lxterminal --command “/home/pi/runSID.sh”
+```
+    @lxterminal --command “/home/pi/runSID.sh”
+```
 
 Save and Exit
 
@@ -333,23 +339,31 @@ In a terminal window, navigate to /home/pi/supersid/supersid
 Replace filename.csv with the name of the file you want to plot
 
 For a standard plot:   
-./supersid_plot.py -f ../Data/filename.csv -c ../Config/supersid.cfg
-
+```console
+    $ ./supersid_plot.py -f ../Data/filename.csv
+```
 
 To create a plot and save it without viewing:   
-./supersid_plot.py -f ../Data/filename.csv -n -p ../Data/filename.pdf -c ../Config/supersid.cfg
-
+```console
+    $ ./supersid_plot.py -f ../Data/filename.csv -n -p ../Data/filename.pdf
+```
 
 For a plot containing NOAA flare data:   
-./supersid_plot.py -w -f ../Data/filename.csv -c ../Config/supersid.cfg
+```console
+    $ ./supersid_plot.py -w -f ../Data/filename.csv
+```
 
 For an interactive plot that enables you to turn stations off/on:   
-./supersid_plot_gui.py ../Data/filename.csv
+```console
+    $ ./supersid_plot_gui.py ../Data/filename.csv
+```
 
 For the above, use the file in supersid_format that contains all of the stations as listed in your supersid.cfg.
 
 For a plot that will be sent via email:   
-./supersid_plot.py -n -f ../Data/filename.csv -c ../Config/supersid.cfg -e xxxx@gmail.com
+```console
+    $ ./supersid_plot.py -n -f ../Data/filename.csv -e xxxx@gmail.com
+```
 
 The supersid.cfg file must include the [Email] section containing the appropriate information.
 
@@ -361,9 +375,9 @@ supersid_plot arguments:
 
 -n        create plot without showing on the screen
 
--p        create PDF file - ex: -p myplot.pdf
+-p        create PDF or image file - ex: -p myplot.pdf, -p myplot.jpg, -p myplot.png, -p myplot.tiff
 
--e        email
+-e        destination email address
 
 -w        retrieve NOAA flare information
 
