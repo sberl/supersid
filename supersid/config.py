@@ -31,8 +31,12 @@ CALL_SIGN, FREQUENCY, COLOR = 'call_sign', 'frequency', 'color'
 # constant for 'log_format'
 SID_FORMAT, SUPERSID_FORMAT = 'sid_format', 'supersid_format'
 
-# with 5 decimals timestamp
-SUPERSID_EXTENDED, BOTH_EXTENDED = 'supersid_extended', 'both_extended'
+# constant for 'log_format' with 5 decimals timestamp
+SID_EXTENDED, SUPERSID_EXTENDED = 'sid_extended', 'supersid_extended'
+
+# constant for 'log_format'
+BOTH = 'both'                    # combines 'sid_format', 'supersid_format'
+BOTH_EXTENDED = 'both_extended'  # combines 'sid_extended', 'supersid_extended'
 
 # constants for alsaaudio 'Format'
 S16_LE, S24_3LE, S32_LE = 'S16_LE', 'S24_3LE', 'S32_LE'
@@ -73,16 +77,50 @@ class Config(dict):
         """
         sections = {
             'PARAMETERS': (
-                # optional entries
-                ('hourly_save', str, "no"),         # new flag: yes/no to save every hours
-                ('data_path', str, "../Data/"),     # data path configuration by the user
-                ('log_format', str, SID_FORMAT),    # sid_format (default), supersid_format
-                ('mode', str, 'Standalone'),        # Server, Client, Standalone (default)
-                ('viewer', str, 'tk'),              # text, wx, tk (default)
-                ('bema_wing', int, 6),              # beta_wing for sidfile.filter_buffer()
-                ('paper_size', str, 'A4'),          # paper size of the images, one of A3, A4, A5, Legal, Letter
-                # mandatory entries
-                ('contact', str, None),             # email of the SuperSID owner
+                ####################
+                # optional entries #
+                ####################
+
+                # yes/no to save every hours
+                ('hourly_save', str, "no"),
+
+                # data path configuration by the user
+                ('data_path', str, "../Data/"),
+
+                # SUPERSID_EXTENDED (default)
+                # suitable for automatic FTP upload
+                ('log_format', str, SUPERSID_EXTENDED),
+
+                # Server, Client, Standalone (default)
+                ('mode', str, 'Standalone'),
+
+                # text, tk (default)
+                ('viewer', str, 'tk'),
+
+                # beta_wing for sidfile.filter_buffer()
+                ('bema_wing', int, 6),
+
+                # paper size of the images, one of A3, A4, A5, Legal, Letter
+                ('paper_size', str, 'A4'),
+
+                # min value for the y axis of the psd graph
+                # 'NaN' means automatic scaling
+                ('psd_min', float, float('NaN')),
+
+                # max value for the y axis of the psd graph
+                # 'NaN' means automatic scaling
+                ('psd_max', float, float('NaN')),
+
+                # number of ticks for the y axis of the psd graph
+                # 0 means automatic ticks
+                ('psd_ticks', int, 0),
+
+                #####################
+                # mandatory entries #
+                #####################
+
+                # email of the SuperSID owner
+                ('contact', str, None),
                 ('site_name', str, None),
                 ('longitude', str, None),
                 ('latitude', str, None),
@@ -97,11 +135,21 @@ class Config(dict):
             ),
 
             'Capture': (
-                ("Audio", str, 'alsaaudio'),        # audio module: alsaaudio, sounddevice, pyaudio
-                ("Device", str, 'plughw:CARD=Generic,DEV=0'), # alsaaudio, sounddevice, pyaudio: Device name for capture
-                ("Card", str, ''),                  # alsaaudio: obsolete (all audio modules are using fully qualified Device names)
-                ("PeriodSize", int, 1024),          # alsaaudio: period size for capture
-                ("Format", str, 'S16_LE'),          # alsaaudio: format S16_LE, S24_3LE, S32_LE
+                # audio module: alsaaudio, sounddevice, pyaudio
+                ("Audio", str, 'alsaaudio'),
+
+                # alsaaudio, sounddevice, pyaudio: Device name for capture
+                ("Device", str, 'plughw:CARD=Generic,DEV=0'),
+
+                # alsaaudio: obsolete
+                # (all audio modules are using fully qualified Device names)
+                ("Card", str, ''),
+
+                # alsaaudio: period size for capture
+                ("PeriodSize", int, 1024),
+
+                # alsaaudio: format S16_LE, S24_3LE, S32_LE
+                ("Format", str, 'S16_LE'),
             ),
 
             'Linux': (                              # obsolete
@@ -111,28 +159,53 @@ class Config(dict):
             ),
 
             'Email': (
-                ("from_mail", str, ""),             # sender email
-                ("email_server", str, ""),          # your email server (SMPT)
-                ("email_port", str, ""),            # your email server's port (SMPT)
-                ("email_tls", str, "no"),           # your email server requires TLS yes/no
-                ("email_login", str, ""),           # if your server requires a login
-                ("email_password", str, ""),        # if your server requires a password
+                # sender email
+                ("from_mail", str, ""),
+
+                # your email server (SMPT)
+                ("email_server", str, ""),
+
+                # your email server's port (SMPT)
+                ("email_port", str, ""),
+
+                # your email server requires TLS yes/no
+                ("email_tls", str, "no"),
+
+                # if your server requires a login
+                ("email_login", str, ""),
+
+                # if your server requires a password
+                ("email_password", str, ""),
             ),
 
             'FTP': (
-                ('automatic_upload',  str, "no"),   # yes/no: to upload the file to the remote FTP server
-                ('ftp_server',  str, ""),           # address of the server like sid-ftp.stanford.edu
-                ('ftp_directory', str, ""),         # remote target directory to write the files
-                ('local_tmp', str, ""),             # local tmp folder to generate files before upload
-                ('call_signs', str, ""),            # list of stations to upload (sub-set of [stations])
+                # yes/no: to upload the file to the remote FTP server
+                ('automatic_upload',  str, "no"),
+
+                # address of the server like sid-ftp.stanford.edu
+                ('ftp_server',  str, ""),
+
+                # remote target directory to write the files
+                ('ftp_directory', str, ""),
+
+                # local tmp folder to generate files before upload
+                ('local_tmp', str, ""),
+
+                # list of stations to upload (sub-set of [stations])
+                ('call_signs', str, ""),
             ),
-        } # End of sections
+        }   # End of sections
 
         if sys.platform.startswith('win32'):
             sections['Capture'] = (
-                ("Audio", str, 'sounddevice'),                          # audio module: sounddevice, pyaudio
-                ("Device", str, 'MME: Microsoft Sound Mapper - Input'), # sounddevice, pyaudio: Device name for capture
-                ("Format", str, 'S16_LE'),                              # alsaaudio: format S16_LE, S24_3LE, S32_LE
+                # audio module: sounddevice, pyaudio
+                ("Audio", str, 'sounddevice'),
+
+                # sounddevice, pyaudio: Device name for capture
+                ("Device", str, 'MME: Microsoft Sound Mapper - Input'),
+
+                # alsaaudio: format S16_LE, S24_3LE, S32_LE
+                ("Format", str, 'S16_LE'),
             )
 
         self.sectionfound = set()
@@ -143,7 +216,8 @@ class Config(dict):
                     self[pkey] = pcast(config_parser.get(section, pkey))
                 except ValueError:
                     self.config_ok = False
-                    self.config_err = "'%s' is not of the type %s in 'supersid.cfg'. Please check." % (pkey, pcast)
+                    self.config_err = "'%s' is not of the type %s in " \
+                        "'supersid.cfg'. Please check." % (pkey, pcast)
                     return
                 except configparser.NoSectionError:
                     # it's ok: some sections are optional
@@ -151,7 +225,8 @@ class Config(dict):
                 except configparser.NoOptionError:
                     if pdefault is None:  # missing mandatory parameter
                         self.config_ok = False
-                        self.config_err = "'"+pkey+"' is not found in '%s'. Please check." % filename
+                        self.config_err = "'"+pkey+"' is not found in '%s'. " \
+                            "Please check." % filename
                         return
                     else:  # optional, assign default
                         self.setdefault(pkey, pdefault)
@@ -159,7 +234,8 @@ class Config(dict):
                     self.sectionfound.add(section)
 
         if "Linux" in self.sectionfound:
-            print ("\n*** WARNING***\nSection [Linux] is obsolete.\nPlease replace it by [Capture] in your .cfg files.\n")
+            print("\n*** WARNING***\nSection [Linux] is obsolete.")
+            print("Please replace it by [Capture] in your .cfg files.\n")
 
         # Getting the stations parameters
         self.stations = []  # now defined as a list of dictionaries
@@ -173,11 +249,14 @@ class Config(dict):
                 self.stations.append(tmpDict)
             except configparser.NoSectionError:
                 self.config_ok = False
-                self.config_err = section + "section is expected but missing from the config file."
+                self.config_err = section + \
+                    " section is expected but missing from the config file."
                 return
             except configparser.NoOptionError:
                 self.config_ok = False
-                self.config_err = section + " does not have the 3 expected parameters in the config file. Please check."
+                self.config_err = section + \
+                    " does not have the 3 expected parameters in the " \
+                    "config file. Please check."
                 return
             else:
                 self.sectionfound.add(section)
@@ -194,14 +273,16 @@ class Config(dict):
         for mandatory_section in ('PARAMETERS',):
             if mandatory_section not in self.sectionfound:
                 self.config_ok = False
-                self.config_err = mandatory_section + "section is mandatory but missing from the .cfg file."
+                self.config_err = mandatory_section + \
+                    " section is mandatory but missing from the .cfg file."
                 return
 
         # sanity check: as many Stations were read as
         # announced by 'number_of_stations' (now section independent)
         if self['number_of_stations'] != len(self.stations):
             self.config_ok = False
-            self.config_err = "'number_of_stations' does not match STATIONS found in supersid.cfg. Please check."
+            self.config_err = "'number_of_stations' does not match STATIONS " \
+                "found in supersid.cfg. Please check."
             return
 
         if 'stations' not in self:
@@ -212,14 +293,16 @@ class Config(dict):
         self['log_type'] = self['log_type'].lower()
         if self['log_type'] not in (FILTERED, RAW):
             self.config_ok = False
-            self.config_err = "'log_type' must be either 'filtered' or 'raw' in supersid.cfg. Please check."
+            self.config_err = "'log_type' must be either 'filtered' or " \
+                "'raw' in supersid.cfg. Please check."
             return
 
         # 'hourly_save' must be UPPER CASE
         self['hourly_save'] = self['hourly_save'].upper()
         if self['hourly_save'] not in ('YES', 'NO'):
             self.config_ok = False
-            self.config_err = "'hourly_save' must be either 'YES' or 'NO' in supersid.cfg. Please check."
+            self.config_err = "'hourly_save' must be either 'YES' or 'NO' " \
+                "in supersid.cfg. Please check."
             return
 
         # when present, 'email_tls' must be UPPER CASE
@@ -227,14 +310,16 @@ class Config(dict):
             self['email_tls'] = self['email_tls'].upper()
             if self['email_tls'] not in ('YES', 'NO'):
                 self.config_ok = False
-                self.config_err = "'email_tls' must be either 'YES' or 'NO' in supersid.cfg. Please check."
+                self.config_err = "'email_tls' must be either 'YES' or 'NO' " \
+                    "in supersid.cfg. Please check."
                 return
 
         # 'paper_size' must be UPPER CASE
         self['paper_size'] = self['paper_size'].upper()
         if self['paper_size'] not in ('A3', 'A4', 'A5', 'LEGAL', 'LETTER'):
             self.config_ok = False
-            self.config_err = "'paper_size' must be one of 'A3', 'A4', 'A5', 'Legal' or 'Letter' in supersid.cfg. Please check."
+            self.config_err = "'paper_size' must be one of 'A3', 'A4', " \
+                "'A5', 'Legal' or 'Letter' in supersid.cfg. Please check."
             return
 
         # log_interval should be > 2
@@ -245,46 +330,82 @@ class Config(dict):
 
         # check log_format
         self['log_format'] = self['log_format'].lower()
-        if self['log_format'] not in (SID_FORMAT, SUPERSID_FORMAT,
-                                      SUPERSID_EXTENDED, BOTH_EXTENDED):
+        log_formats = [
+            SID_FORMAT,
+            SUPERSID_FORMAT,
+            SID_EXTENDED,
+            SUPERSID_EXTENDED,
+            BOTH,
+            BOTH_EXTENDED]
+        if self['log_format'] not in log_formats:
             self.config_ok = False
-            self.config_err = "'log_format' must be either one of '{}', '{}', '{}', '{}'.".format(
-                SID_FORMAT, SUPERSID_FORMAT, SUPERSID_EXTENDED, BOTH_EXTENDED)
+            self.config_err = "'log_format' must be either one of {}." \
+                .format(log_formats)
             return
 
-        # Check the 'data_path' validity and create it as a Config instance property
-        self['data_path'] = script_relative_to_cwd_relative(self['data_path']) + os.sep
+        # check log_format on conjunction with automatic_upload
+        log_formats_for_automatic_upload = [
+            SUPERSID_FORMAT,
+            SUPERSID_EXTENDED,
+            BOTH,
+            BOTH_EXTENDED]
+        if ((self['automatic_upload'] == 'yes') and
+                (self['log_format'] not in log_formats_for_automatic_upload)):
+            self.config_ok = False
+            self.config_err = "'log_format' must be either one of {} for " \
+                "'automatic_upload = yes'." \
+                .format(log_formats_for_automatic_upload)
+            return
+
+        # check viewer
+        self['viewer'] = self['viewer'].lower()
+        if self['viewer'] not in ('text', 'tk'):
+            self.config_ok = False
+            self.config_err = "'viewer' must be either one of 'text', 'tk'."
+            return
+
+        # Check the 'data_path' validity
+        # and create it as a Config instance property
+        self['data_path'] = script_relative_to_cwd_relative(self['data_path'])\
+            + os.sep
         self.data_path = self['data_path']
         if not os.path.isdir(self.data_path):
             self.config_ok = False
-            self.config_err = "'data_path' does not point to a valid directory:\n" + self.data_path
+            self.config_err = "'data_path' does not point to a valid " \
+                "directory:\n" + self.data_path
             return
 
         # when present, 'local_tmp' must be a folder
         if 'local_tmp' in self:
-            self['local_tmp'] = script_relative_to_cwd_relative(self['local_tmp']) + os.sep
+            self['local_tmp'] = script_relative_to_cwd_relative(
+                self['local_tmp']) + os.sep
             self.local_tmp = self['local_tmp']
             if not os.path.isdir(self.local_tmp):
                 self.config_ok = False
-                self.config_err = "'local_tmp' does not point to a valid directory:\n" + self.local_tmp
+                self.config_err = "'local_tmp' does not point to a valid " \
+                    "directory:\n" + self.local_tmp
                 return
 
         # default audio to sounddevice if not declared
-        # sounddevice is available for Windows and Linux and it seems to yield better results than pyaudio
+        # sounddevice is available for Windows and Linux
+        # and it seems to yield better results than pyaudio
         if "Audio" not in self:
             self["Audio"] = "sounddevice"
 
         # obsolete Card
         if 'Card' in self:
             if self['Card']:
-                print ("\n*** WARNING***\n'Card' is obsolete.\nPlease replace it by fully qualified 'Device' in your .cfg files.\n")
-                return
+                print("\n*** WARNING***\n'Card' is obsolete.")
+                print("Please replace it by fully qualified 'Device' in "
+                      "your .cfg files.\n")
 
-        # when present, 'Format' must be one of the supported formats (relevant for the format conversion in sampler.py for alsaaudio)
+        # when present, 'Format' must be one of the supported formats
+        # (relevant for the format conversion in sampler.py for alsaaudio)
         if 'Format' in self:
             if self['Format'] not in [S16_LE, S24_3LE, S32_LE]:
                 self.config_ok = False
-                self.config_err = "'log_format' must be either one of '{}', '{}', '{}'.".format(S16_LE, S24_3LE, S32_LE)
+                self.config_err = "'log_format' must be either one of {}." \
+                    .format([S16_LE, S24_3LE, S32_LE])
                 return
 
 
@@ -298,7 +419,7 @@ def readConfig(cfg_filename):
         assert(1 == len(cfg.filenames))
         print("Config file '{}' read successfully".format(cfg.filenames[0]))
     else:
-        print ("Error:", cfg.config_err)
+        print("Error:", cfg.config_err)
         sys.exit(1)
     return cfg
 
@@ -318,7 +439,8 @@ def printConfig(cfg):
         print("\t{} = {}".format(k, v))
     print("--- Stations " + "-"*29)
     for st in cfg.stations:
-        print("\tcall_sign = {}, frequency = {}, color = {}".format(st['call_sign'], st['frequency'], st['color']))
+        print("\tcall_sign = {}, frequency = {}, color = {}"
+              .format(st['call_sign'], st['frequency'], st['color']))
 
 
 if __name__ == '__main__':
