@@ -225,10 +225,10 @@ class SidFile():
             #   date str to num conversion takes time
             # self.data must still be a 2 dimensions numpy.array
             #   even so only one vector is contained
-            if len(self.lines) - self.headerNbLines \
-                != (60 * 60 * 24) / self.LogInterval \
-                    or force_read_timestamp \
-                    or self.is_extended:
+            if (((len(self.lines) - self.headerNbLines)
+                != ((60 * 60 * 24) / self.LogInterval))
+                    or force_read_timestamp
+                    or self.is_extended):
                 print(
                     "Warning: read SID file, timestamps are read & converted "
                     "from file.")
@@ -290,9 +290,9 @@ class SidFile():
             self.timestamp[i] = currentTimestamp
             currentTimestamp += interval
 
-    #
-    #  Facilitator functions
-    #
+    #########################
+    # Facilitator functions #
+    #########################
 
     def get_sid_filename(self, station):
         """Return a file name as <Site Name>_<Station>_<UTC Start Date>.csv.
@@ -426,7 +426,7 @@ class SidFile():
             self.sid_params['frequency'] = self.frequencies[iStation]
 
         # intermediate buffer to have 'raw' or 'filtered' data
-        if log_type == RAW or apply_bema == False:
+        if log_type == RAW or not apply_bema:
             tmp_data = self.data[iStation]
         else:  # filtered
             tmp_data = SidFile.filter_buffer(self.data[iStation],
@@ -438,7 +438,7 @@ class SidFile():
             hdr = self.create_header(isSuperSid=False, log_type=log_type)
             print(hdr, file=fout, end="")
             # generate the "timestamp, data" serie i.e. data lines
-            # ##"%Y-%m-%d %H:%M:%S.%f" if extended else "%Y-%m-%d %H:%M:%S"
+            # "%Y-%m-%d %H:%M:%S.%f" if extended else "%Y-%m-%d %H:%M:%S"
             timestamp_format = SidFile._TIMESTAMP_EXTENDED \
                 if extended \
                 else SidFile._TIMESTAMP_STANDARD
@@ -458,7 +458,7 @@ class SidFile():
         with open(filename, "wt") as fout:
             print(hdr, file=fout, end="")
             # intermediate buffer to have 'raw' or 'filtered' data
-            if log_type == RAW or apply_bema == False:
+            if log_type == RAW or not apply_bema:
                 tmp_data = self.data
             else:  # filtered
                 tmp_data = []
@@ -543,7 +543,8 @@ if __name__ == '__main__':
     import argparse
 
     # /original/path/name.merge.ext
-    fmerge = lambda x: "%s.merge%s" % path.splitext(x)
+    def fmerge(x):
+        return "%s.merge%s" % path.splitext(x)
 
     # check that one or two arguments are given
     parser = argparse.ArgumentParser()
@@ -630,7 +631,8 @@ if __name__ == '__main__':
             print(fname, "created.")
     elif args.filename_merge:
         # Merge 2 SuperSID files station by station
-        sid1, sid2 = SidFile(args.filename_merge[0]), SidFile(args.filename_merge[1])
+        sid1 = SidFile(args.filename_merge[0])
+        sid2 = SidFile(args.filename_merge[1])
         if sid1.isSuperSID and sid2.isSuperSID:
             for istation in range(len(sid1.stations)):
                 sid1.data[:, istation] += \

@@ -29,7 +29,7 @@ def script_relative_to_cwd_relative(path):
         return path
     else:
         # it is a relative path,
-        # convert it to a relative path with respect to teh script folder
+        # convert it to a relative path with respect to the script folder
         absolute_cwd = os.path.realpath(os.getcwd())
         absolute_script_path = os.path.dirname(os.path.realpath(__file__))
         relative_path = os.path.relpath(absolute_script_path, absolute_cwd)
@@ -38,7 +38,7 @@ def script_relative_to_cwd_relative(path):
 
 def slugify(value, allow_unicode=False):
     """
-    Taken from https://github.com/django/django/blob/master/django/utils/text.py
+    Source: https://github.com/django/django/blob/master/django/utils/text.py
     Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
     dashes to single dashes. Remove characters that aren't alphanumerics,
     underscores, or hyphens. Convert to lowercase. Also strip leading and
@@ -51,8 +51,8 @@ def slugify(value, allow_unicode=False):
         value = unicodedata.normalize('NFKD', value) \
             .encode('ascii', 'ignore') \
             .decode('ascii')
-    value = re.sub(r'[^\w\s-]', '.', value)     # .lower())
-    return re.sub(r'[-\s]+', '-', value)        # .strip('-_')
+    value = re.sub(r'[^\w\s-]', '.', value)
+    return re.sub(r'[-\s]+', '-', value)
 
 
 if __name__ == '__main__':

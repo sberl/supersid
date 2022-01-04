@@ -379,7 +379,7 @@ class arecord(alsa):
                             try:
                                 # try to convert to int, if not, also ok
                                 values = int(values[0])
-                            except:
+                            except Exception:
                                 pass
                     hw_params[key] = values
                 except Exception as err:
@@ -603,6 +603,7 @@ try:
                 #        4096 for 192000
                 # -> the frequency resolution is constant
                 NFFT = max(1024, 1024 * rate // 48000)
+
                 Pxx, freqs = mlab_psd(
                     unpacked_data,
                     NFFT,
@@ -672,7 +673,9 @@ try:
                 save_wav,
                 data_path):
             test_frequency = None
-            if (test_tone is not None) and (len(test_tone) >= 8) and 'external' == test_tone[0:8]:
+            if ((test_tone is not None)
+                    and (len(test_tone) >= 8)
+                    and ('external' == test_tone[0:8])):
                 # suppress test tone generation if configured to be external
                 st = None
                 if ',' == test_tone[8]:
@@ -702,9 +705,9 @@ try:
                     if device in BAD_DEVICES:
                         print('skip BAD_DEVICES', device)
                         continue    # prevent a core dump
-                    if ((device in pcm_device)
-                            or (device[:device.find(',DEV=')] in pcm_device)) \
-                            and (pcm_device not in tested_pcm_devices):
+                    if (((device in pcm_device)
+                            or (device[:device.find(',DEV=')] in pcm_device))
+                            and (pcm_device not in tested_pcm_devices)):
                         tested_pcm_devices.append(pcm_device)
                         for rate in interface['rates']:
                             generated_frequency = test_frequency
@@ -724,7 +727,7 @@ try:
                                     rate,
 
                                     # adapt the frequency to the sample rate,
-                                    # theoretic max would be rate // 2
+                                    # theoretical max would be (rate / 2)
                                     generated_frequency
                                 )
                             for format in interface['formats']:
@@ -738,6 +741,15 @@ try:
                                             rate,
                                             alsaaudio_format,
                                             periodsize)
+                                    peak_frequency = None \
+                                        if (peak_freq is None) \
+                                        else peak_freq[0]
+                                    frequency_ratio = None \
+                                        if ((peak_frequency is None)
+                                            or (generated_frequency
+                                                is None)) \
+                                        else (peak_frequency
+                                              / generated_frequency)
                                     test_log.append({
                                         'Device': pcm_device,
                                         'audio_sampling_rate': rate,
@@ -746,21 +758,23 @@ try:
                                         'i': i + 1,
                                         'result': result,
                                         'duration': duration,
-                                        'peak_freqency': None if peak_freq is None else peak_freq[0],
-                                        'generated_frequency': generated_frequency,
-                                        'frequency_ratio': None if (peak_freq is None) or (generated_frequency is None) else peak_freq[0] / generated_frequency,
+                                        'peak_freqency': peak_frequency,
+                                        'generated_frequency':
+                                            generated_frequency,
+                                        'frequency_ratio': frequency_ratio,
                                     })
+
                                     print(
-                                        "{:6d}, "
+                                        "{:6d}, "       # rate
                                         "alsaaudio, "
-                                        "{}, "
-                                        "{:7s}, "
-                                        "{}, "
-                                        "{:2d}, "
-                                        "{}"
-                                        "{}"
-                                        "{}"
-                                        "{}"
+                                        "{}, "          # pcm_device
+                                        "{:7s}, "       # asound_format
+                                        "{}, "          # periodsize
+                                        "{:2d}, "       # i+1
+                                        "{}"            # result
+                                        "{}"            # duration
+                                        "{}"            # peak_frequency
+                                        "{}"            # frequency_ratio
                                         .format(
                                             rate,
                                             pcm_device,
@@ -773,15 +787,15 @@ try:
                                             else ', {:.2f} s'
                                             .format(duration),
 
-                                            "" if peak_freq is None
+                                            "" if peak_frequency is None
                                             else ", {} Hz"
-                                            .format(int(peak_freq[0])),
+                                            .format(int(peak_frequency)),
 
-                                            "" if (peak_freq is None) or (generated_frequency is None)
+                                            "" if frequency_ratio is None
                                             else " / {} Hz = {:5.3f}"
                                             .format(
                                                 generated_frequency,
-                                                peak_freq[0] / generated_frequency)))
+                                                frequency_ratio)))
                                     if data is not None and save_wav:
                                         file = os.path.join(
                                             data_path,
@@ -819,7 +833,7 @@ try:
             # no peak_frequency, no frequency_ratio
             df = df.dropna()
 
-            # drop frequency_ratio not similar deviating more than 2 %% from the ideal 1.0
+            # drop frequency_ratio deviating more than 2 %% from the ideal 1.0
             df = df[
                 (df['frequency_ratio'] >= 0.998) &
                 (df['frequency_ratio'] <= 1.002)]
@@ -849,12 +863,11 @@ try:
 
             if num_candidates >= 1:
                 print("{} candidates found.".format(num_candidates))
-                print("Prefer candidates with these properties:")
-                print("- audio_sampling_rate = highest available value")
-                print("- Format = the more bits the better (32 better than 24, 24 better than 16)")
-                print()
+                print("""Prefer candidates with these properties:
+- audio_sampling_rate = highest available value
+- Format = the more bits the better (32 better than 24, 24 better than 16)
 
-                print("This is the complete list of candidates fulfilling the minimum requirements:")
+This is the list of candidates fulfilling the minimum requirements:""")
                 # drop all non-candidates
                 df = df.dropna()
 
@@ -908,33 +921,36 @@ try:
                             print('PeriodSize = {}'.format(PeriodSize))
                             print()
             else:
-                print("No candidate could be found.")
-                print()
-                print("Q: Did you use an external frequency generator?")
-                print("y: The candidate suggestion doesn't work with an external frequency generator.")
-                print("n: Continue reading ...")
-                print()
-                print("Q: Have line out and line in of the audio cards been connected with an audio cable?")
-                print("n: The candidate suggestion doesn't work without the loop back from line out to line in. ")
-                print("y: Doublecheck the cable is ok and correctly plugged in. Continue reading ...")
-                print()
-                print("Q: Is the line out generatin a test tone?")
-                print("   Connect a speaker.")
-                print("   Use the command below and replace the device name with the one to be verified.")
-                print("   python3 isine.py -Dplughw:CARD=Generic,DEV=0 -f 440")
-                print("n: Try command line options -t/--test-tone and -d/--device")
-                print("   Connect line out of the -t interface with line in of the -d interface.")
-                print("y: Continue reading ...")
-                print()
-                print("Q: Is the user who is executing the scripts part of the audio group?")
-                print("   grep audio /etc/group")
-                print("n: It may be worth adding the user to the audio group.")
-                print("   sudo usermod -a -G audio")
-                print("   logout and login in order to have the changes take effect")
-                print("y: Continue reading ...")
-                print()
-                print("The device may not be suitable, the drivers may not be up to date, ...")
-                print("You need to ask a search engine or an expert for help about fixing audio issues.")
+                print("""No candidate could be found.
+
+Q: Did you use an external frequency generator?
+y: The candidate suggestion doesn't work with an external frequency generator.
+n: Continue reading ...
+
+Q: Have line out and line in of the audio cards been connected with an audio
+   cable?
+n: The candidate suggestion doesn't work without the loop back from line out to
+   line in.
+y: Doublecheck the cable is ok and correctly plugged in. Continue reading ...
+
+Q: Is the line out generatin a test tone?
+   Connect a speaker.
+   Use the command below and replace the device name with the one to be
+   verified.
+   python3 isine.py -Dplughw:CARD=Generic,DEV=0 -f 440
+n: Try command line options -t/--test-tone and -d/--device
+   Connect line out of the -t interface with line in of the -d interface.
+y: Continue reading ...
+
+Q: Is the user who is executing the scripts part of the audio group?
+   grep audio /etc/group
+n: It may be worth adding the user to the audio group.
+   sudo usermod -a -G audio
+   logout and login in order to have the changes take effect
+y: Continue reading ...
+
+The device may not be suitable, the drivers may not be up to date, ...
+Ask a search engine or an expert for help about fixing audio issues.""")
 
 except ImportError:
     print(
@@ -1019,7 +1035,7 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
             print()
         else:
             print(
-                "ERROR: 'alsaaudio' is not available. "
+                "ERROR: 'alsaaudio' is not available.\n"
                 "Option -l/--list is not fully functional.")
 
     interfaces = []
@@ -1035,7 +1051,7 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
                 })
         else:
             print(
-                "ERROR: 'alsaaudio' is not available. "
+                "ERROR: 'alsaaudio' is not available.\n"
                 "Option -b/--brute-force is not available.")
     else:
         ar = arecord(args.verbose)
@@ -1066,7 +1082,7 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
             config.data_path)
     else:
         print(
-            "ERROR: 'alsaaudio' is not available. "
-            "Thus the alsaaudio test is not available.")
+            "ERROR: 'alsaaudio' is not available.\n"
+            "The alsaaudio test is not available.")
 
     print("spent {} seconds".format(int(time.time() - t_start)))

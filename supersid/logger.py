@@ -15,7 +15,8 @@ Change tracking:
 from os import path
 from time import gmtime, strftime
 from sidfile import SidFile
-from config import FILTERED, RAW, CALL_SIGN, FREQUENCY, SID_FORMAT, SUPERSID_FORMAT
+from config import FILTERED, RAW, CALL_SIGN, FREQUENCY
+from config import SID_FORMAT, SUPERSID_FORMAT
 
 
 class Logger():
@@ -66,8 +67,8 @@ class Logger():
                 if answer.lower() != 'y':
                     print("Abort.")
                     exit(-10)
-            elif sid_file2.sid_params['utc_starttime'][:19] \
-                    != strftime("%Y-%m-%d 00:00:00", gmtime()):
+            elif (sid_file2.sid_params['utc_starttime'][:19]
+                    != strftime("%Y-%m-%d 00:00:00", gmtime())):
                 print("Not today's file. The file UTC_StartTime =",
                       sid_file2.sid_params['utc_starttime'])
                 answer = input(
@@ -76,8 +77,8 @@ class Logger():
                 if answer.lower() != 'y':
                     print("Abort.")
                     exit(-11)
-            elif sorted(sid_file2.stations) \
-                    != sorted([s['call_sign'] for s in self.config.stations]):
+            elif (sorted(sid_file2.stations)
+                    != sorted([s['call_sign'] for s in self.config.stations])):
                 print("Station Lists are different:",
                       sid_file2.stations, "!=",
                       [s['call_sign'] for s in self.config.stations])

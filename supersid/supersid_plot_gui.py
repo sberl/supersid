@@ -17,7 +17,8 @@ import argparse
 import tkinter as tk
 from tkinter import ttk
 import matplotlib
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas, NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter as ff
 import ephem
@@ -94,7 +95,7 @@ class Plot_Gui(ttk.Frame):
 
             self.sid_files.append(sid_file)
             self.daysList[sid_file.startTime] = []
-            fig_title.append(os.path.basename(filename)[:-4])  # assumed extension .csv removed
+            fig_title.append(os.path.basename(filename)[:-4])  # .csv assumed
             for station in set(sid_file.stations) - self.hidden_stations:
                 self.max_data = max(self.max_data,
                                     max(self.sid_files[0].data[0]))
@@ -229,7 +230,8 @@ class Plot_Gui(ttk.Frame):
         """Compute the night period of each SidFile using the ephem module."""
         sid_loc = ephem.Observer()
         for sid_file in self.sid_files:
-            sid_loc.lon, sid_loc.lat = sid_file.sid_params['longitude'], sid_file.sid_params['latitude']
+            sid_loc.lon = sid_file.sid_params['longitude']
+            sid_loc.lat = sid_file.sid_params['latitude']
             sid_loc.date = sid_file.startTime
             sid_loc.horizon = '-18'  # astronomical twilight
             sid_file.rising = \

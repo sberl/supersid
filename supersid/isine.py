@@ -59,7 +59,7 @@ class SinePlayer(Thread):
         size = max(int(cycle_size * factor), 1)
 
         sine = [int(
-            0.01     # 0.01 = limit the amplitude to 1%
+            0.01     # limit the amplitude to 1%
             * 32767
             * sin(2 * pi * self.frequency * i / self.rate))
             for i in range(size)]

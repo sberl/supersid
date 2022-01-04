@@ -14,7 +14,8 @@ import tkinter.filedialog as FileDialog
 import math
 import numpy as np
 import matplotlib
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas, NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
 import sys
@@ -87,16 +88,17 @@ class tkSidViewer():
         try:
             # full screen, works in Windows but not in Linux
             self.tk_root.state('zoomed')
-        except:
+        except Exception:
             try:
                 # large window but doesn't match the screen in Windows
-                w, h = self.tk_root.winfo_screenwidth(), self.tk_root.winfo_screenheight()
+                w = self.tk_root.winfo_screenwidth()
+                h = self.tk_root.winfo_screenheight()
                 self.tk_root.geometry("%dx%d+0+0" % (w, h))
-            except:
+            except Exception:
                 try:
                     # full screen, but not resizeable
                     self.tk_root.attributes("-fullscreen", True)
-                except:
+                except Exception:
                     pass
 
         self.tk_root.bind("<Configure>", self.onsize)
@@ -192,7 +194,9 @@ class tkSidViewer():
         if not math.isnan(psd_max):
             # set maximum for the y-axis if not configured as NaN
             self.axes.set_ylim(top=psd_max)
-        if psd_ticks and (not math.isnan(psd_min)) and (not math.isnan(psd_max)):
+        if (psd_ticks
+                and (not math.isnan(psd_min))
+                and (not math.isnan(psd_max))):
             self.axes.set_yticks(np.linspace(psd_min, psd_max, psd_ticks))
 
     def get_psd(self, data, NFFT, FS):

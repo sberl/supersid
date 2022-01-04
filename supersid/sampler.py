@@ -26,7 +26,7 @@ from struct import unpack as st_unpack
 from numpy import array
 from matplotlib.mlab import psd as mlab_psd
 
-from config import FREQUENCY, S16_LE, S24_3LE, S32_LE  # get value from config.py
+from config import FREQUENCY, S16_LE, S24_3LE, S32_LE
 
 
 def get_peak_freq(data, audio_sampling_rate):
@@ -55,7 +55,7 @@ try:
         try:
             print(
                 "Accessing '{}' at {} Hz via alsaaudio "
-                "format '{}', ..."
+                "format {}, ..."
                 .format(device, sampling_rate, format))
             sc = alsaaudio_soundcard(
                 '',
@@ -110,7 +110,10 @@ try:
             self.audio_sampling_rate = audio_sampling_rate
             if card != '':
                 # deprecated configuration keyword Card, use Device instead
-                # guess the intended device name
+                # alsaaudio.PCM(card=card) deprecated since pyalsaaudio 0.8.0
+                # the device name would be built as 'default:CARD=' + card
+                # it has been observed, that default fails often,
+                # thus guessing the device name as 'sysdefault:CARD=' + card
                 device = 'sysdefault:CARD=' + card
                 print(
                     "alsaaudio card '{}', "
@@ -129,7 +132,6 @@ try:
                                          rate=audio_sampling_rate,
                                          format=self.FORMAT_MAP[self.format],
                                          periodsize=periodsize,
-                                         # card=card) # deprecated since pyalsaaudio 0.8.0, it will internally build the device name as "default:CARD=" + card
                                          device=device)
                 self.name = "alsaaudio Device guessed as '{}'".format(device)
             else:
@@ -232,7 +234,7 @@ try:
         try:
             print(
                 "Accessing '{}' at {} Hz via sounddevice "
-                "format '{}', ..."
+                "format {}, ..."
                 .format(device, sampling_rate, format))
             sc = sounddevice_soundcard(device, sampling_rate, format)
             sc.info()
@@ -303,8 +305,8 @@ try:
                     device_name[0:separator_pos])
                 name = device_name[separator_pos+1:].strip()
                 for i, device_info in enumerate(sounddevice.query_devices()):
-                    if (device_info['hostapi'] == hostapi) and \
-                            (device_info['name'] == name):
+                    if ((device_info['hostapi'] == hostapi) and
+                            (device_info['name'] == name)):
                         return i
             print(
                 "Warning: sounddevice Device '{}' not found"
@@ -337,7 +339,8 @@ try:
                     # 'int24' is not supported by sounddevice.rec(),
                     # insetad sounddevice.RawInputStream() has to be used
                     # in combination with a callback to sonsume the data
-                    raise NotImplementedError
+                    raise NotImplementedError(
+                        "'int24' is not supported by sounddevice.rec()")
                 self.duration = time.time() - t
                 assert(
                     len(one_sec_record) ==
@@ -395,7 +398,7 @@ try:
         try:
             print(
                 "Accessing '{}' at {} Hz via pyaudio "
-                "format '{}', ..."
+                "format {}, ..."
                 .format(device, sampling_rate, format))
             sc = pyaudio_soundcard(device, sampling_rate, format)
             sc.info()
@@ -481,8 +484,8 @@ try:
                 name = device_name[separator_pos+1:].strip()
                 for i in range(pyaudio.PyAudio().get_device_count()):
                     device_info = pyaudio.PyAudio().get_device_info_by_index(i)
-                    if (device_info['hostApi'] == hostApi) and \
-                            (device_info['name'] == name):
+                    if ((device_info['hostApi'] == hostApi) and
+                            (device_info['name'] == name)):
                         return i
             print(
                 "Warning: pyaudio Device '{}' not found."
@@ -533,7 +536,7 @@ try:
                 * secs
             while len(frames) < expected_number_of_bytes:
                 try:
-                    # TODO: investigate exception_on_overflow=True,
+                    # TODO: investigate exception_on_overflow=True
                     # ignoring overflows seems not to be the best idea
                     data = self.pa_stream.read(
                         self.CHUNK,
@@ -542,7 +545,7 @@ try:
                 except IOError as err:
                     print("IOError reading device:", str(err))
                     if -9981 == err.errno:
-                        # input overflow: this should not happen
+                        # -9981 is input overflow. This should not happen
                         # with exception_on_overflow=False
                         pass
                     else:
@@ -651,7 +654,7 @@ class Sampler():
         """
         try:
             self.data = self.capture_device.capture_1sec()
-        except:
+        except Exception:
             self.sampler_ok = False
             print(
                 "Fail to read data from audio using "
@@ -676,14 +679,16 @@ class Sampler():
 
 def doTest(args, device, sampling_rate, format):
     if (args.device is None) or (args.device == device):
-        if (args.sampling_rate is None) or \
-                (args.sampling_rate == sampling_rate):
+        if ((args.sampling_rate is None) or
+                (args.sampling_rate == sampling_rate)):
             if (args.format is None) or (args.format == format):
                 return True
     return False
 
 
 if __name__ == '__main__':
+    SAMPLING_RATES = [44100, 48000, 96000, 192000]
+    FORMATS = [S16_LE, S24_3LE, S32_LE]
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-l", "--list",
@@ -701,12 +706,13 @@ if __name__ == '__main__':
     parser.add_argument(
         "-s", "--sampling-rate",
         help="sampling rate",
+        choices=SAMPLING_RATES,
         type=int,
         default=None)
     parser.add_argument(
         "-f", "--format",
         help="format to be captured",
-        choices=[S16_LE, S24_3LE, S32_LE],
+        choices=FORMATS,
         default=None)
     parser.add_argument(
         "-p", "--periodsize",
@@ -740,8 +746,8 @@ select smaller numbers like 128, 256, 512, ...""",
         if 'alsaaudio' in audioModule:
             devices = alsaaudio.pcms()
             for device in devices:
-                for sampling_rate in [48000, 96000, 192000]:
-                    for format in [S16_LE, S24_3LE, S32_LE]:
+                for sampling_rate in SAMPLING_RATES:
+                    for format in FORMATS:
                         if doTest(args, device, sampling_rate, format):
                             alsaaudio_test(
                                 device,
@@ -755,8 +761,8 @@ select smaller numbers like 128, 256, 512, ...""",
         if 'sounddevice' in audioModule:
             devices = sounddevice_soundcard.query_input_devices()
             for device in devices:
-                for sampling_rate in [48000, 96000, 192000]:
-                    for format in [S16_LE, S24_3LE, S32_LE]:
+                for sampling_rate in SAMPLING_RATES:
+                    for format in FORMATS:
                         if doTest(args, device, sampling_rate, format):
                             sounddevice_test(
                                 device,
@@ -769,8 +775,8 @@ select smaller numbers like 128, 256, 512, ...""",
         if 'pyaudio' in audioModule:
             devices = pyaudio_soundcard.query_input_devices()
             for device in devices:
-                for sampling_rate in [48000, 96000, 192000]:
-                    for format in [S16_LE, S24_3LE, S32_LE]:
+                for sampling_rate in SAMPLING_RATES:
+                    for format in FORMATS:
                         if doTest(args, device, sampling_rate, format):
                             pyaudio_test(
                                 device,

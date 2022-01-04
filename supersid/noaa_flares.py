@@ -39,7 +39,6 @@ class NOAA_flares(object):
                 "Unknown date format - expecting str 'YYYYMMDD' or "
                 "datetime/date")
 
-        self.Tstamp = lambda HHMM: datetime.strptime(self.day + HHMM, "%Y%m%d%H%M")  # "201501311702" -> datetime(2015, 1, 31, 17, 2)
         self.XRAlist = []
 
         # Starting in year 2017, NOAA makes the data available via FTP.
@@ -79,6 +78,10 @@ class NOAA_flares(object):
                         else:
                             print("Please check this line format:")
                             print(line)
+
+    def Tstamp(self, HHMM):
+        # "201501311702" -> datetime(2015, 1, 31, 17, 2)
+        return datetime.strptime(self.day + HHMM, "%Y%m%d%H%M")
 
     def http_ngdc(self):
         """
@@ -143,21 +146,24 @@ class NOAA_flares(object):
 
                     # maybe other event types could be of interrest
                     if fields[6] in ('XRA',):
-                        #      eventName,    BeginTime,    MaxTime,      EndTime,      Particulars
-                        # msg = fields[0] + " " + fields[1] + " " + fields[2] + " " + fields[3] + " " + fields[8]
+                        # msg = fields[0] + " "     # eventName
+                        # msg += fields[1] + " "    # BeginTime
+                        # msg += fields[2] + " "    # MaxTime
+                        # msg += fields[3] + " "    # EndTime
+                        # msg += fields[8]          # Particulars
                         try:
                             # 'try' necessary as few occurences of
                             # --:-- instead of HH:MM exist
                             btime = self.Tstamp(fields[1])
-                        except:
+                        except Exception:
                             pass
                         try:
                             mtime = self.Tstamp(fields[2])
-                        except:
+                        except Exception:
                             mtime = btime
                         try:
                             etime = self.Tstamp(fields[3])
-                        except:
+                        except Exception:
                             etime = mtime
                         self.XRAlist.append((fields[0], btime, mtime, etime,
                                              fields[8]))  # as a tuple

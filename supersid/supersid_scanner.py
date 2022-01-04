@@ -48,10 +48,11 @@ class SuperSID_scanner():
         # create an artificial list of stations
         self.config.stations = []
         for freq in range(self.scan_from, self.scan_to+100, 100):
-            new_station = {}
-            new_station['call_sign'] = "ST_%d" % freq
-            new_station['frequency'] = str(freq)
-            new_station['color'] = ''
+            new_station = {
+                'call_sign': "ST_%d" % freq,
+                'frequency': str(freq),
+                'color': '',
+            }
             self.config.stations.append(new_station)
 
         # Create Logger -

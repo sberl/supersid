@@ -40,7 +40,7 @@ from supersid_common import exist_file
 
 try:
     clock = time.process_time   # new in Python 3.3
-except:
+except Exception:
     clock = time.clock          # removed in Python 3.8
 
 
@@ -62,10 +62,10 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     mailserver = config.get("email_server", "")
     mailport = config.get("email_port", "")
 
-    # <-- set to None if no login required
+    # set mailserveruser to None if no login required
     mailserveruser = config.get("email_login", "")
 
-    # <-- set to None if no login required
+    # set mailserverpasswd to None if no login required
     mailserverpasswd = config.get("email_password", "")
 
     # create the mail message
@@ -111,7 +111,7 @@ def sendMail(config, To_mail, msgBody, PDFfile):
 class SUPERSID_PLOT():
 
     def m2hm(self, x, i):
-        """Small function to format the time on horizontal axis - minor ticks"""
+        """Small function to format the time on horizontal axis, minor ticks"""
         t = matplotlib.dates.num2date(x)
         h = t.hour
         m = t.minute
@@ -119,7 +119,7 @@ class SUPERSID_PLOT():
         return '%(h)02d:%(m)02d' % {'h': h, 'm': m} if h % 2 == 1 else ''
 
     def m2yyyymmdd(self, x, i):
-        """Small function to format the date on horizontal axis - major ticks"""
+        """Small function to format the date on horizontal axis, major ticks"""
         t = matplotlib.dates.num2date(x)
         y = t.year
         m = t.month
@@ -145,12 +145,13 @@ class SUPERSID_PLOT():
         """
         emailText = []
 
-        Tstamp = lambda HHMM: datetime.datetime(
-            year=int(day[:4]),
-            month=int(day[4:6]),
-            day=int(day[6:8]),
-            hour=int(HHMM[:2]),
-            minute=int(HHMM[2:]))
+        def Tstamp(HHMM):
+            return datetime.datetime(
+                year=int(day[:4]),
+                month=int(day[4:6]),
+                day=int(day[6:8]),
+                hour=int(HHMM[:2]),
+                minute=int(HHMM[2:]))
 
         # Sunrise and sunset shade
         # sun_rise = 6.0
@@ -199,7 +200,7 @@ class SUPERSID_PLOT():
 
         clock()
         for filename in sorted(filenames):
-            figTitle.append(os.path.basename(filename)[:-4])  # extension .csv assumed
+            figTitle.append(os.path.basename(filename)[:-4])    # .csv assumed
             sFile = SidFile(filename)
             for station in sFile.stations:
                 # Does this station already have a color? if not, reserve one
@@ -221,7 +222,6 @@ class SUPERSID_PLOT():
                 # maxData will be used later to put the XRA labels up
                 maxData = max(max(sFile.get_station_data(station)), maxData)
 
-                # msg = str(len(sFile.get_station_data(station))) + " points plotted after reading " + os.path.basename(filename)
                 msg = "[{}] {} points plotted after reading {}".format(
                     station,
                     len(sFile.get_station_data(station)),
@@ -252,30 +252,33 @@ class SUPERSID_PLOT():
                                 # cast bytes to str
                                 webline = str(webline, 'utf-8')
                             fields = webline.split()
-                            if len(fields) >= 9 and \
-                                    not fields[0].startswith("#"):
+                            if ((len(fields) >= 9) and
+                                    (not fields[0].startswith("#"))):
                                 if fields[1] == '+':
                                     fields.remove('+')
 
                                 # maybe other event types could be of interrest
                                 if fields[6] in ('XRA', ):
-                                    #     eventName,    BeginTime,    MaxTime,      EndTime,      Particulars
-                                    msg = fields[0]+" "+fields[1]+" "+fields[2]+" "+fields[3]+" "+fields[8]
+                                    msg = fields[0] + " "   # eventName
+                                    msg += fields[1] + " "  # BeginTime
+                                    msg += fields[2] + " "  # MaxTime
+                                    msg += fields[3] + " "  # EndTime
+                                    msg += fields[8]        # Particulars
                                     emailText.append(msg)
                                     print(msg)
                                     try:
                                         # 'try' necessary as few occurences of
                                         # --:-- instead of HH:MM exist
                                         btime = Tstamp(fields[1])
-                                    except:
+                                    except Exception:
                                         pass
                                     try:
                                         mtime = Tstamp(fields[2])
-                                    except:
+                                    except Exception:
                                         mtime = btime
                                     try:
                                         etime = Tstamp(fields[3])
-                                    except:
+                                    except Exception:
                                         etime = mtime
                                     XRAlist.append((
                                         fields[0],
