@@ -44,14 +44,15 @@ class SuperSID_scanner():
         self.config = readConfig(config_file)
 
         (self.scan_duration, self.scan_from, self.scan_to) = scan_params
-        print ("Scanning for %d minutes on [%d:%d]..." % scan_params)
+        print("Scanning for %d minutes on [%d:%d]..." % scan_params)
         # create an artificial list of stations
         self.config.stations = []
         for freq in range(self.scan_from, self.scan_to+100, 100):
-            new_station = {}
-            new_station['call_sign'] = "ST_%d" % freq
-            new_station['frequency'] = str(freq)
-            new_station['color'] = ''
+            new_station = {
+                'call_sign': "ST_%d" % freq,
+                'frequency': str(freq),
+                'color': '',
+            }
             self.config.stations.append(new_station)
 
         # Create Logger -
@@ -59,7 +60,8 @@ class SuperSID_scanner():
         # as -r|--read script argument
         self.logger = Logger(self, '')
         if 'utc_starttime' not in self.config:
-            self.config['utc_starttime'] = self.logger.sid_file.sid_params["utc_starttime"]
+            self.config['utc_starttime'] = \
+                self.logger.sid_file.sid_params["utc_starttime"]
 
         # Create the viewer based on the .cfg specification (or set default):
         # Note: the list of Viewers can be extended provided they implement
@@ -72,8 +74,9 @@ class SuperSID_scanner():
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
 
         # Create Sampler to collect audio buffer (sound card or other server)
-        self.sampler = Sampler(self,
-                               audio_sampling_rate=self.config['audio_sampling_rate'])
+        self.sampler = Sampler(
+            self,
+            audio_sampling_rate=self.config['audio_sampling_rate'])
         if not self.sampler.sampler_ok:
             self.close()
             exit(3)
@@ -110,7 +113,8 @@ class SuperSID_scanner():
         self.viewer.status_display(message, level=1)
 
         try:
-            data = self.sampler.capture_1sec()  # return a list of signal strength
+            # return a list of signal strength
+            data = self.sampler.capture_1sec()
             Pxx, freqs = self.psd(data, self.sampler.NFFT,
                                   self.sampler.audio_sampling_rate)
         except IndexError as idxerr:
@@ -125,18 +129,21 @@ class SuperSID_scanner():
         # prepare message for status bar
         message = self.timer.get_utc_now() + "  [%d]  " % current_index
         message += "%d" % (self.scan_end_time - self.timer.time_now)
-        for station, strength in zip(self.config.stations,
-                                     signal_strengths):
+        for station, strength in zip(
+                self.config.stations,
+                signal_strengths):
             station['raw_buffer'][current_index] = strength
         self.logger.sid_file.timestamp[current_index] = utc_now
 
         # did we complete the expected scanning duration?
         if self.timer.time_now >= self.scan_end_time:
-            fileName = "scanner_buffers.raw.ext.%s.csv" % (self.logger.sid_file.sid_params['utc_starttime'][:10])
-            fsaved = self.save_current_buffers(filename=fileName,
-                                               log_type='raw',
-                                               log_format='supersid_extended')
-            print (fsaved, "saved.")
+            fileName = "scanner_buffers.raw.ext.%s.csv" \
+                % (self.logger.sid_file.sid_params['utc_starttime'][:10])
+            fsaved = self.save_current_buffers(
+                filename=fileName,
+                log_type='raw',
+                log_format='supersid_extended')
+            print(fsaved, "saved.")
             self.close()
             exit(0)
 
@@ -160,14 +167,18 @@ class SuperSID_scanner():
         filenames = []
         if log_format.startswith('both') or log_format.startswith('sid'):
             # filename is '' to ensure one file per station
-            fnames = self.logger.log_sid_format(self.config.stations,
-                                                '', log_type=log_type,
-                                                extended=log_format.endswith('extended'))
+            fnames = self.logger.log_sid_format(
+                self.config.stations,
+                '',
+                log_type=log_type,
+                extended=log_format.endswith('extended'))
             filenames += fnames
         if log_format.startswith('both') or log_format.startswith('supersid'):
-            fnames = self.logger.log_supersid_format(self.config.stations,
-                                                     filename,
-                                                     log_type=log_type,extended=log_format.endswith('extended'))
+            fnames = self.logger.log_supersid_format(
+                self.config.stations,
+                filename,
+                log_type=log_type,
+                extended=log_format.endswith('extended'))
             filenames += fnames
         return filenames
 
@@ -197,20 +208,39 @@ class SuperSID_scanner():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--duration", dest="scan_duration",
-                        required=False, type=int, default=15,
-                        help="Scan a large range of frequencies for a period of the given number of minutes")
-    parser.add_argument("-f", "--from", dest="scan_from",
-                        required=False, type=int, default=16000,
-                        help="Scan from the given frequency")
-    parser.add_argument("-t", "--to", dest="scan_to",
-                        required=False, type=int, default=24000,
-                        help="Scan to the given frequency")
-    parser.add_argument("-r", "--record", dest="record_sec", required=False,
-                        help="record specified seconds of sound - testing pyaudio")
-    parser.add_argument("-c", "--config", dest="config_file",
-                        type=exist_file,
-                        default=CONFIG_FILE_NAME, help="Supersid configuration file")
+    parser.add_argument(
+        "-d", "--duration",
+        dest="scan_duration",
+        required=False,
+        type=int,
+        default=15,
+        help="Scan a large range of frequencies for a period of the given "
+        "number of minutes")
+    parser.add_argument(
+        "-f", "--from",
+        dest="scan_from",
+        required=False,
+        type=int,
+        default=16000,
+        help="Scan from the given frequency")
+    parser.add_argument(
+        "-t", "--to",
+        dest="scan_to",
+        required=False,
+        type=int,
+        default=24000,
+        help="Scan to the given frequency")
+    parser.add_argument(
+        "-r", "--record",
+        dest="record_sec",
+        required=False,
+        help="record specified seconds of sound - testing pyaudio")
+    parser.add_argument(
+        "-c", "--config",
+        dest="config_file",
+        type=exist_file,
+        default=CONFIG_FILE_NAME,
+        help="Supersid configuration file")
     args = parser.parse_args()
 
     if args.record_sec:
@@ -228,21 +258,25 @@ if __name__ == '__main__':
 
         config = readConfig(args.config_file)
         config.supersid_check()
-        device = pyaudio_soundcard(config['Device'], RATE, 'S16_LE')
+        device = pyaudio_soundcard(
+            config['Device'],
+            RATE,
+            'S16_LE')
         frames = device.capture(SEC)
         device.close()
 
         wf = wave.open("record_test.wav", 'wb')
         wf.setnchannels(1)
-        wf.setsampwidth(device.pa_lib.get_sample_size(device.FORMAT_MAP[device.format]))
+        wf.setsampwidth(
+            device.pa_lib.get_sample_size(
+                device.FORMAT_MAP[device.format]))
         wf.setframerate(RATE)
         wf.writeframes(bytearray(frames))
         wf.close()
 
     else:
-        scanner = SuperSID_scanner(config_file=args.config_file,
-                                   scan_params=(args.scan_duration,
-                                                args.scan_from,
-                                                args.scan_to))
+        scanner = SuperSID_scanner(
+            config_file=args.config_file,
+            scan_params=(args.scan_duration, args.scan_from, args.scan_to))
         scanner.run()
         scanner.close()
