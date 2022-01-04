@@ -12,9 +12,10 @@ Raspberry Pi 4 Model B
 
 [Set up your Raspberry Pi]
 (https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi)
-with the image **Raspberry OS (32-bit)**. At the date of the installation this
-corresponds to *buster*. Boot on the new micro-SD card,
-follow normal process for any fresh system install. Connect to the internet.
+with the image **Raspberry OS (32-bit)**.  At the date of the installation 
+(2021-11-01) this was *buster*.  Current version as of 2022-01-03 is
+*bullseye*. Boot on the new micro-SD card, follow normal process for any
+fresh system install.  Connect to the internet.
 
 Execute the classic:
 ```console
@@ -24,7 +25,7 @@ Execute the classic:
 
 If you intend to access your system remotely you must enable SSH and VNC.
 To do this, click on the Raspberry icon in the upper left of the screen.
-From the drop down, choose Preferences > Raspberry Pi Configuration. Under the
+From the drop down, choose Preferences > Raspberry Pi Configuration.  Under the
 Interface tab, Enable SSH & VNC.  Move your cursor to the upper right of the
 window and hover over the icon that will show the wlan0 (WiFi) address that
 your router has assigned to the RPi.  You will need to record this address
@@ -62,10 +63,11 @@ To update (pull) to the latest version, do:
 
 Time synchro over the Internet:
 It is important that your system time of day clock is closely synchronized with
-the actual UTC time. Then the data you collect can be compared to data from
+the actual UTC time.  Then the data you collect can be compared to data from
 other sources such as other SuperSID users, and Xray flux data collected by
 satellites.
-If your machine does not have ntp installed then you want to install it:
+If your machine does not have ntp installed then you want to install it.
+If you installed *Raspbian bullseye*, ntp is already installed and configured.
 ```console
     $ sudo apt-get install ntpdate ntp
 ```
@@ -75,10 +77,10 @@ Follow the tutorial [Raspberry Pi sync date and time]
 
 Optional: Virtual environment management for Python:
 If your machine is being used for other purposes as well as SuperSID, you may
-want to install SuperSID in its own virtual python environment. This way you
+want to install SuperSID in its own virtual python environment.  This way you
 will not be plagued with version conflicts with the various python packages
-installed for different uses. There are several different ways to set up a
-virtual environment. This is one that has worked for me.
+installed for different uses.  There are several different ways to set up a
+virtual environment.  This is one that has worked for me.
 
 
 https://docs.python.org/3/tutorial/venv.html
@@ -92,9 +94,9 @@ Install the venv package.
 
 ### 3.1) optional virtual environment
 
-This step is optional. Creating your own environment allows to install libraries
+This step is optional.  Creating your own environment allows to install libraries
 in all freedom, without `sudo` and ensure you have a coherent and working set of
-libraries (sound card). If your Raspi is dedicated to SuperSID then you can skip
+libraries (sound card).  If your Raspi is dedicated to SuperSID then you can skip
 this step and install all globally.
 
 From /home/pi:
@@ -116,8 +118,8 @@ This ensures that we run in Python 3.x as per current configuration.
 This Raspberry Pi is dedicated to SuperSid or you do not plan to mix various
 libraries: install at system level all the libraries.
 
-For an local installation inside the virtual environment, first execute `workon
-supersid-env`.
+For an local installation inside the virtual environment, first execute 'source
+supersid-env/bin/activate'.
 ```console
     $ cd ~/supersid
     $ source supersid-env/bin/activate
@@ -132,7 +134,7 @@ Now install the system level packages you will need
     $ pip3 install -r requirements.txt
 ```
 
-Optional and not required. Install when you want to test additonal audio
+Optional and not required.  Install when you want to test additonal audio
 libraries:
 ```console
     $ sudo apt install libportaudio2
@@ -158,8 +160,8 @@ the sound card with line in of the same sound card.
 ```
 
 The execution may take some minutes.  Ideally a working configuration is found
-and the supersid.cfg settings are at the end of the output.  Add these lines
-to your configuration file and go on to step 7 of this document.
+and the supersid.cfg settings are at the end of the output.  Add these lines to
+your configuration file and go on to step 7 of this document.
 
 If this fails, you may want to connect a frequency generator to the line in and
 set it to 10 kHz.
@@ -175,7 +177,7 @@ belonging to the *alsa-utils*.
 
 Assuming you are using the `speaker-test` tool connect the line out with the
 line in and do the following.  You may have to adapt the device name to match
-your audio hardware.  `aplay -L` will deliver a list of candidates. Here the
+your audio hardware.  `aplay -L` will deliver a list of candidates.  Here the
 built-in audio output of the RPi 3b is used.
 
 In one console generate the test frequency.
@@ -196,10 +198,10 @@ just an interesting snippet).
 Select a combination with properties in this order:
 
 - Duration of 1 second and the expected frequency in each regression
-- Highest possible sampling rate. 192000 is better than 96000, which is better
+- Highest possible sampling rate.  192000 is better than 96000, which is better
   than 48000
-- Format using highest number of bits.  S32_LE is better than S24_3LE, which
-  is better than S16_LE
+- Format using highest number of bits.  S32_LE is better than S24_3LE, which is
+  better than S16_LE
 
 ```example
      96000, alsaaudio, plughw:CARD=Dongle,DEV=0, S24_3LE, 1024,  1, OK, 1.00 s, 9984 Hz
@@ -249,9 +251,8 @@ The corresponding lines of the configuration file 'supersid.cfg':
 ## 5) Troubleshooting issues with the sound card.
 This section is not meant as an exhaustive discussion how to detect and
 configure the sound card, but more as a list of tools which may help you to do
-so.  For further details you'll have to use search engines.  If this fails,
-you may want to connect a frequency generator to the line in and set it to 10
-kHz.
+so.  For further details you'll have to use search engines.  If this fails, you
+may want to connect a frequency generator to the line in and set it to 10 kHz.
 
 In the given example the following setup is present:
 
@@ -263,9 +264,9 @@ Install several utilities.
     $ sudo apt-get install alsa-base alsa-utils pulseaudio-utils hwinfo
 ```
 
-Add user to audio group. Lets assume your username is *pi* and it is missing
-in the audio group.  Most likely there is nothing to do as the user pi will be
-part of the audio group.
+Add user to audio group.  Lets assume your username is *pi* and it is missing
+in the audio group.
+Most likely there is nothing to do as the user pi will be be part of the audio group.
 ```console
     $ grep audio /etc/group
     audio:x:29:pulse
@@ -276,7 +277,7 @@ part of the audio group.
 
 Is the sound card listed as USB device?
 
-In reality the output is much longer. Here it is restricted to the relevant
+In reality the output is much longer.  Here it is restricted to the relevant
 lines.
 ```console
     $ lsusb
@@ -294,7 +295,7 @@ Is the sound card listed as card in /proc/asound?
 - 0 [Headphones     ] is the built-in audio line out.
 - 1 [Dongle         ] is the VIA USB Dongle at the USB port.
 
-Yet another view on the sound hardware. This generates a longer output which is
+Yet another view on the sound hardware.  This generates a longer output which is
 not repeated here.
 ```console
     $ hwinfo --sound
@@ -347,13 +348,13 @@ with a compact format.
 
 Using `log_format = both_extended` in the supersid.cfg file will create the
 necessary file in 'supersid_extended' format and also a file for each station
-in 'sid_extended' format. The 'sid_extended' format files can be useful if a
+in 'sid_extended' format.  The 'sid_extended' format files can be useful if a
 plot file of an individual station is desired.
 
 Sending the ftp is accomplished by the program 'ftp_to_stanford.py' which is
-called by 'supersid.py' at midnight (UTC). 'ftp_to_stanford.py' reads the
+called by 'supersid.py' at midnight (UTC).  'ftp_to_stanford.py' reads the
 supersid file from '~/supersid/Data/' directory and converts them to filtered
-files for each station. These are stored in '~/supersid/outgoing' and sent via
+files for each station.  These are stored in '~/supersid/outgoing' and sent via
 ftp.
 
 
@@ -367,7 +368,10 @@ ftp.
 
 ## 8) SD Card Backup
 
-It is advisable to make a copy of your SD card once you determine that everything is set up and working.  Under Accessories there is a utility called SD Card Copier that can be used along with a USB SD card reader to clone your card.
+It is advisable to make a copy of your SD card once you determine that
+everything is set up and working.  Under Accessories there is a utility called
+SD Card Copier that can be used along with a USB SD card reader to clone your
+card.
 
 
 ## 9) Automatic Restart After Power Outage
@@ -449,10 +453,11 @@ information.
 
 supersid_plot arguments:
 
-- -h        help
-- -f        location and name of csv file
-- -c        location and name of config file
-- -n        create plot without showing on the screen
-- -p        create PDF or image file - ex: -p myplot.pdf, -p myplot.jpg, -p myplot.png, -p myplot.tiff
-- -e        destination email address
-- -w        retrieve NOAA flare information
+- -h help
+- -f location and name of csv file
+- -c location and name of config file
+- -n create plot without showing on the screen
+- -p create PDF or image file;
+     examples: -p myplot.pdf, -p myplot.jpg, -p myplot.png, -p myplot.tiff
+- -e destination email address
+- -w retrieve NOAA flare information
