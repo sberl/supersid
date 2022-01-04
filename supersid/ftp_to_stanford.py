@@ -27,6 +27,7 @@ local_tmp = /home/eric/supersid/Private/tmp
 call_signs = NWC:10000,JJI:100000
 
 """
+import sys
 import argparse
 from os import path
 import ftplib
