@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-# based on https://raw.githubusercontent.com/larsimmisch/pyalsaaudio/master/isine.py
+# based on
+# https://raw.githubusercontent.com/larsimmisch/pyalsaaudio/master/isine.py
 
 import sys
 from threading import Thread
@@ -38,11 +39,11 @@ class SinePlayer(Thread):
         self._running = False
 
     def nearest_frequency(self, frequency):
-        # calculate the nearest frequency where the wave form fits into the buffer
-        # in other words, select f so that sampling_rate/f is an integer
+        # calculate the nearest frequency where the wave form fits into the
+        # buffer in other words, select f so that sampling_rate/f is an integer
         return float(self.rate) / int(self.rate / frequency)
 
-    def generate(self, duration = 0.125):
+    def generate(self, duration=0.125):
         # generate a buffer with a sine wave of `frequency`
         # that is approximately `duration` seconds long
 
@@ -56,7 +57,12 @@ class SinePlayer(Thread):
         factor = int(target_size / cycle_size)
 
         size = max(int(cycle_size * factor), 1)
-        sine = [ int(0.01 * 32767 * sin(2 * pi * self.frequency * i / self.rate)) for i in range(size)] # 0.01 = limit the amplitude to 1%
+
+        sine = [int(
+            0.01     # 0.01 = limit the amplitude to 1%
+            * 32767
+            * sin(2 * pi * self.frequency * i / self.rate))
+            for i in range(size)]
         return struct.pack('%dh' % size, *sine)
 
     def run(self):
@@ -75,13 +81,22 @@ class SinePlayer(Thread):
         self.join()
 
 
-
 def main():
     import time
     parser = argparse.ArgumentParser("simplified spear-test application")
-    parser.add_argument('-D', '--device', help='playback device')
-    parser.add_argument('-r', '--rate', help='stream rate in Hz', type=int, default=48000)
-    parser.add_argument('-f', '--frequency', help='sine wave frequency in Hz', type=int, default=440)
+    parser.add_argument(
+        '-D', '--device',
+        help='playback device')
+    parser.add_argument(
+        '-r', '--rate',
+        help='stream rate in Hz',
+        type=int,
+        default=48000)
+    parser.add_argument(
+        '-f', '--frequency',
+        help='sine wave frequency in Hz',
+        type=int,
+        default=440)
     args = parser.parse_args()
     print(args)
 

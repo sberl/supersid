@@ -25,18 +25,22 @@ from isine import SinePlayer
 
 
 if __name__ == '__main__':
-    print("Version 20211227")
+    print("Version 20220104")
 
 
 """
-1) query capabilities of capture devices from 'arecord'
-2a) generate a test tone which should be looped back with an audio cable from line out to line in
-2b) walk through alsaaudio pcms and test with the capabilities of the capture devices known from 'arecord'
+1)  query capabilities of capture devices from 'arecord'
+2a) generate a test tone which should be looped back
+    with an audio cable from line out to line in
+2b) walk through alsaaudio pcms and test with the capabilities
+    of the capture devices known from 'arecord'
 """
 
 DEFAULT_RATES = [44100, 48000, 96000, 192000]
 DEFAULT_FORMATS = ['S16_LE', 'S24_3LE', 'S32_LE']
-DEFAULT_CHANNELS = 1    # actually we don't know but let's assume there is at least one channel
+
+# actually we don't know but let's assume there is at least one channel
+DEFAULT_CHANNELS = 1
 
 BAD_DEVICES = [
     'upmix',       # Segmenation fault (core dumped)
@@ -47,7 +51,9 @@ BAD_DEVICES = [
 class alsa(object):
     # https://github.com/torvalds/linux/blob/master/include/sound/pcm.h
     # SNDRV_PCM_RATE_*, values in Hz
-    sndrv_pcm_rates = [5512, 8000, 11025, 16000, 22050, 32000, 44100, 48000, 64000, 88200, 96000, 176400, 192000, 352800, 384000]
+    sndrv_pcm_rates = [
+        5512, 8000, 11025, 16000, 22050, 32000, 44100, 48000, 64000, 88200,
+        96000, 176400, 192000, 352800, 384000]
 
     # https://vovkos.github.io/doxyrest/samples/alsa-sphinxdoc/enum_snd_pcm_access_t.html
     snd_pcm_access_t = {
@@ -122,7 +128,7 @@ class alsa(object):
     }
 
     # https://vovkos.github.io/doxyrest/samples/alsa-sphinxdoc/enum_snd_pcm_subformat_t.html
-    snd_pcm_subformat_t  = {
+    snd_pcm_subformat_t = {
         'STD': 0,
         'LAST': 0,  # STD
     }
@@ -130,7 +136,9 @@ class alsa(object):
     def __new__(cls, executable_name, verbose):
         executable = shutil.which(executable_name)
         if executable is None:
-            print("ERROR: '{}' executable could not be found!".format(executable_name))
+            print(
+                "ERROR: '{}' executable could not be found!"
+                .format(executable_name))
             return None
         else:
             instance = super(alsa, cls).__new__(cls)
@@ -146,7 +154,10 @@ class alsa(object):
         if self.process is None:
             if self.verbose:
                 print(" ".join(s for s in [self.executable] + args))
-            self.process = subprocess.Popen([self.executable] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.process = subprocess.Popen(
+                [self.executable] + args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
 
     def kill(self):
         if self.process is not None:
@@ -160,16 +171,20 @@ class alsa(object):
         stdout, stderr = self.process.communicate()
         errorlevel = self.process.returncode
         self.process = None
-        stdout=stdout.decode()
-        stderr=stderr.decode()
+        stdout = stdout.decode()
+        stderr = stderr.decode()
         if return_error:
             return stdout, stderr, errorlevel
         else:
             if errorlevel:
-                print("ERROR: '{}' returned errorlevel {}".format(" ".join(args), errorlevel))
+                print(
+                    "ERROR: '{}' returned errorlevel {}"
+                    .format(" ".join(args), errorlevel))
                 sys.exit(errorlevel)
             elif stderr:
-                print("ERROR: '{}' returned stderr '{}'".format(" ".join(args), stderr))
+                print(
+                    "ERROR: '{}' returned stderr '{}'"
+                    .format(" ".join(args), stderr))
                 sys.exit(1)
             else:
                 return stdout
@@ -210,32 +225,37 @@ class speaker_test():
     def start_test_tone(self, card, rate, frequency=10000):
         """assumption: plughw: will generate the test tone"""
         if "CARD=" == card[0:5]:
-            device = "plughw:{}".format(card)    # by experience the 'plughw:CARD=xxxx' are working best
+            # by experience the 'plughw:CARD=xxxx' are working best
+            device = "plughw:{}".format(card)
         else:
             device = card
         if self.isine is None:
             pcms = self.get_pcms()
             found = False
             if device in pcms:
-                found = True # full match
+                found = True            # full match
             else:
                 if ',DEV=' in device:
                     device = device[:device.find(',DEV=')]
                 for pcm in pcms:
                     if device in pcm:
                         device = pcm
-                        found = True # partial match
+                        found = True    # partial match
                         break
             if found:
                 try:
                     self.isine = SinePlayer(device, rate, frequency)
                     self.isine.start()
                     time.sleep(1.0)
-                    print("test tone started {} Hz, '{}'".format(int(self.isine.frequency), device))
+                    print(
+                        "test tone started {} Hz, '{}'"
+                        .format(int(self.isine.frequency), device))
                 except Exception as e:
                     print("ERROR:", type(e), e)
             else:
-                print("ERROR: device '{}' not found for test tone generation".format(device))
+                print(
+                    "ERROR: device '{}' not found for test tone generation"
+                    .format(device))
         else:
             print("usage error: test tone is already active")
 
@@ -278,9 +298,11 @@ class arecord(alsa):
             arecord: set_params:1374: Channels count non available
 
         the above output is generated from
-            https://github.com/michaelwu/alsa-lib/blob/master/src/pcm/pcm.c snd_pcm_hw_params_dump()
+            https://github.com/michaelwu/alsa-lib/blob/master/src/pcm/pcm.c
+                snd_pcm_hw_params_dump()
                 -> dump_one_param() -> snd_pcm_hw_param_dump()
-            https://github.com/michaelwu/salsa-lib/blob/master/src/pcm_params.c snd_pcm_hw_param_dump()
+            https://github.com/michaelwu/salsa-lib/blob/master/src/pcm_params.c
+                snd_pcm_hw_param_dump()
                 -> snd_mask_print() | snd_interval_print()
         data layout:
             key: values
@@ -288,9 +310,15 @@ class arecord(alsa):
                 mask_is_empty -> 'NONE'
                 mask_is_full  -> 'ALL'
                 else:
-                    for each bit in ACCESS: ACCESS string snd_pcm_access_name(i), see snd_pcm_access_t
-                    for each bit in FORMAT: FORMAT string snd_pcm_format_name(i), see snd_pcm_format_t
-                    for each bit in SUBFORMAT: SUBFORMAT string snd_pcm_subformat_name(), see snd_pcm_subformat_t
+                    for each bit in ACCESS:
+                        ACCESS string snd_pcm_access_name(i),
+                        see snd_pcm_access_t
+                    for each bit in FORMAT:
+                        FORMAT string snd_pcm_format_name(i),
+                        see snd_pcm_format_t
+                    for each bit in SUBFORMAT:
+                        SUBFORMAT string snd_pcm_subformat_name(),
+                        see snd_pcm_subformat_t
             snd_interval_print()
                 interval_is_empty -> 'NONE'
                 interval_is_full -> 'ALL'
@@ -299,7 +327,8 @@ class arecord(alsa):
                     (min max) | [min max] | (min max] | [min max)
                     '(' if openmin else '['
                     ')' if openmax else ']'
-                    assumption: this is meant as the mathematical notation of intervals
+                    assumption:
+                    this is meant as the mathematical notation of intervals
                     '(' min does not belong to the interval
                     '[' min does belong to the interval
                     ')' max does not belong to the interval
@@ -328,14 +357,22 @@ class arecord(alsa):
                         values = values.split()  # split at blanks
                         assert(2 == len(values))
                         min, max = int(values[0]), int(values[1])
+
                         # start assumption ->
-                        # assumption: the brackets are meant with their mathematical meaning
+                        # assumption: the brackets are meant with their
+                        # mathematical meaning
                         if opening_bracket == '(':
-                            min += 1    # min does not belong to the interval, thus min+1 belongs to the interval
+                            # min does not belong to the interval,
+                            # thus min+1 belongs to the interval
+                            min += 1
                         if closing_bracket == ')':
-                            max -= 1    # max does not belong to the interval, thus max-1 belongs to the interval
+                            # max does not belong to the interval,
+                            # thus max-1 belongs to the interval
+                            max -= 1
                         # <- end assumption
-                        values = range(min, max+1)	# python range: min is included, max is not include
+
+                        # python range: min is included, max is not include
+                        values = range(min, max+1)
                     else:
                         values = values.split()  # split at blanks
                         if 1 == len(values):
@@ -361,7 +398,7 @@ class arecord(alsa):
                 print(" ".join(s for s in args))
             p = subprocess.Popen(args, stdout=f, stderr=subprocess.PIPE)
             stdout, stderr = p.communicate()
-            stderr=stderr.decode()
+            stderr = stderr.decode()
             errorlevel = p.returncode
             assert(stdout is None)    # redirected to /dev/null
             hw_params = self.parse_hw_params(stderr)
@@ -373,7 +410,8 @@ class arecord(alsa):
         interfaces = []
         pcms = ar.get_pcms()
         for pcm in pcms:
-            # we are only interrested in the capabilities of the "Direct hardware device without any conversions"
+            # we are only interrested in the capabilities of the
+            # "Direct hardware device without any conversions"
             if "hw:" != pcm[:3]:
                 continue
             hw_params = self.get_pcm_hw_params(pcm)
@@ -452,14 +490,25 @@ try:
         alsaaudio.PCM_FORMAT_U24_3BE: 'U24_3BE',
     }
 
-    ASOUND_2_ALSAAUDIO_FORMATS = {v: k for k, v in ALSAAUDIO_2_ASOUND_FORMATS.items()}
-
+    ASOUND_2_ALSAAUDIO_FORMATS = {
+        v: k for k, v in ALSAAUDIO_2_ASOUND_FORMATS.items()}
 
     class alsaaudio_tester():
-        RESULTS = ['OK', 'E_UNKNOWN', 'E_ALSAAUDIO', 'E_OVERRUN', 'E_ZERO_LENGTH', 'E_INVALID_LENGTH', 'E_INVALID_DATA_LENGTH', 'E_RECORDED_ALL_ZEROS', 'F_NOT_IMPLEMENTED']
+        RESULTS = [
+            'OK',
+            'E_UNKNOWN',
+            'E_ALSAAUDIO',
+            'E_OVERRUN',
+            'E_ZERO_LENGTH',
+            'E_INVALID_LENGTH',
+            'E_INVALID_DATA_LENGTH',
+            'E_RECORDED_ALL_ZEROS',
+            'F_NOT_IMPLEMENTED']
+
         def __init__(self, verbose):
             self.pcm_devices = alsaaudio.pcms(alsaaudio.PCM_CAPTURE)
-            # the numbering of these constants has to match the corresponidng positon within RESULTS
+            # the numbering of these constants has to match
+            # the corresponidng positon within RESULTS
             self.OK = 0
             self.E_UNKNOWN = 1
             self.E_ALSAAUDIO = 2
@@ -471,7 +520,12 @@ try:
             self.F_NOT_IMPLEMENTED = 8
             self.verbose = verbose
 
-        def test_configuration(self, pcm_device, rate, format, periodsize):
+        def test_configuration(
+                self,
+                pcm_device,
+                rate,
+                format,
+                periodsize):
             try:
                 channels = 1
                 samplesize = FORMAT_LENGTHS[format]
@@ -492,13 +546,15 @@ try:
                     if length > 0:
                         raw_data += data
                     """
-                    In PCM_NORMAL mode, this function blocks until a full period is available, and then
-                    returns a tuple (length,data) where length is the number of frames of captured data,
-                    and data is the captured sound frames as a string. The length of the returned data
-                    will be periodsize*framesize bytes.
+                    In PCM_NORMAL mode, this function blocks until a full
+                    period is available, and then returns a tuple (length,data)
+                    where length is the number of frames of captured data, and
+                    data is the captured sound frames as a string. The length
+                    of the returned data will be periodsize*framesize bytes.
 
-                    In case of an overrun, this function will return a negative size: -EPIPE. This indicates
-                    that data was lost, even if the operation itself succeeded. Try using a larger
+                    In case of an overrun, this function will return a negative
+                    size: -EPIPE. This indicates that data was lost, even if
+                    the operation itself succeeded. Try using a larger
                     periodsize.
                     """
                     if length < 0:
@@ -506,33 +562,51 @@ try:
                     if length == 0:
                         return self.E_ZERO_LENGTH, None, None, None
                     if 0 != (length % periodsize):
-                        return self.E_INVALID_LENGTH, None, None, None        # expecting an even multiple of periodsize
+                        # expecting an even multiple of periodsize
+                        return self.E_INVALID_LENGTH, None, None, None
                     if (length * framesize) != len(data):
-                        return self.E_INVALID_DATA_LENGTH, None, None, None   # number of frames multiplied with size of frames must be the size of the buffer
+                        # number of frames multiplied with size of frames must
+                        # be the size of the buffer
+                        return self.E_INVALID_DATA_LENGTH, None, None, None
                 t_end = time.time()
                 t_duration = t_end - t_start
 
                 assert(len(raw_data) >= (framesize * rate))
                 asound_format = ALSAAUDIO_2_ASOUND_FORMATS[format]
                 if asound_format == 'S16_LE':
-                    unpacked_data = array(st_unpack("<%ih" % rate, raw_data[:framesize * rate]))
+                    unpacked_data = array(st_unpack(
+                        "<%ih" % rate,
+                        raw_data[:framesize * rate]))
                 elif asound_format == 'S24_3LE':
                     unpacked_data = []
                     for i in range(rate):
                         chunk = raw_data[i*3:i*3+3]
-                        unpacked_data.append(st_unpack('<i', chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
+                        unpacked_data.append(st_unpack(
+                            '<i',
+                            chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
                 elif asound_format == 'S32_LE':
-                    unpacked_data = array(st_unpack("<%ii" % rate, raw_data[:framesize * rate]))
+                    unpacked_data = array(st_unpack(
+                        "<%ii" % rate,
+                        raw_data[:framesize * rate]))
                 else:
-                    print("\tERROR: format conversion of '{}' is not implemented".format(asound_format))
+                    print(
+                        "\tERROR: format conversion of '{}' is not implemented"
+                        .format(asound_format))
                     return self.F_NOT_IMPLEMENTED, None, None, None
                 assert(len(unpacked_data) == rate)
 
                 if min(unpacked_data) == max(unpacked_data):
                     return self.E_RECORDED_ALL_ZEROS, None, None, None
 
-                NFFT = max(1024, 1024 * rate // 48000)    # NFFT = 1024 for 44100 and 48000, 2048 for 96000, 4096 for 192000 -> the frequency resolution is constant
-                Pxx, freqs = mlab_psd(unpacked_data, NFFT, rate)
+                # NFFT = 1024 for 44100 and 48000,
+                #        2048 for 96000,
+                #        4096 for 192000
+                # -> the frequency resolution is constant
+                NFFT = max(1024, 1024 * rate // 48000)
+                Pxx, freqs = mlab_psd(
+                    unpacked_data,
+                    NFFT,
+                    rate)
                 m = max(Pxx)
                 if m == min(Pxx):
                     peak_freq = None
@@ -568,7 +642,9 @@ try:
                 max = 2147483647
                 format = '<i'
             else:
-                print('WARNING: save_wav() format {} is not supported'.format(format))
+                print(
+                    'WARNING: save_wav() format {} is not supported'
+                    .format(format))
                 return
             if self.verbose:
                 print(file, len(data), data.min(), data.max())
@@ -586,47 +662,82 @@ try:
                 wf.writeframesraw(value)
             wf.close()
 
-        def test(self, interfaces, periodsize, regression, test_card, test_tone, save_wav, data_path):
+        def test(
+                self,
+                interfaces,
+                periodsize,
+                regression,
+                test_card,
+                test_tone,
+                save_wav,
+                data_path):
             test_frequency = None
             if (test_tone is not None) and (len(test_tone) >= 8) and 'external' == test_tone[0:8]:
-                st = None    # suppress test tone generation if configured to be external
+                # suppress test tone generation if configured to be external
+                st = None
                 if ',' == test_tone[8]:
-                   test_frequency = int(test_tone[9:])
+                    test_frequency = int(test_tone[9:])
             else:
                 st = speaker_test(self.verbose)
                 if st is None:
-                    print("WARNING: 'speaker_test' instance could not be created, there will be no frequency generated for the loop back test")
+                    print(
+                        "WARNING: 'speaker_test' instance could not be "
+                        "created, there will be no frequency generated "
+                        "for the loop back test")
             test_log = []
             tested_pcm_devices = []
-            print("audio_sampling_rate, Audio, Device, Format, PeriodSize, regression, result[, duration][, peak frequency / generated frequency = frequency ratio]")
+            print(
+                "audio_sampling_rate, Audio, Device, Format, PeriodSize, "
+                "regression, result[, duration]"
+                "[, peak frequency / generated frequency = frequency ratio]")
             for pcm_device in self.pcm_devices:
                 if test_card is not None:
                     if test_card not in pcm_device:
                         print('skip', pcm_device)
-                        continue    # if the card to be tested is configured but the current device doesn't match, skip the test
+                        # if the card to be tested is configured but the
+                        # current device doesn't match, skip the test
+                        continue
                 for interface in interfaces:
                     device = interface['device']
                     if device in BAD_DEVICES:
                         print('skip BAD_DEVICES', device)
                         continue    # prevent a core dump
-                    if ((device in pcm_device) or (device[:device.find(',DEV=')] in pcm_device)) \
-                        and (pcm_device not in tested_pcm_devices):
+                    if ((device in pcm_device)
+                            or (device[:device.find(',DEV=')] in pcm_device)) \
+                            and (pcm_device not in tested_pcm_devices):
                         tested_pcm_devices.append(pcm_device)
                         for rate in interface['rates']:
                             generated_frequency = test_frequency
                             if st is not None:
                                 generated_frequency = rate // 3
                                 st.start_test_tone(
-                                    test_tone if test_tone is not None   # preferably use the device configured for the test tone
-                                    else device,                         # else fall back to the same device which is tested
-                                    rate,                                # use the same sample rate as for the capturing
-                                    generated_frequency                  # adapt the frequency to the sample rate, theoretic max would be rate // 2
+                                    # preferably use the device configured for
+                                    # the test tone
+                                    test_tone if test_tone is not None
+
+                                    # else fall back to the same device which
+                                    # is tested
+                                    else device,
+
+                                    # use the same sample rate as for the
+                                    # capturing
+                                    rate,
+
+                                    # adapt the frequency to the sample rate,
+                                    # theoretic max would be rate // 2
+                                    generated_frequency
                                 )
                             for format in interface['formats']:
                                 asound_format = format
-                                alsaaudio_format = ASOUND_2_ALSAAUDIO_FORMATS[asound_format]
+                                alsaaudio_format = \
+                                    ASOUND_2_ALSAAUDIO_FORMATS[asound_format]
                                 for i in range(regression):
-                                    result, data, duration, peak_freq = self.test_configuration(pcm_device, rate, alsaaudio_format, periodsize)
+                                    result, data, duration, peak_freq = \
+                                        self.test_configuration(
+                                            pcm_device,
+                                            rate,
+                                            alsaaudio_format,
+                                            periodsize)
                                     test_log.append({
                                         'Device': pcm_device,
                                         'audio_sampling_rate': rate,
@@ -639,16 +750,58 @@ try:
                                         'generated_frequency': generated_frequency,
                                         'frequency_ratio': None if (peak_freq is None) or (generated_frequency is None) else peak_freq[0] / generated_frequency,
                                     })
-                                    print("{:6d}, alsaaudio, {}, {:7s}, {}, {:2d}, {}{}{}{}".format(
-                                        rate, pcm_device, asound_format, periodsize, i+1, self.RESULTS[result],
-                                        "" if duration is None else ', {:.2f} s'.format(duration),
-                                        "" if peak_freq is None else ", {} Hz".format(int(peak_freq[0])),
-                                        "" if (peak_freq is None) or (generated_frequency is None) else " / {} Hz = {:5.3f}".format(generated_frequency, peak_freq[0] / generated_frequency)))
+                                    print(
+                                        "{:6d}, "
+                                        "alsaaudio, "
+                                        "{}, "
+                                        "{:7s}, "
+                                        "{}, "
+                                        "{:2d}, "
+                                        "{}"
+                                        "{}"
+                                        "{}"
+                                        "{}"
+                                        .format(
+                                            rate,
+                                            pcm_device,
+                                            asound_format,
+                                            periodsize,
+                                            i+1,
+                                            self.RESULTS[result],
+
+                                            "" if duration is None
+                                            else ', {:.2f} s'
+                                            .format(duration),
+
+                                            "" if peak_freq is None
+                                            else ", {} Hz"
+                                            .format(int(peak_freq[0])),
+
+                                            "" if (peak_freq is None) or (generated_frequency is None)
+                                            else " / {} Hz = {:5.3f}"
+                                            .format(
+                                                generated_frequency,
+                                                peak_freq[0] / generated_frequency)))
                                     if data is not None and save_wav:
-                                        file = os.path.join(data_path, "fad_{}_{}_{}_{}_{}.wav".format(slugify(pcm_device), rate, format, periodsize, i))
-                                        self.save_wav(file, 1, rate, format, data)
+                                        file = os.path.join(
+                                            data_path,
+                                            "fad_{}_{}_{}_{}_{}.wav"
+                                            .format(
+                                                slugify(pcm_device),
+                                                rate,
+                                                format,
+                                                periodsize,
+                                                i))
+                                        self.save_wav(
+                                            file,
+                                            1,
+                                            rate,
+                                            format,
+                                            data)
                                     if result != self.OK:
-                                        break    # speed up if the result is not ok, break the regression
+                                        # speed up if the result is not ok,
+                                        # break the regression
+                                        break
                             if st is not None:
                                 st.stop_test_tone()
             print()
@@ -659,17 +812,37 @@ try:
                 self.test_summary(test_log, regression)
 
         def test_summary(self, test_log, regression):
-            df = pd.DataFrame(test_log)  # convert the entire results list
-            df = df.dropna()             # drop all rows containing no values e.g. no duration, no peak_frequency, no frequency_ratio
-            df = df[(df['frequency_ratio'] >= 0.998) & (df['frequency_ratio'] <= 1.002)]  # drop frequency_ratio not similar deviating more than 2 %% from the ideal 1.0
-            df = df[(df['duration'] > 0.9) & (df['duration'] < 1.1)]  # in the brute force operation it has been observed that devices appear to work with higher sample rates than supported, the recording time is then i.e. 4 sec for a 48000 device tested as 192000
+            # convert the entire results list
+            df = pd.DataFrame(test_log)
+
+            # drop all rows containing no values e.g. no duration,
+            # no peak_frequency, no frequency_ratio
+            df = df.dropna()
+
+            # drop frequency_ratio not similar deviating more than 2 %% from the ideal 1.0
+            df = df[
+                (df['frequency_ratio'] >= 0.998) &
+                (df['frequency_ratio'] <= 1.002)]
+
+            # in the brute force operation it has been observed that devices
+            # appear to work with higher sample rates than supported, the
+            # recording time is then i.e. 4 sec for a 48000 device tested as
+            # 192000
+            df = df[
+                (df['duration'] > 0.9) &
+                (df['duration'] < 1.1)]
             df['candidate'] = None
             num_candidates = 0
             for Device in df['Device'].unique():
                 for audio_sampling_rate in df['audio_sampling_rate'].unique():
                     for Format in df['Format'].unique():
                         for PeriodSize in df['PeriodSize'].unique():
-                            index = df[(df['Device'] == Device) & (df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format) & (df['PeriodSize'] == PeriodSize)].index
+                            index = df[
+                                (df['Device'] == Device) &
+                                (df['audio_sampling_rate']
+                                    == audio_sampling_rate) &
+                                (df['Format'] == Format) &
+                                (df['PeriodSize'] == PeriodSize)].index
                             if len(index) == regression:
                                 num_candidates += 1
                                 df.loc[index, 'candidate'] = num_candidates
@@ -682,27 +855,52 @@ try:
                 print()
 
                 print("This is the complete list of candidates fulfilling the minimum requirements:")
-                df = df.dropna()                 # drop all non-candidates
-                df = df[df['i'] == regression]   # drop all but one line per setting
+                # drop all non-candidates
+                df = df.dropna()
+
+                # drop all but one line per setting
+                df = df[df['i'] == regression]
                 df = df.reset_index(drop=True)
-                pd.set_option('display.max_rows', None)    # display all candidates
-                print(df[['Device', 'audio_sampling_rate', 'Format', 'PeriodSize']])
+
+                # display all candidates
+                pd.set_option('display.max_rows', None)
+                print(df[[
+                    'Device',
+                    'audio_sampling_rate',
+                    'Format',
+                    'PeriodSize']])
                 print()
 
                 audio_sampling_rate = df['audio_sampling_rate'].max()
                 Format = df['Format'].max()
-                index =  df[(df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format)].index
+                index = df[
+                    (df['audio_sampling_rate'] == audio_sampling_rate) &
+                    (df['Format'] == Format)].index
                 if 1 == len(index):
-                    print("This is the supersid.cfg setting of the best candidate:")
+                    print(
+                        "This is the supersid.cfg setting of the best "
+                        "candidate:")
                 else:
-                    print("These are the supersid.cfg settings of the best candidates:")
+                    print(
+                        "These are the supersid.cfg settings of the best "
+                        "candidates:")
                 for Device in df['Device'].unique():
                     for PeriodSize in df['PeriodSize'].unique():
-                        index =  df[(df['Device'] == Device) & (df['audio_sampling_rate'] == audio_sampling_rate) & (df['Format'] == Format) & (df['PeriodSize'] == PeriodSize)].index
+                        index = df[
+                            (df['Device'] == Device) &
+                            (df['audio_sampling_rate']
+                                == audio_sampling_rate) &
+                            (df['Format'] == Format) &
+                            (df['PeriodSize'] == PeriodSize)].index
                         if (len(index)):
-                            print("# candidate '{}', {}, {}, {}".format(Device, audio_sampling_rate, Format, PeriodSize))
+                            print("# candidate '{}', {}, {}, {}".format(
+                                Device,
+                                audio_sampling_rate,
+                                Format,
+                                PeriodSize))
                             print('[PARAMETERS]')
-                            print('audio_sampling_rate = {}'.format(audio_sampling_rate))
+                            print('audio_sampling_rate = {}'.format(
+                                audio_sampling_rate))
                             print('[Capture]')
                             print('Audio = alsaaudio')
                             print('Device = {}'.format(Device))
@@ -739,32 +937,65 @@ try:
                 print("You need to ask a search engine or an expert for help about fixing audio issues.")
 
 except ImportError:
-    print("ERROR: 'alsaaudio' is not available, on Linux try 'python3 -m pip install alsaaudio'")
+    print(
+        "ERROR: 'alsaaudio' is not available, on Linux try "
+        "'python3 -m pip install alsaaudio'")
     ALSAAUDIO_IS_PRESENT = False
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description="""
+    parser = argparse.ArgumentParser(
+        formatter_class=RawTextHelpFormatter,
+        description="""
 Test the audio capturing capability with the python module 'alsaaudio'.
-Combinations of device, sampling-rate, format, periodsitze are tested.
-The hw capabilities will be queried from 'arecord' unless -b/--brute-force is set.
+Combinations of device, sampling-rate, format, periodsitze are tested. The hw
+capabilities will be queried from 'arecord' unless -b/--brute-force is set.
 """.format(__file__))
-    parser.add_argument("-c", "--config", dest="cfg_filename",
-                        type=exist_file,
-                        default=CONFIG_FILE_NAME,
-                        help="Supersid configuration file")
-    parser.add_argument("-b", "--brute-force", help="brute force test all 'alsaaudio' PCMs", action='store_true')
-    parser.add_argument("-l", "--list", help="list the parameter combinations and exit", action='store_true')
-    parser.add_argument("-p", "--periodsize", help="""periodsize parameter of the PCM interface
+    parser.add_argument(
+        "-c", "--config",
+        dest="cfg_filename",
+        type=exist_file,
+        default=CONFIG_FILE_NAME,
+        help="Supersid configuration file")
+    parser.add_argument(
+        "-b", "--brute-force",
+        help="brute force test all 'alsaaudio' PCMs",
+        action='store_true')
+    parser.add_argument(
+        "-l", "--list",
+        help="list the parameter combinations and exit",
+        action='store_true')
+    parser.add_argument(
+        "-p", "--periodsize",
+        help="""periodsize parameter of the PCM interface
 default=1024, if the computer runs out of memory,
-select smaller numbers like 128, 256, 512, ...""", type=int, default=1024)
-    parser.add_argument("-r", "--regression", help="regressions with the same settings, default=10", type=int, default=10)
-    parser.add_argument("-t", "--test-tone", help='''Format: "external" or "external,10000" or "CARD=xxxx", the device to be used for the test tone generation.
+select smaller numbers like 128, 256, 512, ...""",
+        type=int,
+        default=1024)
+    parser.add_argument(
+        "-r", "--regression",
+        help="regressions with the same settings, default=10",
+        type=int,
+        default=10)
+    parser.add_argument(
+        "-t", "--test-tone",
+        help='''Format: "external" or "external,10000" or "CARD=xxxx",
+the device to be used for the test tone generation.
 If not set a loopback from DEVICE line out to DEVICE line in is expected.
-''', default=None)
-    parser.add_argument("-d", "--device", help='Format: "CARD=xxxx", the device to be tested', default=None)
-    parser.add_argument("-s", "--save-wav", help="save wav files of the 1 second recordings", action='store_true')
-    parser.add_argument("-v", "--verbose", help="verbose output", action='store_true')
+''',
+        default=None)
+    parser.add_argument(
+        "-d", "--device",
+        help='Format: "CARD=xxxx", the device to be tested',
+        default=None)
+    parser.add_argument(
+        "-s", "--save-wav",
+        help="save wav files of the 1 second recordings",
+        action='store_true')
+    parser.add_argument(
+        "-v", "--verbose",
+        help="verbose output",
+        action='store_true')
     args = parser.parse_args()
 
     config = readConfig(args.cfg_filename)
@@ -787,7 +1018,9 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
                 print("\t{}".format(device))
             print()
         else:
-            print("ERROR: 'alsaaudio' is not available. Option -l/--list is not fully functional.")
+            print(
+                "ERROR: 'alsaaudio' is not available. "
+                "Option -l/--list is not fully functional.")
 
     interfaces = []
     if args.brute_force:
@@ -801,7 +1034,9 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
                     'channels': DEFAULT_CHANNELS,
                 })
         else:
-            print("ERROR: 'alsaaudio' is not available. Option -b/--brute-force is not available.")
+            print(
+                "ERROR: 'alsaaudio' is not available. "
+                "Option -b/--brute-force is not available.")
     else:
         ar = arecord(args.verbose)
         if ar is None:
@@ -821,8 +1056,17 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
 
     print()
     if ALSAAUDIO_IS_PRESENT:
-        alsaaudio_tester(args.verbose).test(interfaces, args.periodsize, args.regression, args.device, args.test_tone, args.save_wav, config.data_path)
+        alsaaudio_tester(args.verbose).test(
+            interfaces,
+            args.periodsize,
+            args.regression,
+            args.device,
+            args.test_tone,
+            args.save_wav,
+            config.data_path)
     else:
-        print("ERROR: 'alsaaudio' is not available. Thus the alsaaudio test is not available.")
+        print(
+            "ERROR: 'alsaaudio' is not available. "
+            "Thus the alsaaudio test is not available.")
 
     print("spent {} seconds".format(int(time.time() - t_start)))

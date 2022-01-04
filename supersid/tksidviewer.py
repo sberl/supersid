@@ -105,7 +105,9 @@ class tkSidViewer():
         self.psd_figure = Figure(facecolor='beige')
         self.canvas = FigureCanvas(self.psd_figure, master=self.tk_root)
         self.canvas.draw()
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.canvas \
+            .get_tk_widget() \
+            .pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root)
         self.toolbar.update()
@@ -113,17 +115,22 @@ class tkSidViewer():
 
         self.axes = self.psd_figure.add_subplot(111)
         self.axes.format_coord = Formatter()
-        self.axes.set_ylabel("Power Spectral Density (dB/Hz)")  # add the psd labels manually for proper layout at startup
-        self.axes.set_xlabel("Frequency")                       # add the psd labels manually for proper layout at startup
+
+        # add the psd labels manually for proper layout at startup
+        self.axes.set_ylabel("Power Spectral Density (dB/Hz)")
+        self.axes.set_xlabel("Frequency")
         self.set_graph_limits()
 
         # StatusBar
         self.statusbar_txt = tk.StringVar()
+
+        # width=1 avoids resizing when the length of statusbar_txt changes
         self.label = tk.Label(self.tk_root, bd=1, relief=tk.SUNKEN,
                               anchor=tk.W,
                               textvariable=self.statusbar_txt,
                               font=('arial', 12, 'normal'),
-                              width=1)  # avoid image resizing when the length of statusbar_txt changes
+                              width=1)
+
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
         self.need_refresh = False
@@ -136,8 +143,9 @@ class tkSidViewer():
         self.running = False
 
     def close(self, force_close=True):
-        if not force_close and MessageBox.askyesno("Confirm exit",
-                                                   "Are you sure you want to exit SuperSID?"):
+        if not force_close and MessageBox.askyesno(
+                "Confirm exit",
+                "Are you sure you want to exit SuperSID?"):
             self.running = False
             self.tk_root.destroy()
 
@@ -149,16 +157,20 @@ class tkSidViewer():
         width = self.tk_root.winfo_width()
         height = self.tk_root.winfo_height()
 
-        left_gap = 20   # px
-        bottom_gap = 20 # px
-        right_gap = 10  # px
-        top_gap = 10    # px
+        left_gap = 20       # px
+        bottom_gap = 20     # px
+        right_gap = 10      # px
+        top_gap = 10        # px
 
         left = left_gap / width
         bottom = bottom_gap / height
         right = (width - right_gap) / width
         top = (height - top_gap) / height
-        self.psd_figure.subplots_adjust(left=left, bottom=bottom, right=right, top=top)
+        self.psd_figure.subplots_adjust(
+            left=left,
+            bottom=bottom,
+            right=right,
+            top=top)
         self.psd_figure.tight_layout()
 
     def status_display(self, message, level=0, field=0):
@@ -167,7 +179,10 @@ class tkSidViewer():
             self.statusbar_txt.set(message)
 
     def set_graph_limits(self):
-        self.axes.set_xlim([0, self.controller.config['audio_sampling_rate'] // 2])    # use the entire x-axis for data
+        # use the entire x-axis for data
+        self.axes.set_xlim([
+            0, self.controller.config['audio_sampling_rate'] // 2])
+
         psd_min = self.controller.config['psd_min']
         psd_max = self.controller.config['psd_max']
         psd_ticks = self.controller.config['psd_ticks']
@@ -220,20 +235,24 @@ class tkSidViewer():
         param = param if isinstance(
             param, str) else param.keysym  # which is the letter with the CTRL-
         if param == 'r':
-            saved_files = self.controller.save_current_buffers(log_type='raw',
-                                                               log_format='both')
+            saved_files = self.controller.save_current_buffers(
+                log_type='raw',
+                log_format='both')
         elif param == 'f':
-            saved_files = self.controller.save_current_buffers(log_type='filtered',
-                                                               log_format='both')
+            saved_files = self.controller.save_current_buffers(
+                log_type='filtered',
+                log_format='both')
         elif param == 'e':
-            saved_files = self.controller.save_current_buffers(log_type='raw',
-                                                               log_format='both_extended')
+            saved_files = self.controller.save_current_buffers(
+                log_type='raw',
+                log_format='both_extended')
         elif param == 's':
             filename = self.AskSaveasFilename()
             if filename:
-                saved_files = self.controller.save_current_buffers(filename,
-                                                                   log_type='filtered',
-                                                                   log_format='supersid')
+                saved_files = self.controller.save_current_buffers(
+                    filename,
+                    log_type='filtered',
+                    log_format='supersid')
             else:
                 saved_files = None
         if saved_files:
@@ -243,20 +262,29 @@ class tkSidViewer():
         """Save current buffers (raw) and display the data using supersid_plot.
         Using a separate process to prevent interference with data capture
         """
-        filenames = self.controller.save_current_buffers(log_format='supersid_format')
+        filenames = self.controller.save_current_buffers(
+            log_format='supersid_format')
         assert(1 == len(filenames))
         assert(1 == len(self.controller.config.filenames))
         print("plotting", filenames[0])
         subprocess.Popen([
-            sys.executable, script_relative_to_cwd_relative('supersid_plot.py'),
-            '-f', filenames[0],
-            '-c', script_relative_to_cwd_relative(self.controller.config.filenames[0])])
+            sys.executable,
+            script_relative_to_cwd_relative('supersid_plot.py'),
+            '-f',
+            filenames[0],
+            '-c',
+            script_relative_to_cwd_relative(
+                self.controller.config.filenames[0])])
 
     def on_about(self):
         """Display the About box message."""
         MessageBox.showinfo("SuperSID", self.controller.about_app())
 
-    def AskSaveasFilename(self, title='Save File', filetypes=None, initialfile=''):
+    def AskSaveasFilename(
+            self,
+            title='Save File',
+            filetypes=None,
+            initialfile=''):
         """Return a string containing file name.
 
         the calling routine will need to open the file

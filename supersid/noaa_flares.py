@@ -35,7 +35,9 @@ class NOAA_flares(object):
         elif isinstance(day, datetime) or isinstance(day, date):
             self.day = day.strftime('%Y%m%d')
         else:
-            raise TypeError("Unknown date format - expecting str 'YYYYMMDD' or datetime/date")
+            raise TypeError(
+                "Unknown date format - expecting str 'YYYYMMDD' or "
+                "datetime/date")
 
         self.Tstamp = lambda HHMM: datetime.strptime(self.day + HHMM, "%Y%m%d%H%M")  # "201501311702" -> datetime(2015, 1, 31, 17, 2)
         self.XRAlist = []
@@ -84,12 +86,17 @@ class NOAA_flares(object):
 
         Return the full path of the data file
         """
-        file_name = "goes-xrs-report_{}.txt".format(self.day[:4]) if self.day[:4] != "2015"  \
-                                                    else "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
+        file_name = "goes-xrs-report_{}.txt" \
+            .format(self.day[:4]) \
+            if self.day[:4] != "2015" \
+            else "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
 
         folder = script_relative_to_cwd_relative(path.join("..", "Private"))
-        if not path.isdir(folder):  # create folder ../Private if it does not exist
+
+        # create folder ../Private if it does not exist
+        if not path.isdir(folder):
             os.mkdir(folder)
+
         file_path = path.join(folder, file_name)
         if not path.isfile(file_path):
             try:
@@ -114,8 +121,9 @@ class NOAA_flares(object):
           from the line:
           1000 +   1748 1752 1755  G15 5 XRA  1-8A M1.0 2.1E-03 2443
         """
-        #           ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
-        NOAA_URL = 'ftp://ftp.swpc.noaa.gov/pub/indices/events/%sevents.txt' % (self.day)
+        # ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
+        NOAA_URL = 'ftp://ftp.swpc.noaa.gov/pub/indices/events/%sevents.txt' \
+            % (self.day)
         response, self.XRAlist = None, []
         try:
             response = urllib.request.urlopen(NOAA_URL)
@@ -125,14 +133,22 @@ class NOAA_flares(object):
             print(err, "\n")
         else:
             for webline in response.read().splitlines():
-                fields = str(webline, 'utf-8').split()  # cast bytes to str then split
+
+                # cast bytes to str then split
+                fields = str(webline, 'utf-8').split()
+
                 if len(fields) >= 9 and not fields[0].startswith("#"):
-                    if fields[1] == '+': fields.remove('+')
-                    if fields[6] in ('XRA',):  # maybe other event types could be of interrest
+                    if fields[1] == '+':
+                        fields.remove('+')
+
+                    # maybe other event types could be of interrest
+                    if fields[6] in ('XRA',):
                         #      eventName,    BeginTime,    MaxTime,      EndTime,      Particulars
                         # msg = fields[0] + " " + fields[1] + " " + fields[2] + " " + fields[3] + " " + fields[8]
                         try:
-                            btime = self.Tstamp(fields[1])  # 'try' necessary as few occurences of --:-- instead of HH:MM exist
+                            # 'try' necessary as few occurences of
+                            # --:-- instead of HH:MM exist
+                            btime = self.Tstamp(fields[1])
                         except:
                             pass
                         try:
@@ -147,7 +163,8 @@ class NOAA_flares(object):
                                              fields[8]))  # as a tuple
 
     def print_XRAlist(self):
-        for eventName, BeginTime, MaxTime, EndTime, Particulars in self.XRAlist:
+        for eventName, BeginTime, MaxTime, EndTime, Particulars \
+                in self.XRAlist:
             print(eventName, BeginTime, MaxTime, EndTime, Particulars)
 
 
