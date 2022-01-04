@@ -17,7 +17,8 @@ import argparse
 import tkinter as tk
 from tkinter import ttk
 import matplotlib
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas, NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter as ff
 import ephem
@@ -66,8 +67,13 @@ class Plot_Gui(ttk.Frame):
         self.tk_root.title('SuperSID Plot')
         color_list = "".join(self.COLOR)  # one color per station
         color_idx = 0
-        self.daysList = {} # date of NOAA's data already retrieved, prevent multiple fetch
-        fig_title = []    # list of file names (w/o path and extension) as figure's title
+
+        # date of NOAA's data already retrieved, prevent multiple fetch
+        self.daysList = {}
+
+        # list of file names (w/o path and extension) as figure's title
+        fig_title = []
+
         self.max_data = -1.0
         # prepare the GUI framework
         self.fig = Figure(facecolor='beige')
@@ -83,17 +89,22 @@ class Plot_Gui(ttk.Frame):
         # Add data to the graph for each file
         for filename in sorted(file_list):
             sid_file = SidFile(filename)
-            sid_file.XRAlist = []  # list will be populated if the user click on 'NOAA' button
+
+            # list will be populated if the user click on 'NOAA' button
+            sid_file.XRAlist = []
+
             self.sid_files.append(sid_file)
             self.daysList[sid_file.startTime] = []
-            fig_title.append(os.path.basename(filename)[:-4])  # assumed extension .csv removed
+            fig_title.append(os.path.basename(filename)[:-4])  # .csv assumed
             for station in set(sid_file.stations) - self.hidden_stations:
                 self.max_data = max(self.max_data,
                                     max(self.sid_files[0].data[0]))
                 print(sid_file.startTime, station)
                 # Does this station already have a color? if not, reserve one
                 if station not in self.colorStation:
-                    self.colorStation[station] = color_list[color_idx % len(color_list)] + '-'  # format like 'b-'
+                    # format like 'b-'
+                    self.colorStation[station] = \
+                        color_list[color_idx % len(color_list)] + '-'
                     color_idx += 1
                 # Add points to the plot
                 self.graph.plot_date(sid_file.timestamp,
@@ -102,10 +113,12 @@ class Plot_Gui(ttk.Frame):
         # add the buttons to show/add a station's curve
         for s, c in self.colorStation.items():
             btn_color = self.COLOR[c[0]]
-            station_button = tk.Button(self.tk_root, text=s,
-                                       bg=btn_color, activebackground="white")
-            station_button.configure(command=lambda s=s,
-                                     b=station_button: self.on_click_station(s, b))
+            station_button = tk.Button(
+                self.tk_root, text=s,
+                bg=btn_color, activebackground="white")
+            station_button.configure(
+                command=lambda s=s,
+                b=station_button: self.on_click_station(s, b))
             station_button.pack(side='left', padx=1, pady=1)
 
         noaa_button = tk.Button(self.tk_root, text="NOAA",
@@ -170,16 +183,20 @@ class Plot_Gui(ttk.Frame):
         bottom_max, top_max = current_axes.get_ylim()
         for sid_file in self.sid_files:
             # for each flare, draw the lines and box with flares intensity
-            for eventName, BeginTime, MaxTime, EndTime, Particulars in sid_file.XRAlist:
-                self.graph.vlines([BeginTime, MaxTime, EndTime], 0,
-                                  self.max_data, color=['g', 'r', 'y'],
-                                  linestyles='dotted')
-                self.graph.text(MaxTime,
-                                self.max_data + (top_max - self.max_data) / 4.0,
-                                Particulars, horizontalalignment='center',
-                                bbox={'facecolor': 'w',
-                                      'alpha': 0.5,
-                                      'fill': True})
+            for eventName, BeginTime, MaxTime, EndTime, Particulars \
+                    in sid_file.XRAlist:
+                self.graph.vlines(
+                    [BeginTime, MaxTime, EndTime], 0,
+                    self.max_data, color=['g', 'r', 'y'],
+                    linestyles='dotted')
+                self.graph.text(
+                    MaxTime,
+                    self.max_data + (top_max - self.max_data) / 4.0,
+                    Particulars, horizontalalignment='center',
+                    bbox={
+                        'facecolor': 'w',
+                        'alpha': 0.5,
+                        'fill': True})
             # draw the rectangles for rising and setting of the sun.
             # Use astronomical twilight
             if sid_file.rising < sid_file.setting:
@@ -213,11 +230,14 @@ class Plot_Gui(ttk.Frame):
         """Compute the night period of each SidFile using the ephem module."""
         sid_loc = ephem.Observer()
         for sid_file in self.sid_files:
-            sid_loc.lon, sid_loc.lat = sid_file.sid_params['longitude'], sid_file.sid_params['latitude']
+            sid_loc.lon = sid_file.sid_params['longitude']
+            sid_loc.lat = sid_file.sid_params['latitude']
             sid_loc.date = sid_file.startTime
             sid_loc.horizon = '-18'  # astronomical twilight
-            sid_file.rising = sid_loc.next_rising(ephem.Sun(), use_center=True)
-            sid_file.setting = sid_loc.next_setting(ephem.Sun(), use_center=True)
+            sid_file.rising = \
+                sid_loc.next_rising(ephem.Sun(), use_center=True)
+            sid_file.setting = \
+                sid_loc.next_setting(ephem.Sun(), use_center=True)
             # print(sid_file.filename, sid_file.startTime)
             # print(rising, ephem.localtime(rising))
             # print(setting, ephem.localtime(setting))
@@ -226,8 +246,12 @@ class Plot_Gui(ttk.Frame):
 if __name__ == '__main__':
     filenames = ""
     parser = argparse.ArgumentParser()
-    parser.add_argument('file_list', metavar='file.csv', type=exist_file, nargs='+',
-                    help='file(s) to be plotted')
+    parser.add_argument(
+        'file_list',
+        metavar='file.csv',
+        type=exist_file,
+        nargs='+',
+        help='file(s) to be plotted')
     args = parser.parse_args()
 
     root = tk.Tk()
