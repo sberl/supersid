@@ -20,7 +20,7 @@ import sys
 import os.path
 import configparser
 import argparse
-from supersid_common import *
+from supersid_common import script_relative_to_cwd_relative, exist_file
 
 # constant for 'log_type'
 FILTERED, RAW = 'filtered', 'raw'
@@ -72,12 +72,12 @@ class Config(dict):
             self.config_err = "Cannot find configuration file: " + filename
             return
 
-        """ each section (dictionary entry) matches a list of parameters
-            each parameter has:
-                a key description
-                a type for cast
-                a default value or None if mandatory
-        """
+        # Each section (dictionary entry) matches a list of parameters
+        # each parameter has:
+        # - a key description
+        # - a type for cast
+        # - a default value or None if mandatory
+
         sections = {
             'PARAMETERS': (
                 ####################
@@ -397,13 +397,20 @@ class Config(dict):
         self['data_path'] = script_relative_to_cwd_relative(self['data_path'])\
             + os.sep
         self.data_path = self['data_path']
+
+        # data_path must be a folder with read/write permission
         if not os.path.isdir(self.data_path):
             self.config_ok = False
             self.config_err = "'data_path' does not point to a valid " \
                 "directory:\n" + self.data_path
             return
+        if not os.access(self.data_path, os.R_OK | os.W_OK):
+            self.config_ok = False
+            self.config_err = "'data_path' must have read/write " \
+                "permission:\n" + self.data_path
+            return
 
-        # when present, 'local_tmp' must be a folder
+        # when present, 'local_tmp' must be a folder with read/write access
         if 'local_tmp' in self:
             self['local_tmp'] = script_relative_to_cwd_relative(
                 self['local_tmp']) + os.sep
@@ -412,6 +419,11 @@ class Config(dict):
                 self.config_ok = False
                 self.config_err = "'local_tmp' does not point to a valid " \
                     "directory:\n" + self.local_tmp
+                return
+            if not os.access(self.local_tmp, os.R_OK | os.W_OK):
+                self.config_ok = False
+                self.config_err = "'local_tmp' must have read/write " \
+                    "permission:\n" + self.local_tmp
                 return
 
         # default audio to sounddevice if not declared
@@ -438,32 +450,28 @@ class Config(dict):
 
 
 def readConfig(cfg_filename):
-    """
-    read and return the configuration or terminate the program
-    """
-    cfg = Config(cfg_filename)
-    cfg.supersid_check()
-    if cfg.config_ok:
-        assert(1 == len(cfg.filenames))
-        print("Config file '{}' read successfully".format(cfg.filenames[0]))
+    """Read and return the configuration or terminate the program."""
+    config = Config(cfg_filename)
+    config.supersid_check()
+    if config.config_ok:
+        assert len(config.filenames) == 1
+        print("Config file '{}' read successfully".format(config.filenames[0]))
     else:
-        print("Error:", cfg.config_err)
+        print("Error:", config.config_err)
         sys.exit(1)
-    return cfg
+    return config
 
 
-def printConfig(cfg):
-    """
-    print the configuration in a nice format
-    """
-    assert(1 == len(cfg.filenames))
+def printConfig(config):
+    """Print the configuration in a nice format."""
+    assert len(config.filenames) == 1
     print("--- Config file " + "-"*26)
-    print("\t{}".format(cfg.filenames[0]))
+    print("\t{}".format(config.filenames[0]))
     print("--- Sections " + "-"*29)
-    for section in sorted(cfg.sectionfound):
+    for section in sorted(config.sectionfound):
         print("\t{}".format(section))
     print("--- Key Value pairs " + "-"*22)
-    for k, v in sorted(cfg.items()):
+    for k, v in sorted(config.items()):
         print("\t{} = {}".format(k, v))
     print("--- Stations " + "-"*29)
     for st in cfg.stations:
