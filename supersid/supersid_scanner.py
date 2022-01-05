@@ -138,8 +138,8 @@ class SuperSID_scanner():
 
         # did we complete the expected scanning duration?
         if self.timer.time_now >= self.scan_end_time:
-            fileName = "scanner_buffers.raw.ext.{}.csv".format(
-                self.logger.sid_file.sid_params['utc_starttime'][:10])
+            fileName = "scanner_buffers.raw.ext.%s.csv" \
+                % (self.logger.sid_file.sid_params['utc_starttime'][:10])
             fsaved = self.save_current_buffers(
                 filename=fileName,
                 log_type='raw',

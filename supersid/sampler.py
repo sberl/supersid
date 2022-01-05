@@ -116,7 +116,7 @@ try:
                 # alsaaudio.PCM(card=card) deprecated since pyalsaaudio 0.8.0
                 # the device name would be built as 'default:CARD=' + card
                 # it has been observed, that default fails often,
-                # thus guessing the device name as  'sysdefault:CARD=' + card
+                # thus guessing the device name as 'sysdefault:CARD=' + card
                 device = 'sysdefault:CARD=' + card
                 print(
                     "alsaaudio card '{}', "
@@ -248,7 +248,7 @@ try:
                     "peak freq {} Hz"
                     .format(
                         len(channel_one_sec),
-                        type(one_sec),
+                        type(channel_one_sec[0]),
                         self.name,
                         one_sec.shape,
                         self.format,
@@ -442,7 +442,7 @@ try:
                     "peak freq {} Hz"
                     .format(
                         len(channel_one_sec),
-                        type(one_sec),
+                        type(channel_one_sec[0]),
                         self.name,
                         one_sec.shape,
                         self.format,
@@ -639,7 +639,7 @@ try:
                 except IOError as err:
                     print("IOError reading device:", str(err))
                     if -9981 == err.errno:
-                        # -9981 = input overflow. This should not happen
+                        # -9981 is input overflow. This should not happen
                         # with exception_on_overflow=False
                         pass
                     else:
@@ -678,7 +678,7 @@ try:
                     "peak freq {} Hz"
                     .format(
                         len(channel_one_sec),
-                        type(one_sec),
+                        type(channel_one_sec[0]),
                         self.name,
                         one_sec.shape,
                         self.format,

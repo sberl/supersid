@@ -27,6 +27,7 @@ local_tmp = /home/eric/supersid/Private/tmp
 call_signs = NWC:10000,JJI:100000
 
 """
+import sys
 import argparse
 from os import path
 import ftplib
@@ -47,12 +48,14 @@ if __name__ == '__main__':
     parser.add_argument(
         "-y", "--yesterday",
         action="store_true",
-        dest="askYesterday", default=False,
+        dest="askYesterday",
+        default=False,
         help="Yesterday's date is used for the file name.")
     parser.add_argument(
         'file_list',
         metavar='file.csv',
-        type=exist_file, nargs='*',
+        type=exist_file,
+        nargs='*',
         help='file(s) to be sent via FTP')
     args = parser.parse_args()
 

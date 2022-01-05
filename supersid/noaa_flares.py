@@ -125,8 +125,8 @@ class NOAA_flares(object):
           1000 +   1748 1752 1755  G15 5 XRA  1-8A M1.0 2.1E-03 2443
         """
         # ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
-        NOAA_URL = 'ftp://ftp.swpc.noaa.gov/pub/indices/events/{}sevents.txt' \
-            .format(self.day)
+        NOAA_URL = 'ftp://ftp.swpc.noaa.gov/pub/indices/events/%sevents.txt' \
+            % (self.day)
         response, self.XRAlist = None, []
         try:
             response = urllib.request.urlopen(NOAA_URL)
@@ -153,7 +153,7 @@ class NOAA_flares(object):
                         # msg += fields[8]          # Particulars
                         try:
                             # 'try' necessary as few occurences of
-                            #  --:-- instead of HH:MM exist
+                            # --:-- instead of HH:MM exist
                             btime = self.Tstamp(fields[1])
                         except Exception:
                             pass

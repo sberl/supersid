@@ -620,7 +620,7 @@ if __name__ == '__main__':
         print("Proceed to split this SuperSID file in %d SID files:"
               % sid.data.shape[0])
         for station in sid.stations:
-            fname = "{}/{}_{}_{}.split.csv".format(
+            fname = "%s/%s_%s_%s.split.csv" % (
                 path.dirname(sid.filename),
                 sid.sid_params['site'],
                 station,

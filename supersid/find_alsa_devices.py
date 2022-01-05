@@ -25,7 +25,7 @@ from isine import SinePlayer
 
 
 if __name__ == '__main__':
-    print("Version 20211229")
+    print("Version 20220105")
 
 
 """
@@ -810,15 +810,15 @@ try:
                                                 channel,
                                                 self.RESULTS[result],
 
-                                                "" if duration is None \
-                                                else ', {:.2f} s' \
+                                                "" if duration is None
+                                                else ', {:.2f} s'
                                                 .format(duration),
 
-                                                "" if peak_frequency is None \
+                                                "" if peak_frequency is None
                                                 else ", {} Hz"
                                                 .format(int(peak_frequency)),
 
-                                                "" if frequency_ratio is None \
+                                                "" if frequency_ratio is None
                                                 else " / {} Hz = {:5.3f}"
                                                 .format(
                                                     generated_frequency,
@@ -948,7 +948,7 @@ This is the list of candidates fulfilling the minimum requirements:""")
                             print('PeriodSize = {}'.format(PeriodSize))
                             print()
             else:
-                print("""No candidate could be found.")
+                print("""No candidate could be found.
 
 Q: Did you use an external frequency generator?
 y: The candidate suggestion doesn't work with an external frequency generator.
