@@ -1,4 +1,4 @@
-# SuperSID on Raspberry Pi with Rapberry OS
+# SuperSID on Raspberry Pi with Raspberry OS
 
 ## Preparation
 
@@ -75,7 +75,7 @@ This also ensures that we run in Python 3.7.3 as per current configuration.
 
 ### 3.2) Global or local installation
 
-This Raspi 3 is dedicated to SuperSid or you do not plan to mix various libraries: install at system level all the libraries.
+If this Raspberry Pi is dedicated to SuperSid or you do not plan to mix various libraries: install at system level all the libraries.
 You can do so exactly like you would do in linux, for an local installation inside the virtual environement by first executing 'workon supersid'.
 
 
@@ -183,7 +183,7 @@ It is possible to generate the test frequency with the *speaker-test* tool belon
 
 Assuming you are using the `speaker-test` tool connect the line out with the line in and do the following.
 You may have to adapt the device name to match your audio hardware. `aplay -L` will deliver a list of candidates.
-Here the built-in audio output of the RPi 3b is used.
+Here the built-in audio output of the RPi is used.
 
 In one console generate the test frequency.
 ```console
@@ -302,13 +302,13 @@ Is the sound card listed by arecord?
     $ arecord -L
 ```
 
-Is the voluem too low or the channel muted?
+Is the volume too low or the channel muted?
 Set the volume to be between 80% and 90%, unmute the relevant channels.
 ```console
     $ alsamixer
 ```
 
-Generate a test tome and connect line out to line in.
+Generate a test tone and connect line out to line in.
 ```console
     $ speaker-test -Dplughw:CARD=Headphones,DEV=0 -c 2 -t sine -f 10000 -X
 ```
