@@ -426,7 +426,7 @@ def readConfig(cfg_filename):
     config = Config(cfg_filename)
     config.supersid_check()
     if config.config_ok:
-        assert len(cfg.filenames) == 1
+        assert len(config.filenames) == 1
         print("Config file '{}' read successfully".format(config.filenames[0]))
     else:
         print("Error:", config.config_err)
