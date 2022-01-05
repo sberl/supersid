@@ -60,29 +60,38 @@ def create_file_list(config):
 
 
 def ftp_send(config, files_list):
-    """FTP the files to the server destination specified in the config."""
+    """
+    FTP the files to the server destination specified in the config.
+
+    It is assumed that the current working directory is the directory
+    containing the files in the list.
+    """
     print(files_list)
-    print("Opening FTP session with", cfg['ftp_server'])
+    print("Opening FTP session with", config.get('ftp_server'))
 
     try:
-        ftp = ftplib.FTP(cfg['ftp_server'])
-    except gaierror as e:
-        print(e)
+        ftp = ftplib.FTP(config.get('ftp_server'))
+    except gaierror as ex:
+        print(ex)
         print("Check ftp_server in .cfg file")
         sys.exit(1)
 
-    ftp.login("anonymous", cfg['contact'])
-    ftp.cwd(cfg['ftp_directory'])
-    print("putting files to ", cfg['ftp_directory'])
+    ftp.login("anonymous", config.get('contact'))
+    ftp.cwd(config.get('ftp_directory'))
+    print("putting files to ", config.get('ftp_directory'))
     # ftp.dir(data.append)
     for file_name in files_list:
         print("Sending {}".format(file_name))
-        try:
-            ftp.storlines("STOR " + os.path.basename(file_name),
-                          open(file_name, "rb"))
-            # TODO: delete file f once sent
-        except ftplib.error_perm as err:
-            print("Error sending", os.path.basename(file_name), ":", err)
+        with open(file_name, 'r', encoding='ascii') as file_desc:
+            try:
+                ftp.storlines("STOR " + file_name, file_desc)
+                # if sucess, delete the files
+                print("Deleting: ", file_name)
+            except ftplib.all_errors as err:
+                print("Error sending", file_name, ":", err)
+                # Dont delete file if there is an error.
+                # We will try again another time.
+
     ftp.quit()
     print("FTP session closed.")
 
