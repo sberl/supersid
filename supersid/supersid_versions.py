@@ -31,13 +31,15 @@ tested_versions = {
     'cycler': {'versions': ['0.10.0', '0.11.0'], 'requirement': 'mandatory'},
     'six': {'versions': ['1.12.0', '1.16.0'], 'requirement': 'mandatory'},
     'kiwisolver': {'versions': ['1.3.1', '1.3.2'], 'requirement': 'mandatory'},
-    'numpy': {'versions': ['1.21.2', '1.21.3', '1.21.4+vanilla', '1.21.5'], 'requirement': 'mandatory'},
+    'numpy': {
+        'versions': ['1.21.2', '1.21.3', '1.21.4+vanilla', '1.21.5'],
+        'requirement': 'mandatory'},
     'pillow': {'versions': ['8.4.0'], 'requirement': 'mandatory'},
     'pyparsing': {'versions': ['2.4.7', '3.0.4'], 'requirement': 'mandatory'},
     'python-dateutil': {'versions': ['2.8.2'], 'requirement': 'mandatory'},
 
     # pandas dependencies
-    'pandas': {'versions': ['1.3.4','1.3.5'], 'requirement': 'mandatory'},
+    'pandas': {'versions': ['1.3.4', '1.3.5'], 'requirement': 'mandatory'},
 
     # sounddevice dependencies
     'sounddevice': {'versions': ['0.4.3'], 'requirement': 'optional'},
@@ -49,16 +51,24 @@ tested_versions = {
     'ephem': {'versions': ['4.1'], 'requirement': 'mandatory'},
 
     # standalone
-    'python': {'versions': ['3.7.3', '3.8.12', '3.9.7'], 'requirement': 'mandatory'},
-    'pip': {'versions': ['21.0.1', '21.2.2', '21.3.1'], 'requirement': 'mandatory'},
+    'python': {
+        'versions': ['3.7.3', '3.8.12', '3.9.7'],
+        'requirement': 'mandatory'},
+    'pip': {
+        'versions': ['21.0.1', '21.2.2', '21.3.1'],
+        'requirement': 'mandatory'},
     'pyaudio': {'versions': ['0.2.11'], 'requirement': 'optional'},
     'pyalsaaudio': {'versions': ['0.9.0'], 'requirement': 'optional'},
     # import pkg_resources
-    'setuptools': {'versions': ['40.8.0', '57.4.0', '58.0.4'], 'requirement': 'mandatory'},
+    'setuptools': {
+        'versions': ['40.8.0', '57.4.0', '58.0.4'],
+        'requirement': 'mandatory'},
 
     # builtin
     'itertools': {'versions': ['builtin'], 'requirement': 'mandatory'},
-    'msvcrt': {'versions': ['builtin'], 'requirement': 'OS dependent (Windows)'},
+    'msvcrt': {
+        'versions': ['builtin'],
+        'requirement': 'OS dependent (Windows)'},
     'sys': {'versions': ['builtin'], 'requirement': 'mandatory'},
     'time': {'versions': ['builtin'], 'requirement': 'mandatory'},
 
@@ -89,19 +99,31 @@ if __name__ == '__main__':
         try:
             if module == 'python':
                 identified_versions[module] = "{}.{}.{}".format(
-                    sys.version_info.major, sys.version_info.minor, sys.version_info.micro)
+                    sys.version_info.major,
+                    sys.version_info.minor,
+                    sys.version_info.micro)
             elif (module in sys.builtin_module_names):
                 identified_versions[module] = 'builtin'
             else:
-                identified_versions[module] = pkg_resources.get_distribution(
-                    module).version
+                identified_versions[module] = \
+                    pkg_resources.get_distribution(module).version
 
-            if identified_versions[module] in tested_versions[module]['versions']:
-                print("SUCCESS: {} '{}' found version {}".format(
-                    tested_versions[module]['requirement'], module, identified_versions[module]))
+            if identified_versions[module] in \
+                    tested_versions[module]['versions']:
+                print(
+                    "SUCCESS: {} '{}' found version {}"
+                    .format(
+                        tested_versions[module]['requirement'],
+                        module,
+                        identified_versions[module]))
             else:
-                print("WARNING: {} '{}' found version {}, expected version(s) {}".format(
-                    tested_versions[module]['requirement'], module, identified_versions[module], tested_versions[module]['versions']))
+                print(
+                    "WARNING: {} '{}' found version {}, expected version(s) {}"
+                    .format(
+                        tested_versions[module]['requirement'],
+                        module,
+                        identified_versions[module],
+                        tested_versions[module]['versions']))
         except Exception as e:
             if 'mandatory' == tested_versions[module]['requirement']:
                 print("ERROR: {} '{}' not found".format(

@@ -37,6 +37,7 @@ format properly.
 Then it sends this file via FTP to the server at Stanford.
 
 """
+import sys
 import argparse
 from os import path
 import sys
@@ -49,16 +50,25 @@ from supersid_common import exist_file
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Upload data files to server")
-    parser.add_argument("-c", "--config", dest="cfg_filename",
-                        type=exist_file,
-                        default=CONFIG_FILE_NAME,
-                        help="Supersid configuration file")
-    parser.add_argument("-y", "--yesterday", action="store_true",
-                        dest="askYesterday", default=False,
-                        help="Yesterday's date is used for the file name.")
-    parser.add_argument('file_list', metavar='file.csv', type=exist_file,
-                        nargs='*', help='file(s) to be sent via FTP')
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c", "--config",
+        dest="cfg_filename",
+        type=exist_file,
+        default=CONFIG_FILE_NAME,
+        help="Supersid configuration file")
+    parser.add_argument(
+        "-y", "--yesterday",
+        action="store_true",
+        dest="askYesterday",
+        default=False,
+        help="Yesterday's date is used for the file name.")
+    parser.add_argument(
+        'file_list',
+        metavar='file.csv',
+        type=exist_file,
+        nargs='*',
+        help='file(s) to be sent via FTP')
     args = parser.parse_args()
 
     # read the configuration file or exit
@@ -67,22 +77,18 @@ if __name__ == '__main__':
         print("Error: 'local_tmp' has to be configured for FTP")
         sys.exit(1)
 
-    # If call_signs not configured, then take all the configured stations.
-    stations = (cfg['call_signs'].split(",")
-                if cfg['call_signs'] else
-                [s['call_sign'] for s in cfg.stations])
-
+    # what stations are to be selected from the input file(s) ?
+    stations = cfg['call_signs'].split(",") \
+        if cfg['call_signs'] \
+        else [s['call_sign'] for s in cfg.stations]  # i.e. else all stations
     # file list
     if args.askYesterday:
         yesterday = datetime.utcnow() - timedelta(days=1)
-        # This creates path/name for SuperSID format file. It does not find
-        # SID format files from yesterday.
-        args.file_list.append("{}{}{}_{}-{:02d}-{:02d}.csv".format(
-                                cfg['data_path'],
-                                path.sep, cfg['site_name'],
-                                yesterday.year, yesterday.month,
-                                yesterday.day))
-    # print("Filelist: ", args.file_list)
+        args.file_list.append(
+            "{}{}{}_{}-{:02d}-{:02d}.csv"
+            .format(
+                cfg['data_path'], path.sep, cfg['site_name'],
+                yesterday.year, yesterday.month, yesterday.day))
     # generate all the SID files ready to send in the local_tmp file
     files_to_send = []  # TODO: remove files_to_send
     for input_file in args.file_list:
@@ -120,18 +126,22 @@ if __name__ == '__main__':
                                                       file_startdate[:10])
                 # if the original file is filtered then we can save it "as is"
                 # else we need to apply_bema i.e. filter it
-                sid.write_data_sid(station_name, file_name, FILTERED,
-                                   extended=False,
-                                   apply_bema=sid.sid_params['logtype'] == RAW)
-                files_to_send.append(file_name) # TODO: remove files_to_send
+                sid.write_data_sid(
+                    station_name,
+                    file_name,
+                    FILTERED,
+                    extended=False,
+                    apply_bema=sid.sid_params['logtype'] == RAW)
+                files_to_send.append(file_name)    # TODO: remove files_to_send
                 print("Saved {}".format(file_name))
 
         else:
             print("Error:", input_file, "does not exist.")
 
     # TODO: fill files_to_send with
-    # glob.glob("{}{}{}*.csv".format(cfg['local_tmp'], path.sep, cfg['site_name']))
-    #     -> this will retry to send files which were not transmitted so far
+    # glob.glob("{}{}{}*.csv"
+    #    .format(cfg['local_tmp'], path.sep, cfg['site_name']))
+    # -> this will retry to send files which were not transmitted so far
     # now sending the files by FTP
     if files_to_send and cfg['automatic_upload'] == 'YES':
         print("Opening FTP session with", cfg['ftp_server'])
@@ -157,3 +167,6 @@ if __name__ == '__main__':
                 print("Error sending", path.basename(f), ":", err)
         ftp.quit()
         print("FTP session closed.")
+
+        for line in data:
+            print("-", line)
