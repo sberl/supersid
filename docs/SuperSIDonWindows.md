@@ -80,7 +80,7 @@ Open an `Anaconda Command Promt (Anaconda3)`
 Open a `CMD` window.
 ```console
     > "C:\Program Files\Python39\python.exe" -m pip install --upgrade pip
-    > "C:\Program Files\Python39\python.exe" -m pip install matplotlib numpy pyparsing python-dateutil six pyephem sounddevice pipwin
+    > "C:\Program Files\Python39\python.exe" -m pip install matplotlib numpy>=1.21.5 pandas>=1.3.5 pyparsing python-dateutil six pyephem sounddevice pipwin
     > "C:\Program Files\Python39\python.exe" -m pipwin install PyAudio
 ```
 

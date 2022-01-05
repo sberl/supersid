@@ -428,4 +428,3 @@ supersid_plot arguments:
      examples: -p myplot.pdf, -p myplot.jpg, -p myplot.png, -p myplot.tiff
 - -e destination email address
 - -w retrieve NOAA flare information
-

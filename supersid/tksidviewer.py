@@ -203,7 +203,10 @@ class tkSidViewer():
         """Call 'psd' within axes, both calculates and plots the spectrum."""
         try:
             self.axes.clear()
-            Pxx, freqs = self.axes.psd(data, NFFT=NFFT, Fs=FS)
+            Pxx = {}
+            for channel in range(self.controller.config['Channels']):
+                Pxx[channel], freqs = self.axes.psd(
+                    data[:, channel], NFFT=NFFT, Fs=FS)
             self.set_graph_limits()
             self.need_refresh = True
         except RuntimeError as err_re:

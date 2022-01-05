@@ -25,8 +25,11 @@ from supersid_common import script_relative_to_cwd_relative, exist_file
 # constant for 'log_type'
 FILTERED, RAW = 'filtered', 'raw'
 
-# constant for station parameters
+# constants for mandatory station parameters
 CALL_SIGN, FREQUENCY, COLOR = 'call_sign', 'frequency', 'color'
+
+# constants for optional station parameters
+CHANNEL = 'channel'
 
 # constant for 'log_format'
 SID_FORMAT, SUPERSID_FORMAT = 'sid_format', 'supersid_format'
@@ -150,6 +153,10 @@ class Config(dict):
 
                 # alsaaudio: format S16_LE, S24_3LE, S32_LE
                 ("Format", str, 'S16_LE'),
+
+                # alsaaudio: number of channels to be captured
+                # default 1, optional 2
+                ("Channels", int, 1),
             ),
 
             'Linux': (                              # obsolete
@@ -206,6 +213,10 @@ class Config(dict):
 
                 # alsaaudio: format S16_LE, S24_3LE, S32_LE
                 ("Format", str, 'S16_LE'),
+
+                # alsaaudio: number of channels to be captured
+                # default 1, optional 2
+                ("Channels", int, 1),
             )
 
         self.sectionfound = set()
@@ -244,8 +255,13 @@ class Config(dict):
             section = "STATION_" + str(i+1)
             tmpDict = {}
             try:
-                for parameter in (CALL_SIGN, FREQUENCY, COLOR):
-                    tmpDict[parameter] = config_parser.get(section, parameter)
+                for parameter in (CALL_SIGN, FREQUENCY, COLOR, CHANNEL):
+                    if parameter == CHANNEL:
+                        tmpDict[parameter] = \
+                            config_parser.getint(section, parameter)
+                    else:
+                        tmpDict[parameter] = \
+                            config_parser.get(section, parameter)
                 self.stations.append(tmpDict)
             except configparser.NoSectionError:
                 self.config_ok = False
@@ -253,11 +269,15 @@ class Config(dict):
                     " section is expected but missing from the config file."
                 return
             except configparser.NoOptionError:
-                self.config_ok = False
-                self.config_err = section + \
-                    " does not have the 3 expected parameters in the " \
-                    "config file. Please check."
-                return
+                if CHANNEL == parameter:
+                    tmpDict[parameter] = 0  # default is 0, the left channel
+                    self.stations.append(tmpDict)
+                else:
+                    self.config_ok = False
+                    self.config_err = section + \
+                        " does not have the 3 mandatory parameters in the " \
+                        "config file. Please check."
+                    return
             else:
                 self.sectionfound.add(section)
 
@@ -284,6 +304,14 @@ class Config(dict):
             self.config_err = "'number_of_stations' does not match STATIONS " \
                 "found in supersid.cfg. Please check."
             return
+
+        for station in self.stations:
+            if ((station[CHANNEL] < 0) or
+                    (station[CHANNEL] >= self['Channels'])):
+                self.config_ok = False
+                self.config_err = "'{}'={} must be >= 0 and < 'Channels'={}." \
+                    .format(CHANNEL, station[CHANNEL], self['Channels'])
+                return
 
         if 'stations' not in self:
             self[CALL_SIGN] = ",".join([s[CALL_SIGN] for s in self.stations])
@@ -446,9 +474,12 @@ def printConfig(config):
     for k, v in sorted(config.items()):
         print("\t{} = {}".format(k, v))
     print("--- Stations " + "-"*29)
-    for st in config.stations:
-        print("\tcall_sign = {}, frequency = {}, color = {}"
-              .format(st['call_sign'], st['frequency'], st['color']))
+    for st in cfg.stations:
+        print("\t{} = {}, {} = {}, {} = {}, {} = {}".format(
+            CALL_SIGN, st[CALL_SIGN],
+            FREQUENCY, st[FREQUENCY],
+            COLOR, st[COLOR],
+            CHANNEL, st[CHANNEL]))
 
 
 if __name__ == '__main__':

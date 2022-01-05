@@ -2,11 +2,11 @@
 
 This has been tested on
 
+Raspberry Pi Zero W
+Raspberry Pi Zero 2 W
 Raspberry Pi 3 Model B
 Raspberry Pi 3 Model B+
 Raspberry Pi 4 Model B
-Raspberry Pi Zero W
-Raspberry Pi Zero 2 W
 
 ## Preparation
 
@@ -308,6 +308,7 @@ Is the sound card listed by arecord?
 ```
 
 Is the volume too low or the channel muted?
+
 Set the volume to be between 80% and 90%, unmute the relevant channels.
 ```console
     $ alsamixer
@@ -460,4 +461,3 @@ supersid_plot arguments:
      examples: -p myplot.pdf, -p myplot.jpg, -p myplot.png, -p myplot.tiff
 - -e destination email address
 - -w retrieve NOAA flare information
-

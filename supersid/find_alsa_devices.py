@@ -25,7 +25,7 @@ from isine import SinePlayer
 
 
 if __name__ == '__main__':
-    print("Version 20220104")
+    print("Version 20220105")
 
 
 """
@@ -246,7 +246,7 @@ class speaker_test():
                 try:
                     self.isine = SinePlayer(device, rate, frequency)
                     self.isine.start()
-                    time.sleep(1.0)
+                    time.sleep(2.0)
                     print(
                         "test tone started {} Hz, '{}'"
                         .format(int(self.isine.frequency), device))
@@ -503,6 +503,7 @@ try:
             'E_INVALID_LENGTH',
             'E_INVALID_DATA_LENGTH',
             'E_RECORDED_ALL_ZEROS',
+            'E_MONO',
             'F_NOT_IMPLEMENTED']
 
         def __init__(self, verbose):
@@ -517,7 +518,8 @@ try:
             self.E_INVALID_LENGTH = 5
             self.E_INVALID_DATA_LENGTH = 6
             self.E_RECORDED_ALL_ZEROS = 7
-            self.F_NOT_IMPLEMENTED = 8
+            self.E_MONO = 8
+            self.F_NOT_IMPLEMENTED = 9
             self.verbose = verbose
 
         def test_configuration(
@@ -525,9 +527,10 @@ try:
                 pcm_device,
                 rate,
                 format,
-                periodsize):
+                periodsize,
+                channels):
             try:
-                channels = 1
+                assert(channels in [1, 2])
                 samplesize = FORMAT_LENGTHS[format]
                 framesize = samplesize * channels
                 PCM = alsaaudio.PCM(
@@ -575,28 +578,44 @@ try:
                 asound_format = ALSAAUDIO_2_ASOUND_FORMATS[format]
                 if asound_format == 'S16_LE':
                     unpacked_data = array(st_unpack(
-                        "<%ih" % rate,
+                        "<%ih" % (rate * channels),
                         raw_data[:framesize * rate]))
                 elif asound_format == 'S24_3LE':
                     unpacked_data = []
-                    for i in range(rate):
+                    for i in range(rate * channels):
                         chunk = raw_data[i*3:i*3+3]
                         unpacked_data.append(st_unpack(
                             '<i',
                             chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
+                    unpacked_data = array(unpacked_data)
                 elif asound_format == 'S32_LE':
                     unpacked_data = array(st_unpack(
-                        "<%ii" % rate,
+                        "<%ii" % (rate * channels),
                         raw_data[:framesize * rate]))
                 else:
                     print(
                         "\tERROR: format conversion of '{}' is not implemented"
                         .format(asound_format))
                     return self.F_NOT_IMPLEMENTED, None, None, None
-                assert(len(unpacked_data) == rate)
+                assert(len(unpacked_data) == (rate * channels))
+                # for 1 channel the format now is [left, ..., left]
+                # for 2 channels the format now is [left, right,
+                #                                   ..., left, right]
 
                 if min(unpacked_data) == max(unpacked_data):
                     return self.E_RECORDED_ALL_ZEROS, None, None, None
+
+                unpacked_data = unpacked_data.reshape((rate, channels))
+                # for 1 channel the format now is [[left], ..., [left]]
+                # for 2 channels the format now is [[left, right],
+                #                                   ..., [left, right]]
+                # left channel = unpacked_data[:, 0]
+                # right channel = unpacked_data[:, 1]
+
+                if ((2 == channels)
+                        and (list(unpacked_data[:, 0])
+                             == list(unpacked_data[:, 1]))):
+                    return self.E_MONO, None, None, None
 
                 # NFFT = 1024 for 44100 and 48000,
                 #        2048 for 96000,
@@ -604,16 +623,18 @@ try:
                 # -> the frequency resolution is constant
                 NFFT = max(1024, 1024 * rate // 48000)
 
-                Pxx, freqs = mlab_psd(
-                    unpacked_data,
-                    NFFT,
-                    rate)
-                m = max(Pxx)
-                if m == min(Pxx):
-                    peak_freq = None
-                else:
-                    pos = [i for i, j in enumerate(Pxx) if j == m]
-                    peak_freq = freqs[pos]
+                peak_freq = []
+                for channel in range(channels):
+                    Pxx, freqs = mlab_psd(
+                        unpacked_data[:, channel],
+                        NFFT,
+                        rate)
+                    m = max(Pxx)
+                    if m == min(Pxx):
+                        peak_freq.append(None)
+                    else:
+                        pos = [i for i, j in enumerate(Pxx) if j == m]
+                        peak_freq.append(freqs[pos][0])
 
                 return self.OK, unpacked_data, t_duration, peak_freq
             except alsaaudio.ALSAAudioError as e:
@@ -653,7 +674,7 @@ try:
             wf.setnchannels(channels)
             wf.setsampwidth(sample_width)
             wf.setframerate(rate)
-            for value in data:
+            for value in data.flatten():
                 value = int(value)
                 if value < min:
                     value = min
@@ -667,6 +688,7 @@ try:
                 self,
                 interfaces,
                 periodsize,
+                channels,
                 regression,
                 test_card,
                 test_tone,
@@ -691,7 +713,7 @@ try:
             tested_pcm_devices = []
             print(
                 "audio_sampling_rate, Audio, Device, Format, PeriodSize, "
-                "regression, result[, duration]"
+                "regression, channel, result[, duration]"
                 "[, peak frequency / generated frequency = frequency ratio]")
             for pcm_device in self.pcm_devices:
                 if test_card is not None:
@@ -740,62 +762,67 @@ try:
                                             pcm_device,
                                             rate,
                                             alsaaudio_format,
-                                            periodsize)
-                                    peak_frequency = None \
-                                        if (peak_freq is None) \
-                                        else peak_freq[0]
-                                    frequency_ratio = None \
-                                        if ((peak_frequency is None)
-                                            or (generated_frequency
-                                                is None)) \
-                                        else (peak_frequency
-                                              / generated_frequency)
-                                    test_log.append({
-                                        'Device': pcm_device,
-                                        'audio_sampling_rate': rate,
-                                        'Format': asound_format,
-                                        'PeriodSize': periodsize,
-                                        'i': i + 1,
-                                        'result': result,
-                                        'duration': duration,
-                                        'peak_freqency': peak_frequency,
-                                        'generated_frequency':
-                                            generated_frequency,
-                                        'frequency_ratio': frequency_ratio,
-                                    })
-
-                                    print(
-                                        "{:6d}, "       # rate
-                                        "alsaaudio, "
-                                        "{}, "          # pcm_device
-                                        "{:7s}, "       # asound_format
-                                        "{}, "          # periodsize
-                                        "{:2d}, "       # i+1
-                                        "{}"            # result
-                                        "{}"            # duration
-                                        "{}"            # peak_frequency
-                                        "{}"            # frequency_ratio
-                                        .format(
-                                            rate,
-                                            pcm_device,
-                                            asound_format,
                                             periodsize,
-                                            i+1,
-                                            self.RESULTS[result],
-
-                                            "" if duration is None
-                                            else ', {:.2f} s'
-                                            .format(duration),
-
-                                            "" if peak_frequency is None
-                                            else ", {} Hz"
-                                            .format(int(peak_frequency)),
-
-                                            "" if frequency_ratio is None
-                                            else " / {} Hz = {:5.3f}"
-                                            .format(
+                                            channels)
+                                    for channel in range(channels):
+                                        peak_frequency = None \
+                                            if (peak_freq is None) \
+                                            else peak_freq[channel]
+                                        frequency_ratio = None \
+                                            if ((peak_frequency is None)
+                                                or (generated_frequency
+                                                    is None)) \
+                                            else (peak_frequency
+                                                  / generated_frequency)
+                                        test_log.append({
+                                            'Device': pcm_device,
+                                            'audio_sampling_rate': rate,
+                                            'Format': asound_format,
+                                            'PeriodSize': periodsize,
+                                            'i': i + 1,
+                                            'channel': channel,
+                                            'result': result,
+                                            'duration': duration,
+                                            'peak_frequency': peak_frequency,
+                                            'generated_frequency':
                                                 generated_frequency,
-                                                frequency_ratio)))
+                                            'frequency_ratio': frequency_ratio,
+                                        })
+
+                                        print(
+                                            "{:6d}, "       # rate
+                                            "alsaaudio, "
+                                            "{}, "          # pcm_device
+                                            "{:7s}, "       # asound_format
+                                            "{}, "          # periodsize
+                                            "{:2d}, "       # i+1
+                                            "{}, "          # channel
+                                            "{}"            # result
+                                            "{}"            # duration
+                                            "{}"            # peak_frequency
+                                            "{}"            # frequency_ratio
+                                            .format(
+                                                rate,
+                                                pcm_device,
+                                                asound_format,
+                                                periodsize,
+                                                i+1,
+                                                channel,
+                                                self.RESULTS[result],
+
+                                                "" if duration is None
+                                                else ', {:.2f} s'
+                                                .format(duration),
+
+                                                "" if peak_frequency is None
+                                                else ", {} Hz"
+                                                .format(int(peak_frequency)),
+
+                                                "" if frequency_ratio is None
+                                                else " / {} Hz = {:5.3f}"
+                                                .format(
+                                                    generated_frequency,
+                                                    frequency_ratio)))
                                     if data is not None and save_wav:
                                         file = os.path.join(
                                             data_path,
@@ -808,7 +835,7 @@ try:
                                                 i))
                                         self.save_wav(
                                             file,
-                                            1,
+                                            channels,
                                             rate,
                                             format,
                                             data)
@@ -823,9 +850,9 @@ try:
             pprint(set(self.pcm_devices) - set(tested_pcm_devices))
             if test_tone != "external":
                 print()
-                self.test_summary(test_log, regression)
+                self.test_summary(test_log, regression, channels)
 
-        def test_summary(self, test_log, regression):
+        def test_summary(self, test_log, regression, channels):
             # convert the entire results list
             df = pd.DataFrame(test_log)
 
@@ -857,7 +884,7 @@ try:
                                     == audio_sampling_rate) &
                                 (df['Format'] == Format) &
                                 (df['PeriodSize'] == PeriodSize)].index
-                            if len(index) == regression:
+                            if len(index) == regression * channels:
                                 num_candidates += 1
                                 df.loc[index, 'candidate'] = num_candidates
 
@@ -872,7 +899,7 @@ This is the list of candidates fulfilling the minimum requirements:""")
                 df = df.dropna()
 
                 # drop all but one line per setting
-                df = df[df['i'] == regression]
+                df = df[(df['i'] == regression) & ((df['channel'] == 0))]
                 df = df.reset_index(drop=True)
 
                 # display all candidates
@@ -978,6 +1005,12 @@ capabilities will be queried from 'arecord' unless -b/--brute-force is set.
         help="brute force test all 'alsaaudio' PCMs",
         action='store_true')
     parser.add_argument(
+        "-n", "--channels",
+        help="number of channels, default=1",
+        choices=[1, 2],
+        type=int,
+        default=1)
+    parser.add_argument(
         "-l", "--list",
         help="list the parameter combinations and exit",
         action='store_true')
@@ -1075,6 +1108,7 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
         alsaaudio_tester(args.verbose).test(
             interfaces,
             args.periodsize,
+            args.channels,
             args.regression,
             args.device,
             args.test_tone,
