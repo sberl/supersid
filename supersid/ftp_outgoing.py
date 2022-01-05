@@ -79,14 +79,20 @@ def ftp_send(config, files_list):
     ftp.login("anonymous", config.get('contact'))
     ftp.cwd(config.get('ftp_directory'))
     print("putting files to ", config.get('ftp_directory'))
-    # ftp.dir(data.append)
+    # ftp.dir(data.aquippend)
     for file_name in files_list:
         print("Sending {}".format(file_name))
-        with open(file_name, 'r', encoding='ascii') as file_desc:
+        with open(file_name, 'rb') as file_desc:
             try:
-                ftp.storlines("STOR " + file_name, file_desc)
-                # if sucess, delete the files
-                print("Deleting: ", file_name)
+                print("STOR " + file_name)
+                res = ftp.storlines("STOR " + file_name, file_desc)
+                print(res)
+                if not res.startswith('226 Transfer complete'):
+                    print("Upload of ", file_name, " failed: ", res)
+                else:
+                    # Success, delete the files
+                    print("Deleting: ", file_name)
+
             except ftplib.all_errors as err:
                 print("Error sending", file_name, ":", err)
                 # Dont delete file if there is an error.
