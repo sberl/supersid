@@ -69,12 +69,12 @@ class Config(dict):
             self.config_err = "Cannot find configuration file: " + filename
             return
 
-        """ each section (dictionary entry) matches a list of parameters
-            each parameter has:
-                a key description
-                a type for cast
-                a default value or None if mandatory
-        """
+        # Each section (dictionary entry) matches a list of parameters
+        # each parameter has:
+        # - a key description
+        # - a type for cast
+        # - a default value or None if mandatory
+
         sections = {
             'PARAMETERS': (
                 ####################
@@ -434,19 +434,19 @@ def readConfig(cfg_filename):
     return config
 
 
-def printConfig(cfg):
+def printConfig(config):
     """Print the configuration in a nice format."""
-    assert len(cfg.filenames) == 1
+    assert len(config.filenames) == 1
     print("--- Config file " + "-"*26)
-    print("\t{}".format(cfg.filenames[0]))
+    print("\t{}".format(config.filenames[0]))
     print("--- Sections " + "-"*29)
-    for section in sorted(cfg.sectionfound):
+    for section in sorted(config.sectionfound):
         print("\t{}".format(section))
     print("--- Key Value pairs " + "-"*22)
-    for k, v in sorted(cfg.items()):
+    for k, v in sorted(config.items()):
         print("\t{} = {}".format(k, v))
     print("--- Stations " + "-"*29)
-    for st in cfg.stations:
+    for st in config.stations:
         print("\tcall_sign = {}, frequency = {}, color = {}"
               .format(st['call_sign'], st['frequency'], st['color']))
 
