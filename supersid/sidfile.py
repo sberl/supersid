@@ -16,6 +16,7 @@ Licence:     Open to All
 20150801:
     - truncate ['utc_starttime'] to 19 chars
 """
+
 import sys
 from datetime import datetime, timedelta
 import numpy
@@ -61,7 +62,7 @@ class SidFile():
         Note: only one or the other parameter should be given.
         If both are given then 'filename' is taken and 'sid_params' is ignored.
         """
-        self.version = "1.4 20220102"
+        self.version = "1.4 20150801"
         self.filename = filename
         self.sid_params = sid_params    # dictionary of all header pairs
         self.is_extended = False
@@ -121,7 +122,7 @@ class SidFile():
             print(
                 "ERROR: No station ID found in this file or configuration. "
                 "Please check!")
-            exit(5)
+            sys.exit(5)
 
         # get the datetime for UTC_StartTime
         self.set_all_date_attributes(keep_file_date=True)
@@ -212,13 +213,6 @@ class SidFile():
         elif self.isSuperSID and self.is_extended:
             # extended SuperSID file format: one extended time stamp then
             # one data column per station
-<<<<<<< HEAD
-            print ("Warning: read SuperSid extended file, time stamps are read & converted from file.")
-            in_data = numpy.loadtxt(self.lines, dtype=datetime, comments='#',
-                                    delimiter=",", converters=converters_dict)
-            self.timestamp = in_data[:, 0]  # column 0
-            self.data = numpy.array(in_data[:, 1:], dtype=float).transpose()
-=======
             print(
                 "Warning: read SuperSid extended file, time stamps are read & "
                 "converted from file.")
@@ -226,7 +220,6 @@ class SidFile():
                                    delimiter=",", converters=converters_dict)
             self.timestamp = inData[:, 0]  # column 0
             self.data = numpy.array(inData[:, 1:], dtype=float).transpose()
->>>>>>> master
         else:
             # classic SID file format:
             # two columns file: [timestamp, data]
@@ -234,14 +227,6 @@ class SidFile():
             #   date str to num conversion takes time
             # self.data must still be a 2 dimensions numpy.array
             #   even so only one vector is contained
-<<<<<<< HEAD
-            if ((len(self.lines) - self.headerNbLines
-                 != (60 * 60 * 24) / self.LogInterval)
-                    or force_read_timestamp
-                    or self.is_extended):
-                print("Warning: read SID file, timestamps are read & converted from file.")
-                in_data = numpy.loadtxt(self.lines, dtype=datetime,
-=======
             if (((len(self.lines) - self.headerNbLines)
                 != ((60 * 60 * 24) / self.LogInterval))
                     or force_read_timestamp
@@ -250,11 +235,10 @@ class SidFile():
                     "Warning: read SID file, timestamps are read & converted "
                     "from file.")
                 inData = numpy.loadtxt(self.lines, dtype=datetime,
->>>>>>> master
                                        comments='#', delimiter=",",
                                        converters=converters_dict)
-                self.timestamp = in_data[:, 0]  # column 0
-                self.data = numpy.array(in_data[:, 1],
+                self.timestamp = inData[:, 0]  # column 0
+                self.data = numpy.array(inData[:, 1],
                                         dtype=float, ndmin=2)  # column 1
             else:
                 print(
