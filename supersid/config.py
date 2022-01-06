@@ -317,7 +317,7 @@ class Config(dict):
                 # configured sampling rate is below Nyquist sampling rate
                 self.config_ok = False
                 self.config_err = "[STATION_{}] {}={}: " \
-                    "audio_sampling_rate2={} must be >= {}." \
+                    "audio_sampling_rate={} must be >= {}." \
                     .format(
                         i, FREQUENCY, station[FREQUENCY],
                         self['audio_sampling_rate'], int(station[FREQUENCY])*2
