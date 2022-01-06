@@ -320,7 +320,7 @@ class Config(dict):
                     "audio_sampling_rate2={} must be >= {}." \
                     .format(
                         i, FREQUENCY, station[FREQUENCY],
-                        self['audio_sampling_rate'], int(station[FREQUENCY]) * 2
+                        self['audio_sampling_rate'], int(station[FREQUENCY])*2
                         )
                 return
 
