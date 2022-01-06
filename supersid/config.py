@@ -305,12 +305,23 @@ class Config(dict):
                 "found in supersid.cfg. Please check."
             return
 
-        for station in self.stations:
+        for i, station in enumerate(self.stations):
             if ((station[CHANNEL] < 0) or
                     (station[CHANNEL] >= self['Channels'])):
                 self.config_ok = False
-                self.config_err = "'{}'={} must be >= 0 and < 'Channels'={}." \
-                    .format(CHANNEL, station[CHANNEL], self['Channels'])
+                self.config_err = \
+                    "[STATION_{}] {}={} must be >= 0 and < 'Channels'={}." \
+                    .format(i, CHANNEL, station[CHANNEL], self['Channels'])
+                return
+            if ((self['audio_sampling_rate'] // 2) < int(station[FREQUENCY])):
+                # configured sampling rate is below Nyquist sampling rate
+                self.config_ok = False
+                self.config_err = "[STATION_{}] {}={}: " \
+                    "audio_sampling_rate={} must be >= {}." \
+                    .format(
+                        i, FREQUENCY, station[FREQUENCY],
+                        self['audio_sampling_rate'], int(station[FREQUENCY])*2
+                        )
                 return
 
         if 'stations' not in self:
