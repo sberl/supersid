@@ -10,10 +10,8 @@ Raspberry Pi 4 Model B
 
 ## Preparation
 
-[Set up your Raspberry Pi]
-(https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi)
-with the image **Raspberry OS (32-bit)**.  At the date of the installation 
-(2021-11-01) this was *buster*.  Current version as of 2022-01-03 is
+[Set up your Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi)
+with the image **Raspberry OS (32-bit)**.  Current version as of 2022-01-03 is
 *bullseye*. Boot on the new micro-SD card, follow normal process for any
 fresh system install.  Connect to the internet.
 
@@ -46,8 +44,9 @@ Get the source from GitHub.com
 
 Now do the following:
 ```console
-    ~/supersid $ mkdir Data
-    ~/supersid $ mkdir outgoing
+    $ cd ~/supersid
+    $ mkdir Data
+    $ mkdir outgoing
 ```
 These directories will be used to store the data that will be sent via ftp to
 Stanford.
@@ -66,14 +65,19 @@ It is important that your system time of day clock is closely synchronized with
 the actual UTC time.  Then the data you collect can be compared to data from
 other sources such as other SuperSID users, and Xray flux data collected by
 satellites.
-If your machine does not have ntp installed then you want to install it.
+
 If you installed *Raspbian bullseye*, ntp is already installed and configured.
+```console
+    $ timedatectl status
+```
+You should read in one of the lines 'NTP service: active'.
+
+If your machine does not have ntp installed then you want to install it:
 ```console
     $ sudo apt-get install ntpdate ntp
 ```
 
-Follow the tutorial [Raspberry Pi sync date and time]
-(https://victorhurdugaci.com/raspberry-pi-sync-date-and-time)
+Follow the tutorial [Raspberry Pi sync date and time](https://victorhurdugaci.com/raspberry-pi-sync-date-and-time)
 
 Optional: Virtual environment management for Python:
 If your machine is being used for other purposes as well as SuperSID, you may
@@ -87,7 +91,7 @@ https://docs.python.org/3/tutorial/venv.html
 
 Install the venv package.
 ```console
-    $ sudo python3 -m pip install venv
+    $ sudo python3 -m pip install virtualenv
 ```
 
 ## 3) Installing SuperSID
@@ -107,7 +111,7 @@ From /home/pi:
     # Activate the newly created virtual environment
     $ source supersid-env/bin/activate
     # Install latest versions of package tools
-    $ python -m pip install -U pip wheel setuptools
+    $ python3 -m pip install -U pip wheel setuptools
 ```
 
 Your prompt should now start with '(supersid-env)'
@@ -115,7 +119,7 @@ This ensures that we run in Python 3.x as per current configuration.
 
 ### 3.2) Global or local installation
 
-This Raspberry Pi is dedicated to SuperSid or you do not plan to mix various
+If this Raspberry Pi is dedicated to SuperSid or you do not plan to mix various
 libraries: install at system level all the libraries.
 
 For an local installation inside the virtual environment, first execute 'source
@@ -353,8 +357,8 @@ plot file of an individual station is desired.
 
 Sending the ftp is accomplished by the program 'ftp_to_stanford.py' which is
 called by 'supersid.py' at midnight (UTC).  'ftp_to_stanford.py' reads the
-supersid file from '~/supersid/Data/' directory and converts them to filtered
-files for each station.  These are stored in '~/supersid/outgoing' and sent via
+supersid file from `~/supersid/Data/` directory and converts them to filtered
+files for each station.  These are stored in `~/supersid/outgoing` and sent via
 ftp.
 
 
