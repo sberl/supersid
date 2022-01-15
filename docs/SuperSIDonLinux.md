@@ -80,6 +80,14 @@ Install the venv package.
     $ sudo python3 -m pip install virtualenv
 ```
 
+For Ubuntu use the following command (matching your Python 3.x version):
+```console
+    $ python3 --version
+    Python 3.8.10
+    $ sudo apt install python3.8-venv
+```
+
+
 ## 3) Installing SuperSID
 
 ### 3.1) optional virtual environment
@@ -97,11 +105,13 @@ From /home/pi:
     # Activate the newly created virtual environment
     $ source supersid-env/bin/activate
     # Install latest versions of package tools
-    $ python3 -m pip install -U pip wheel setuptools
+    $ python -m pip install -U pip wheel setuptools
 ```
 
 Your prompt should now start with '(supersid-env)'
 This ensures that we run in Python 3.x as per current configuration.
+Once `source supersid-env/bin/activate` is executed, `python` and `python3`
+can be used synonymously.
 
 ### 3.2) Global or local installation
 

@@ -23,7 +23,8 @@ class SinePlayer(Thread):
         self.rate = rate
         self.frequency = self.nearest_frequency(frequency)
         buffer = self.generate()
-        assert(0 == len(buffer) % self.framesize)
+        assert (0 == (len(buffer) % self.framesize)), \
+            "expected length of the buffer to be a multiple of the frame size"
 
         if self.frequency > self.rate / 2:
             raise ValueError('maximum frequency is %d' % (self.rate / 2))
