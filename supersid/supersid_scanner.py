@@ -7,8 +7,10 @@ Segregation MVC
 
 Based on supersid.py
 
-Help to determine what stations are the strongest
-Can help to orientate the antenna
+Help to determine what stations are the strongest.
+Can help to orientate the antenna.
+
+Works with pyaudio only.
 """
 import os.path
 from time import sleep

@@ -349,13 +349,16 @@ class arecord(alsa):
                     key, value = line.split(':')
                     values = value.strip()
                     if (values[0] in '(['):
-                        assert(values[-1] in '])')
+                        assert (values[-1] in '])'), \
+                            "expected values string to end with either one " \
+                            "of ']' or ')'"
                         opening_bracket = values[0]
                         closing_bracket = values[-1]
                         # an interval of integer values with min and max given
                         values = values[1:-1]    # strip brackets
                         values = values.split()  # split at blanks
-                        assert(2 == len(values))
+                        assert (2 == len(values)), \
+                            "expected exactly two values"
                         min, max = int(values[0]), int(values[1])
 
                         # start assumption ->
@@ -400,7 +403,8 @@ class arecord(alsa):
             stdout, stderr = p.communicate()
             stderr = stderr.decode()
             errorlevel = p.returncode
-            assert(stdout is None)    # redirected to /dev/null
+            assert (stdout is None), \
+                "expected stdout to be redirected to /dev/null"
             hw_params = self.parse_hw_params(stderr)
             if hw_params:
                 hw_params['RATE'] = self.rate_range_to_list(hw_params['RATE'])
@@ -530,7 +534,8 @@ try:
                 periodsize,
                 channels):
             try:
-                assert(channels in [1, 2])
+                assert (channels in [1, 2]), \
+                    f"expected one or two channels, got {channels}"
                 samplesize = FORMAT_LENGTHS[format]
                 framesize = samplesize * channels
                 PCM = alsaaudio.PCM(
@@ -574,7 +579,8 @@ try:
                 t_end = time.time()
                 t_duration = t_end - t_start
 
-                assert(len(raw_data) >= (framesize * rate))
+                assert (len(raw_data) >= (framesize * rate)), \
+                    "expected number of bytes to be framesize * rate"
                 asound_format = ALSAAUDIO_2_ASOUND_FORMATS[format]
                 if asound_format == 'S16_LE':
                     unpacked_data = array(st_unpack(
@@ -597,7 +603,8 @@ try:
                         "\tERROR: format conversion of '{}' is not implemented"
                         .format(asound_format))
                     return self.F_NOT_IMPLEMENTED, None, None, None
-                assert(len(unpacked_data) == (rate * channels))
+                assert (len(unpacked_data) == (rate * channels)), \
+                    "expected number of samples to be sample rate * channels"
                 # for 1 channel the format now is [left, ..., left]
                 # for 2 channels the format now is [left, right,
                 #                                   ..., left, right]
