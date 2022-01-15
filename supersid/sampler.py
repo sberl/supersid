@@ -397,9 +397,10 @@ try:
                     raise NotImplementedError(
                         "'int24' is not supported by sounddevice.rec()")
                 self.duration = time.time() - t
-                assert(
-                    len(unpacked_data) ==
-                    (self.audio_sampling_rate * self.channels))
+                assert (len(unpacked_data) ==
+                        (self.audio_sampling_rate * self.channels)), \
+                    "expected the number of samples to be identical with " \
+                    "sampling rate * number of channels"
             except sounddevice.PortAudioError as err:
                 print("Error reading device", self.name)
                 print(err)
@@ -414,9 +415,9 @@ try:
             print(self.name, "at", self.audio_sampling_rate, "Hz")
 
             # index 0 of sounddevice.default.device is the input device
-            assert(
-                sounddevice.default.device[0] ==
-                self.get_device_by_name(self.device_name))
+            assert (sounddevice.default.device[0] ==
+                    self.get_device_by_name(self.device_name)), \
+                "get_device_by_name() deliverd an unexpected device"
 
             try:
                 one_sec = self.capture_1sec()

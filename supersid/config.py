@@ -469,7 +469,8 @@ def readConfig(cfg_filename):
     config = Config(cfg_filename)
     config.supersid_check()
     if config.config_ok:
-        assert len(config.filenames) == 1
+        assert (len(config.filenames) == 1), \
+            "expected exactly one configuration file name"
         print("Config file '{}' read successfully".format(config.filenames[0]))
     else:
         print("Error:", config.config_err)
@@ -479,7 +480,8 @@ def readConfig(cfg_filename):
 
 def printConfig(config):
     """Print the configuration in a nice format."""
-    assert len(config.filenames) == 1
+    assert (len(config.filenames) == 1), \
+        "expected exactly one configuration file name"
     print("--- Config file " + "-"*26)
     print("\t{}".format(config.filenames[0]))
     print("--- Sections " + "-"*29)
