@@ -375,7 +375,12 @@ You must determine when midnight UTC occurs in your time zone. In this case, the
 ```console
     $ cd ~/supersid/supersid
     $ ./supersid.py -c ../Config/supersid.cfg
-```
+```  
+There are three arguments that can be used with supersid.py  
+Using -r will allow supersid.py to read an existing csv file and add data to it.  This can be useful in the event of a power outage.  
+Using -c will allow you to specify a cfg file  
+Using -v will allow you to specify a different viewer than that which is listed in your cfg file.  Options are either text or tk  
+
 
 ## 9) SD Card Backup
 
