@@ -7,6 +7,9 @@ tkSidViewer class - a graphical user interface for SID based on tkinter.
 2017/09/01: add vertical lines on the plot for each monitored station
 
 """
+import sys
+import subprocess
+
 import tkinter as tk
 import tkinter.messagebox as MessageBox
 import tkinter.filedialog as FileDialog
@@ -18,10 +21,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-import sys
-import subprocess
-
-from supersid_common import *
+from supersid_common import script_relative_to_cwd_relative
 
 
 class Formatter(object):
@@ -203,7 +203,10 @@ class tkSidViewer():
         """Call 'psd' within axes, both calculates and plots the spectrum."""
         try:
             self.axes.clear()
-            Pxx, freqs = self.axes.psd(data, NFFT=NFFT, Fs=FS)
+            Pxx = {}
+            for channel in range(self.controller.config['Channels']):
+                Pxx[channel], freqs = self.axes.psd(
+                    data[:, channel], NFFT=NFFT, Fs=FS)
             self.set_graph_limits()
             self.need_refresh = True
         except RuntimeError as err_re:
@@ -268,8 +271,11 @@ class tkSidViewer():
         """
         filenames = self.controller.save_current_buffers(
             log_format='supersid_format')
-        assert(1 == len(filenames))
-        assert(1 == len(self.controller.config.filenames))
+        assert (1 == len(filenames)), \
+            f"expected exactly one saved file, got {len(filenames)}"
+        assert (1 == len(self.controller.config.filenames)), \
+            "expected exactly one configuration file, got " \
+            f"{len(self.controller.config.filenames)}"
         print("plotting", filenames[0])
         subprocess.Popen([
             sys.executable,

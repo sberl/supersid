@@ -142,7 +142,7 @@ Example
 ```
 
 
-## Typical usage
+## Typical usage, identify devices supporting one channel
 
 Connect the line out of each device with the line in of the same device. E.g.:<br />
 Connect the line out of U192k to the line in of U192k.<br />
@@ -209,6 +209,150 @@ Example
     PeriodSize = 1024
 
     spent 916 seconds
+```
+
+
+## Identify devices supporting two channels
+
+Connect the line out of each device with the line in of the same device. E.g.:<br />
+Connect the line out of U192k to the line in of U192k.<br />
+Connect the line out of Dongle to the line in of Dongle.<br />
+Connect the line out of U0x41e0x30d3 to the line in of U0x41e0x30d3.<br />
+
+Command
+```console
+    $ python3 -u find_alsa_devices.py -n 2 2>&1
+```
+
+Example
+```example
+    ...
+
+    70 candidates found.
+    Prefer candidates with these properties:
+    - audio_sampling_rate = highest available value
+    - Format = the more bits the better (32 better than 24, 24 better than 16)
+
+    This is the complete list of candidates fulfilling the minimum requirements:
+                              Device  audio_sampling_rate   Format  PeriodSize
+    0         sysdefault:CARD=Dongle                48000   S16_LE        1024
+    1         sysdefault:CARD=Dongle                48000  S24_3LE        1024
+    2        front:CARD=Dongle,DEV=0                44100   S16_LE        1024
+    3        front:CARD=Dongle,DEV=0                44100  S24_3LE        1024
+    4        front:CARD=Dongle,DEV=0                48000   S16_LE        1024
+    5        front:CARD=Dongle,DEV=0                48000  S24_3LE        1024
+    6        front:CARD=Dongle,DEV=0                96000   S16_LE        1024
+    7        front:CARD=Dongle,DEV=0                96000  S24_3LE        1024
+    8   surround40:CARD=Dongle,DEV=0                44100   S16_LE        1024
+    9   surround40:CARD=Dongle,DEV=0                44100  S24_3LE        1024
+    10  surround40:CARD=Dongle,DEV=0                48000   S16_LE        1024
+    11  surround40:CARD=Dongle,DEV=0                48000  S24_3LE        1024
+    12  surround40:CARD=Dongle,DEV=0                96000   S16_LE        1024
+    13  surround40:CARD=Dongle,DEV=0                96000  S24_3LE        1024
+    14      iec958:CARD=Dongle,DEV=0                44100   S16_LE        1024
+    15      iec958:CARD=Dongle,DEV=0                44100  S24_3LE        1024
+    16      iec958:CARD=Dongle,DEV=0                48000   S16_LE        1024
+    17      iec958:CARD=Dongle,DEV=0                48000  S24_3LE        1024
+    18      iec958:CARD=Dongle,DEV=0                96000   S16_LE        1024
+    19      iec958:CARD=Dongle,DEV=0                96000  S24_3LE        1024
+    20      dsnoop:CARD=Dongle,DEV=0                48000   S16_LE        1024
+    21          hw:CARD=Dongle,DEV=0                44100   S16_LE        1024
+    22          hw:CARD=Dongle,DEV=0                44100  S24_3LE        1024
+    23          hw:CARD=Dongle,DEV=0                48000   S16_LE        1024
+    24          hw:CARD=Dongle,DEV=0                48000  S24_3LE        1024
+    25          hw:CARD=Dongle,DEV=0                96000   S16_LE        1024
+    26          hw:CARD=Dongle,DEV=0                96000  S24_3LE        1024
+    27      plughw:CARD=Dongle,DEV=0                44100   S16_LE        1024
+    28      plughw:CARD=Dongle,DEV=0                44100  S24_3LE        1024
+    29      plughw:CARD=Dongle,DEV=0                48000   S16_LE        1024
+    30      plughw:CARD=Dongle,DEV=0                48000  S24_3LE        1024
+    31      plughw:CARD=Dongle,DEV=0                64000   S16_LE        1024
+    32      plughw:CARD=Dongle,DEV=0                64000  S24_3LE        1024
+    33      plughw:CARD=Dongle,DEV=0                88200   S16_LE        1024
+    34      plughw:CARD=Dongle,DEV=0                88200  S24_3LE        1024
+    35      plughw:CARD=Dongle,DEV=0                96000   S16_LE        1024
+    36      plughw:CARD=Dongle,DEV=0                96000  S24_3LE        1024
+    37         sysdefault:CARD=U192k                48000   S32_LE        1024
+    38        front:CARD=U192k,DEV=0                44100   S32_LE        1024
+    39        front:CARD=U192k,DEV=0                48000   S32_LE        1024
+    40        front:CARD=U192k,DEV=0                88200   S32_LE        1024
+    41        front:CARD=U192k,DEV=0                96000   S32_LE        1024
+    42        front:CARD=U192k,DEV=0               176400   S32_LE        1024
+    43        front:CARD=U192k,DEV=0               192000   S32_LE        1024
+    44   surround40:CARD=U192k,DEV=0                44100   S32_LE        1024
+    45   surround40:CARD=U192k,DEV=0                48000   S32_LE        1024
+    46   surround40:CARD=U192k,DEV=0                88200   S32_LE        1024
+    47   surround40:CARD=U192k,DEV=0                96000   S32_LE        1024
+    48   surround40:CARD=U192k,DEV=0               176400   S32_LE        1024
+    49   surround40:CARD=U192k,DEV=0               192000   S32_LE        1024
+    50       iec958:CARD=U192k,DEV=0                44100   S32_LE        1024
+    51       iec958:CARD=U192k,DEV=0                48000   S32_LE        1024
+    52       iec958:CARD=U192k,DEV=0                88200   S32_LE        1024
+    53       iec958:CARD=U192k,DEV=0                96000   S32_LE        1024
+    54       iec958:CARD=U192k,DEV=0               176400   S32_LE        1024
+    55       iec958:CARD=U192k,DEV=0               192000   S32_LE        1024
+    56       dsnoop:CARD=U192k,DEV=0                48000   S32_LE        1024
+    57           hw:CARD=U192k,DEV=0                44100   S32_LE        1024
+    58           hw:CARD=U192k,DEV=0                48000   S32_LE        1024
+    59           hw:CARD=U192k,DEV=0                88200   S32_LE        1024
+    60           hw:CARD=U192k,DEV=0                96000   S32_LE        1024
+    61           hw:CARD=U192k,DEV=0               176400   S32_LE        1024
+    62           hw:CARD=U192k,DEV=0               192000   S32_LE        1024
+    63       plughw:CARD=U192k,DEV=0                44100   S32_LE        1024
+    64       plughw:CARD=U192k,DEV=0                48000   S32_LE        1024
+    65       plughw:CARD=U192k,DEV=0                64000   S32_LE        1024
+    66       plughw:CARD=U192k,DEV=0                88200   S32_LE        1024
+    67       plughw:CARD=U192k,DEV=0                96000   S32_LE        1024
+    68       plughw:CARD=U192k,DEV=0               176400   S32_LE        1024
+    69       plughw:CARD=U192k,DEV=0               192000   S32_LE        1024
+
+    These are the supersid.cfg settings of the best candidates:
+    # candidate 'front:CARD=U192k,DEV=0', 192000, S32_LE, 1024
+    [PARAMETERS]
+    audio_sampling_rate = 192000
+    [Capture]
+    Audio = alsaaudio
+    Device = front:CARD=U192k,DEV=0
+    Format = S32_LE
+    PeriodSize = 1024
+
+    # candidate 'surround40:CARD=U192k,DEV=0', 192000, S32_LE, 1024
+    [PARAMETERS]
+    audio_sampling_rate = 192000
+    [Capture]
+    Audio = alsaaudio
+    Device = surround40:CARD=U192k,DEV=0
+    Format = S32_LE
+    PeriodSize = 1024
+
+    # candidate 'iec958:CARD=U192k,DEV=0', 192000, S32_LE, 1024
+    [PARAMETERS]
+    audio_sampling_rate = 192000
+    [Capture]
+    Audio = alsaaudio
+    Device = iec958:CARD=U192k,DEV=0
+    Format = S32_LE
+    PeriodSize = 1024
+
+    # candidate 'hw:CARD=U192k,DEV=0', 192000, S32_LE, 1024
+    [PARAMETERS]
+    audio_sampling_rate = 192000
+    [Capture]
+    Audio = alsaaudio
+    Device = hw:CARD=U192k,DEV=0
+    Format = S32_LE
+    PeriodSize = 1024
+
+    # candidate 'plughw:CARD=U192k,DEV=0', 192000, S32_LE, 1024
+    [PARAMETERS]
+    audio_sampling_rate = 192000
+    [Capture]
+    Audio = alsaaudio
+    Device = plughw:CARD=U192k,DEV=0
+    Format = S32_LE
+    PeriodSize = 1024
+
+    spent 2026 seconds
 ```
 
 
