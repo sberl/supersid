@@ -417,7 +417,7 @@ try:
             # index 0 of sounddevice.default.device is the input device
             assert (sounddevice.default.device[0] ==
                     self.get_device_by_name(self.device_name)), \
-                "get_device_by_name() deliverd an unexpected device"
+                "get_device_by_name() delivered an unexpected device"
 
             try:
                 one_sec = self.capture_1sec()
