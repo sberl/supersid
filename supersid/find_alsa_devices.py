@@ -222,7 +222,7 @@ class speaker_test():
     def get_pcms(self):
         return self.ap.get_pcms()
 
-    def start_test_tone(self, card, rate, frequency=10000):
+    def start_test_tone(self, card, rate, frequency, channels):
         """assumption: plughw: will generate the test tone"""
         if "CARD=" == card[0:5]:
             # by experience the 'plughw:CARD=xxxx' are working best
@@ -244,7 +244,7 @@ class speaker_test():
                         break
             if found:
                 try:
-                    self.isine = SinePlayer(device, rate, frequency)
+                    self.isine = SinePlayer(device, rate, frequency, channels)
                     self.isine.start()
                     time.sleep(2.0)
                     print(
@@ -757,7 +757,11 @@ try:
 
                                     # adapt the frequency to the sample rate,
                                     # theoretical max would be (rate / 2)
-                                    generated_frequency
+                                    generated_frequency,
+
+                                    # use the same number of channels as for
+                                    # the capturing
+                                    channels
                                 )
                             for format in interface['formats']:
                                 asound_format = format
@@ -868,32 +872,46 @@ try:
             df = df.dropna()
 
             # drop frequency_ratio deviating more than 2 %% from the ideal 1.0
-            df = df[
-                (df['frequency_ratio'] >= 0.998) &
-                (df['frequency_ratio'] <= 1.002)]
+            if 'frequency_ratio' in df.keys():
+                df = df[
+                    (df['frequency_ratio'] >= 0.998) &
+                    (df['frequency_ratio'] <= 1.002)]
 
             # in the brute force operation it has been observed that devices
             # appear to work with higher sample rates than supported, the
             # recording time is then i.e. 4 sec for a 48000 device tested as
             # 192000
-            df = df[
-                (df['duration'] > 0.9) &
-                (df['duration'] < 1.1)]
+            if 'duration' in df.keys():
+                df = df[
+                    (df['duration'] > 0.9) &
+                    (df['duration'] < 1.1)]
+
             df['candidate'] = None
             num_candidates = 0
-            for Device in df['Device'].unique():
-                for audio_sampling_rate in df['audio_sampling_rate'].unique():
-                    for Format in df['Format'].unique():
-                        for PeriodSize in df['PeriodSize'].unique():
-                            index = df[
-                                (df['Device'] == Device) &
-                                (df['audio_sampling_rate']
-                                    == audio_sampling_rate) &
-                                (df['Format'] == Format) &
-                                (df['PeriodSize'] == PeriodSize)].index
-                            if len(index) == regression * channels:
-                                num_candidates += 1
-                                df.loc[index, 'candidate'] = num_candidates
+
+            required_keys = {
+                'Device',
+                'audio_sampling_rate',
+                'Format',
+                'PeriodSize',
+                'candidate',
+            }
+            if set() == (required_keys - set(df.keys())):
+                for Device in df['Device'].unique():
+                    for audio_sampling_rate in df['audio_sampling_rate'] \
+                            .unique():
+                        for Format in df['Format'].unique():
+                            for PeriodSize in df['PeriodSize'].unique():
+                                index = df[
+                                    (df['Device'] == Device) &
+                                    (df['audio_sampling_rate']
+                                        == audio_sampling_rate) &
+                                    (df['Format'] == Format) &
+                                    (df['PeriodSize'] == PeriodSize)].index
+                                if len(index) == regression * channels:
+                                    num_candidates += 1
+                                    df.loc[index, 'candidate'] = \
+                                        num_candidates
 
             if num_candidates >= 1:
                 print("{} candidates found.".format(num_candidates))

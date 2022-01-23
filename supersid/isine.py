@@ -14,12 +14,13 @@ import argparse
 
 
 class SinePlayer(Thread):
-    def __init__(self, device, rate, frequency):
+    def __init__(self, device, rate, frequency, channels):
         Thread.__init__(self)
         self.setDaemon(True)
-        self.channels = 2
+        self.channels = channels
         self.format = alsaaudio.PCM_FORMAT_S16_LE
-        self.framesize = self.channels * 2    # ha to match self.format
+        self.samplesize = 2    # number of bytes for self.format (1 channel)
+        self.framesize = self.samplesize * self.channels
         self.rate = rate
         self.frequency = self.nearest_frequency(frequency)
         buffer = self.generate()
@@ -49,7 +50,7 @@ class SinePlayer(Thread):
         # that is approximately `duration` seconds long
 
         # the buffersize we approximately want
-        target_size = int(self.rate * self.framesize * duration)
+        target_size = int(self.rate * self.samplesize * duration)
 
         # the length of a full sine wave at the frequency
         cycle_size = int(self.rate / self.frequency)
@@ -59,12 +60,23 @@ class SinePlayer(Thread):
 
         size = max(int(cycle_size * factor), 1)
 
-        sine = [int(
-            0.01     # limit the amplitude to 1%
+        mono = [int(
+            0.1     # limit the amplitude to 10%
             * 32767
             * sin(2 * pi * self.frequency * i / self.rate))
             for i in range(size)]
-        return struct.pack('%dh' % size, *sine)
+
+        if self.channels == 1:
+            sine = mono
+        elif self.channels == 2:
+            sine = []
+            for val in mono:
+                sine.append(val)    # left channel
+                sine.append(val)    # right channel
+        else:
+            assert False, f"supporting 1 or 2 channels, found {self.channels}"
+
+        return struct.pack('%dh' % size * self.channels, *sine)
 
     def run(self):
         buffer = None
@@ -98,10 +110,17 @@ def main():
         help='sine wave frequency in Hz',
         type=int,
         default=440)
+    parser.add_argument(
+        "-n", "--channels",
+        help="number of channels, default=1",
+        choices=[1, 2],
+        type=int,
+        default=1)
     args = parser.parse_args()
     print(args)
 
-    isine = SinePlayer(args.device, args.rate, args.frequency)
+    isine = SinePlayer(args.device, args.rate, args.frequency,
+                       args.channels)
     isine.start()
     time.sleep(2)
     isine.stop()
@@ -109,7 +128,8 @@ def main():
 
     time.sleep(0.5)
 
-    isine = SinePlayer(args.device, args.rate, args.frequency // 2)
+    isine = SinePlayer(args.device, args.rate, args.frequency // 2,
+                       args.channels)
     isine.start()
     time.sleep(2)
     isine.stop()
