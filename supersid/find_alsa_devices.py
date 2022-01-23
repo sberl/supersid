@@ -25,7 +25,7 @@ from isine import SinePlayer
 
 
 if __name__ == '__main__':
-    print("Version 20220105")
+    print("Version 20220123")
 
 
 """
