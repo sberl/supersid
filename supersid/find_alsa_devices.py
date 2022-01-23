@@ -250,14 +250,17 @@ class speaker_test():
                     print(
                         "test tone started {} Hz, '{}'"
                         .format(int(self.isine.frequency), device))
+                    return True
                 except Exception as e:
-                    print("ERROR:", type(e), e)
+                    print("ERROR test tone:", type(e), e)
             else:
                 print(
-                    "ERROR: device '{}' not found for test tone generation"
+                    "ERROR test tone: device '{}' not found for test tone "
+                    "generation"
                     .format(device))
         else:
-            print("usage error: test tone is already active")
+            print("ERROR test tone: usage error, already active")
+        return False
 
     def stop_test_tone(self):
         if self.isine:
@@ -742,7 +745,7 @@ try:
                             generated_frequency = test_frequency
                             if st is not None:
                                 generated_frequency = rate // 3
-                                st.start_test_tone(
+                                if not st.start_test_tone(
                                     # preferably use the device configured for
                                     # the test tone
                                     test_tone if test_tone is not None
@@ -762,7 +765,8 @@ try:
                                     # use the same number of channels as for
                                     # the capturing
                                     channels
-                                )
+                                ):
+                                    continue  # test tone could not be started
                             for format in interface['formats']:
                                 asound_format = format
                                 alsaaudio_format = \

@@ -11,31 +11,76 @@ from math import pi, sin
 import struct
 import alsaaudio
 import argparse
+import warnings
+
+# http://larsimmisch.github.io/pyalsaaudio/libalsaaudio.html#pcm-objects
+# It says: class alsaaudio.PCM "... will construct a PCM object with the given
+# settings." This is not the truth. As of today (Jan 23, 2022) version 0.9.0
+# is the latest available at pypi.org. This version is from Jul 13, 2020.
+#
+# The pyalsaaudio implementation as of this date is here:
+# https://github.com/larsimmisch/pyalsaaudio/blob/5302dc524d5eccf27b74d0a80ee151452797818a/alsaaudio.c
+# alsapcm_setup() linw 399 to 406 documents, that format, channels, rate, and
+# periodsize may actually be different from the requested settings.
+# Even worse: There is no function which would allow to query the actual
+# setting. PCM.dumpinfo() allows to print thecsettings to stdout. A super
+# clever solution. This output cannot be handled in the script. Lately the
+# method PCM.info() has been added, but this is not available in the
+# published 0.9.0.
+# The only way to get hold of the actual values for channel, format, rate and
+# periodsize is the use of the deprecated methods PCM.setchannels(),
+# PCM.setformat(), PCM.setrate() and PCM.setperiodsize().
+# For this reason we do not want to see DeprecationWarnings for alsaaudio.
 
 
 class SinePlayer(Thread):
     def __init__(self, device, rate, frequency, channels):
         Thread.__init__(self)
         self.setDaemon(True)
-        self.channels = channels
-        self.format = alsaaudio.PCM_FORMAT_S16_LE
-        self.samplesize = 2    # number of bytes for self.format (1 channel)
+
+        self.device = alsaaudio.PCM(device=device)
+
+        # stupid: just the deprecated setters return the real settings
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        self.channels = self.device.setchannels(channels)
+        warnings.filterwarnings("default", category=DeprecationWarning)
+        if(self.channels not in [1, 2]):
+            err = f"PCM channels {self.channels} not in [1, 2]"
+            raise ValueError(err)
+
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        self.format = self.device.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+        warnings.filterwarnings("default", category=DeprecationWarning)
+        if(self.format != alsaaudio.PCM_FORMAT_S16_LE):
+            err = f"PCM format {alsaaudio.PCM_FORMAT_S16_LE} != {self.format}"
+            raise ValueError(err)
+
+        self.samplesize = 2    # number of bytes for S16_LE (1 channel)
         self.framesize = self.samplesize * self.channels
-        self.rate = rate
+
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        self.rate = self.device.setrate(rate)
+        warnings.filterwarnings("default", category=DeprecationWarning)
+        if(self.rate != rate):
+            err = f"PCM rate {self.rate} != {rate}"
+            raise ValueError(err)
+
         self.frequency = self.nearest_frequency(frequency)
+        if (self.frequency > (self.rate / 2)):
+            err = f"maximum frequency is {int(self.rate / 2)}"
+            raise ValueError(err)
+
         buffer = self.generate()
         assert (0 == (len(buffer) % self.framesize)), \
             "expected length of the buffer to be a multiple of the frame size"
 
-        if self.frequency > self.rate / 2:
-            raise ValueError('maximum frequency is %d' % (self.rate / 2))
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        periodsize = self.device.setperiodsize(len(buffer) // self.framesize)
+        warnings.filterwarnings("default", category=DeprecationWarning)
+        if (periodsize != (len(buffer) // self.framesize)):
+            err = f"periodsize {periodsize} != {len(buffer)//self.framesize}"
+            raise ValueError(err)
 
-        self.device = alsaaudio.PCM(
-            channels=self.channels,
-            format=self.format,
-            rate=self.rate,
-            periodsize=len(buffer) // self.framesize,
-            device=device)
         self.queue = Queue()
         self.queue.put(buffer)
         self._running = False
