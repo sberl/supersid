@@ -11,7 +11,6 @@ from math import pi, sin
 import struct
 import alsaaudio
 import argparse
-import warnings
 
 # http://larsimmisch.github.io/pyalsaaudio/libalsaaudio.html#pcm-objects
 # It says: class alsaaudio.PCM "... will construct a PCM object with the given
@@ -27,10 +26,17 @@ import warnings
 # clever solution. This output cannot be handled in the script. Lately the
 # method PCM.info() has been added, but this is not available in the
 # published 0.9.0.
+#
 # The only way to get hold of the actual values for channel, format, rate and
 # periodsize is the use of the deprecated methods PCM.setchannels(),
 # PCM.setformat(), PCM.setrate() and PCM.setperiodsize().
-# For this reason we do not want to see DeprecationWarnings for alsaaudio.
+# With an USB SoundBlaster and an USB Behringer this worked, but selecting an
+# unsupported number of channels for 'VIA USB Dongle' kills the dongle and
+# along with it the script. It needs an unplug/plug cycle to recover.
+#
+# The third attempt is to open the device, query it's capabilities and select
+# only values it can work with. If a value cannot be selected, that is
+# required, then throw an exception.
 
 
 class SinePlayer(Thread):
@@ -38,48 +44,62 @@ class SinePlayer(Thread):
         Thread.__init__(self)
         self.setDaemon(True)
 
+        # preliminary open the device t query it's capabilities
         self.device = alsaaudio.PCM(device=device)
 
-        # stupid: just the deprecated setters return the real settings
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        self.channels = self.device.setchannels(channels)
-        warnings.filterwarnings("default", category=DeprecationWarning)
-        if(self.channels not in [1, 2]):
-            err = f"PCM channels {self.channels} not in [1, 2]"
+        # check channels
+        supported_channels = self.device.getchannels()
+        if channels not in supported_channels:
+            channels = supported_channels[0]
+        if(channels not in [1, 2]):
+            err = f"PCM channels {channels} not in [1, 2]"
             raise ValueError(err)
+        self.channels = channels
 
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        self.format = self.device.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-        warnings.filterwarnings("default", category=DeprecationWarning)
-        if(self.format != alsaaudio.PCM_FORMAT_S16_LE):
-            err = f"PCM format {alsaaudio.PCM_FORMAT_S16_LE} != {self.format}"
+        # check format
+        supported_formats = self.device.getformats()
+        if('S16_LE' not in supported_formats):
+            err = "PCM format 'S16_LE' is not supported"
             raise ValueError(err)
-
-        self.samplesize = 2    # number of bytes for S16_LE (1 channel)
+        self.format = alsaaudio.PCM_FORMAT_S16_LE
+        self.samplesize = 2    # number of bytes for 'S16_LE' (1 channel)
         self.framesize = self.samplesize * self.channels
 
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        self.rate = self.device.setrate(rate)
-        warnings.filterwarnings("default", category=DeprecationWarning)
-        if(self.rate != rate):
-            err = f"PCM rate {self.rate} != {rate}"
-            raise ValueError(err)
+        # check rate
+        supported_rates = self.device.getrates()
+        if list == type(supported_rates):
+            if rate not in supported_rates:
+                err = f"PCM rate {rate} is not supported"
+                raise ValueError(err)
+        elif tuple == type(supported_rates):
+            lower, higher = supported_rates
+            if (rate >= lower) and ((higher == -1) or (rate <= higher)):
+                pass
+            else:
+                err = f"PCM rate {rate} is not supported"
+                raise ValueError(err)
+        else:
+            f"PCM rates type {type(supported_rates)} is not implemented"
+            raise NotImplementedError(err)
+        self.rate = rate
+
+        # close preliminary opened device
+        self.device.close()
 
         self.frequency = self.nearest_frequency(frequency)
-        if (self.frequency > (self.rate / 2)):
-            err = f"maximum frequency is {int(self.rate / 2)}"
-            raise ValueError(err)
-
         buffer = self.generate()
         assert (0 == (len(buffer) % self.framesize)), \
             "expected length of the buffer to be a multiple of the frame size"
 
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        periodsize = self.device.setperiodsize(len(buffer) // self.framesize)
-        warnings.filterwarnings("default", category=DeprecationWarning)
-        if (periodsize != (len(buffer) // self.framesize)):
-            err = f"periodsize {periodsize} != {len(buffer)//self.framesize}"
-            raise ValueError(err)
+        if self.frequency > self.rate / 2:
+            raise ValueError('maximum frequency is %d' % (self.rate / 2))
+
+        self.device = alsaaudio.PCM(
+            channels=self.channels,
+            format=self.format,
+            rate=self.rate,
+            periodsize=len(buffer) // self.framesize,
+            device=device)
 
         self.queue = Queue()
         self.queue.put(buffer)
