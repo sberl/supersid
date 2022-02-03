@@ -15,7 +15,8 @@ def exist_file(x):
 
 def script_relative_to_cwd_relative(path):
     """
-    converts a path which is meant to be relative to the script into a path relative to the cwd
+    converts a path which is meant to be relative to the script into
+    a path relative to the cwd
     in:
         either absolute path
         or path relative to the script
@@ -27,7 +28,8 @@ def script_relative_to_cwd_relative(path):
         # it is an absolute path, don't touch it
         return path
     else:
-        # it is a relative path, convert it to a relative path with respect to teh script folder
+        # it is a relative path,
+        # convert it to a relative path with respect to the script folder
         absolute_cwd = os.path.realpath(os.getcwd())
         absolute_script_path = os.path.dirname(os.path.realpath(__file__))
         relative_path = os.path.relpath(absolute_script_path, absolute_cwd)
@@ -36,7 +38,7 @@ def script_relative_to_cwd_relative(path):
 
 def slugify(value, allow_unicode=False):
     """
-    Taken from https://github.com/django/django/blob/master/django/utils/text.py
+    Source: https://github.com/django/django/blob/master/django/utils/text.py
     Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
     dashes to single dashes. Remove characters that aren't alphanumerics,
     underscores, or hyphens. Convert to lowercase. Also strip leading and
@@ -46,13 +48,18 @@ def slugify(value, allow_unicode=False):
     if allow_unicode:
         value = unicodedata.normalize('NFKC', value)
     else:
-        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
-    value = re.sub(r'[^\w\s-]', '.', value) #.lower())
-    return re.sub(r'[-\s]+', '-', value) # .strip('-_')
+        value = unicodedata.normalize('NFKD', value) \
+            .encode('ascii', 'ignore') \
+            .decode('ascii')
+    value = re.sub(r'[^\w\s-]', '.', value)
+    return re.sub(r'[-\s]+', '-', value)
 
 
 if __name__ == '__main__':
-    for file in ['supersid_common.py', './supersid_common.py', '../Config/supersid.cfg']:
+    for file in [
+            'supersid_common.py',
+            './supersid_common.py',
+            '../Config/supersid.cfg']:
         try:
             print(exist_file(script_relative_to_cwd_relative(file)))
         except Exception as e:

@@ -35,15 +35,35 @@ This section groups most of the parameters identifying your SuperSID monitor. So
   
 ### Log Parameters
 
-  * audio_sampling_rate: **48000** or **96000** (you can experiment with other values as long as your device supports them)
+  * audio_sampling_rate: **48000**, **96000** or **192000** (you can experiment with other values as long as your device supports them)
   * log_interval: number of seconds between two readings. Default is '**5**' seconds. Reading/sound capture lasts one second.
   * log_type: **filtered** or **raw**. When **filtered** is indicated, *bema_wing* function is called to smoothen the raw data before writting the file else in **raw** mode, captured data are written 'as is'. Note that *sidfile.py* can be used as an utility to apply 'bema_wing' function to an existing file (raw or not) to smoothen its data.
   * data_path: fully qualified path where files will be written. If not mentioned then '../Data/' is used. If the path is relative, then it is relative to the script folder.
   * log_format:
-    - **sid_format**: one file per station with first data column as timestamp and second data column as captured value
-    - **supersid_format**: one file for all stations. No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 0:00:00UTC.
-    - **supersid_extended**: one file for all stations. First data column is extended timestamp HH:MM:SS.mmmmm and following data column as one per station.
-    - **both_extended**: one file per station and one file for all stations in supersid_extended format.
+    - **sid_format**:<br />
+      One file per station.<br />
+      First data column as timestamp with *log_interval* increment, starting at at 00:00:00 UTC.<br />
+      Second data column as captured value of the station.
+    - **sid_extended**:<br />
+      One file per station.<br />
+      First data column is extended timestamp HH:MM:SS.mmmmmm,<br />
+      Second data column as captured value of the station.
+    - **supersid_format**:<br />
+      All stations combined in one file.<br />
+      No timestamp but one data column per station. Each line is *log_interval* seconds after the previous, first line at 00:00:00 UTC.<br />
+      One data column per station with the captured values.<br />
+      This configuration is suitable for [FTP] automatic_upload = yes.
+    - **supersid_extended** (default):<br />
+      All stations combined in one file.<br />
+      First data column is extended timestamp HH:MM:SS.mmmmmm,<br />
+      followed by one data column per station with the captured values.<br />
+      This configuration is suitable for [FTP] automatic_upload = yes.
+    - **both**:<br />
+      The combination of **sid_format** and **supersid_format**.<br />
+      This configuration is suitable for [FTP] automatic_upload = yes.
+    - **both_extended**:<br />
+      The combination of **sid_extended** and **supersid_extended**.<br />
+      This configuration is suitable for [FTP] automatic_upload = yes.
   * hourly_save: **yes** / **no** (default). If **yes** then a raw file is written every hour to limit data loss.
   
 ### FTP to Standford server
@@ -52,9 +72,13 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
   
 ### Extra
 
-  * scaling_factor:
+  * scaling_factor: float, set it to **1.0**. The data captured from the sound card is multiplied with this value.
   * mode: [ignored] **Server**, **Client**, **Standalone** (default) . Reserved for future client/server dev.
-  * viewer: **text** for text mode light interface, **wx** for *wxPython* GUI or **tk** for TkInter GUI (default)
+  * viewer: **text** for text mode light interface or **tk** for TkInter GUI (default).
+  * psd_min: float, min value for the y axis of the psd graph, **NaN** (default) means automatic scaling
+  * psd_max: float, max value for the y axis of the psd graph, **NaN** (default) means automatic scaling
+  * psd_ticks: int, number of ticks for the y axis of the psd graph, **0** (default) means automatic ticks.
+    Fixed number of 'psd_ticks' works only in conjunction with 'psd_min' and 'psd_max'.
   * bema_wing: beta_wing parameter for sidfile.filter_buffer() calculation. Default is '**6**'.
   * paper_size: one of **A3**, **A4**, **A5**, **Legal**, **Letter**
   * number_of_stations: specify the number of stations to monitor. Each station is described within its own section.
@@ -68,6 +92,7 @@ Each station to monitor is enumerated from 1 till n=*number_of_stations*. For ea
   * call_sign: Station ID (various VLF station lists exist like [AAVSO's] (http://www.aavso.org/vlf-station-list) and [Wikipedia's] (http://en.wikipedia.org/wiki/Very_low_frequency#List_of_VLF_transmissions))
   * frequency: emission frequency in Hz
   * color: [**r**, **g**, **b**, **c**, **m**, **k**] or [List of named colors](https://matplotlib.org/stable/gallery/color/named_colors.html) or [xkcd colors](https://matplotlib.org/stable/tutorials/colors/colors.html#xkcd-colors) to draw multiple graph together in *SuperSID_plot.py*.
+  * channel: Default is **0**. Can optionally be set to **1** if [Capture] Channels = **2**. Channels (0, 1) correspond to the (left, right) channel of a stereo audio input.
   
 <div id='id-section3'/>
 
@@ -80,6 +105,7 @@ This section can be omitted if you plan to use the 'pyaudio' library. If you wan
   * Device: device name for capture. **plughw:CARD=Generic,DEV=0** (default for Linux), **MME: Microsoft Sound Mapper - Input** (default for Windows).
   * Format: **S16_LE** (default), **S24_3LE**, **S32_LE**
   * PeriodSize: [for alsaaudio only] period size for capture. Default is '1024'.
+  * Channels: [for alsaaudio only] number of channels tp be captured. Default is **1**, can be set to **2**.
   
 <div id='id-section4'/>
 
@@ -100,7 +126,7 @@ The 'supersid_plot.py' program can send you an email with the attached plot as a
 
 Group all parameters to send data to an FTP server i.e. Standford data repository.
 
-  * automatic_upload: [yes/no] if set to 'yes' then trigger the FTP data upload
+  * automatic_upload: [yes/no] if set to 'yes' then trigger the FTP data upload. Please refer to 'log_format' above for further details.
   * ftp_server: URL of the server (sid-ftp.stanford.edu)
   * ftp_directory: target folder on the FTP server where files should be written (on Standford's server: /incoming/SuperSID/NEW/)
   * local_tmp: local temporary directory used to write the files before their upload. If not mentioned then '../outgoing/' is used. If the path is relative, then it is relative to the script folder.
