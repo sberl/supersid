@@ -1,4 +1,4 @@
-# SuperSID on Raspberry Pi with Raspberry OS
+# SuperSID on Raspberry Pi with Rapberry OS
 
 This has been tested on
 
@@ -371,7 +371,7 @@ ftp.
 There are three arguments that can be used with supersid.py  
 Using -r will allow supersid.py to read an existing csv file and add new data to it.  This can be useful in the event of a power outage.  
 Using -c will allow you to specify a cfg file  
-Using -v will allow you to specify a different viewer than the one that is listed in your cfg file.  Option are either text or tk.  
+Using -v will allow you to specify a different viewer than the one that is listed in your cfg file.  Options are either text or tk  
 
 
 ## 8) SD Card Backup
