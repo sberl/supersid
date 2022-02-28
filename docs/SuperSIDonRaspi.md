@@ -367,7 +367,11 @@ ftp.
 ```console
     $ cd ~/supersid/supersid
     $ ./supersid.py
-```
+```  
+There are three arguments that can be used with supersid.py  
+Using -r will allow supersid.py to read an existing csv file and add new data to it.  This can be useful in the event of a power interruption.  
+Using -c will allow you to specify a cfg file  
+Using -v will allow you to specify a different viewer than that which is listed in your cfg file.  Options are either text or tk  
 
 
 ## 8) SD Card Backup
