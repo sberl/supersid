@@ -487,7 +487,7 @@ def printConfig(config):
     for k, v in sorted(config.items()):
         print("\t{} = {}".format(k, v))
     print("--- Stations " + "-"*29)
-    for st in cfg.stations:
+    for st in config.stations:
         print("\t{} = {}, {} = {}, {} = {}, {} = {}".format(
             CALL_SIGN, st[CALL_SIGN],
             FREQUENCY, st[FREQUENCY],
