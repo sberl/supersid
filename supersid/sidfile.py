@@ -322,7 +322,8 @@ class SidFile():
             if 1 == len(self.data.shape):
                 # self.data is one deminsional
                 # if one station is configured
-                assert(0 == idx)
+                assert (0 == idx), \
+                    "expected index 0 for Channels=1 configuration"
                 return self.data
             elif 2 == len(self.data.shape):
                 # self.data is two deminsional
@@ -334,7 +335,8 @@ class SidFile():
     def get_station_index(self, station):
         """Return the index of the station depending on station type."""
         if type(station) is int:
-            assert(0 <= station < len(self.stations))
+            assert (0 <= station < len(self.stations)), \
+                f"station {station} is out of range"
             return station
         elif type(station) is str:  # should be a station name/call_sign
             return self.stations.index(station)

@@ -92,7 +92,8 @@ Each station to monitor is enumerated from 1 till n=*number_of_stations*. For ea
   * call_sign: Station ID (various VLF station lists exist like [AAVSO's] (http://www.aavso.org/vlf-station-list) and [Wikipedia's] (http://en.wikipedia.org/wiki/Very_low_frequency#List_of_VLF_transmissions))
   * frequency: emission frequency in Hz
   * color: [**r**, **g**, **b**, **c**, **m**, **k**] or [List of named colors](https://matplotlib.org/stable/gallery/color/named_colors.html) or [xkcd colors](https://matplotlib.org/stable/tutorials/colors/colors.html#xkcd-colors) to draw multiple graph together in *SuperSID_plot.py*.
-
+  * channel: Default is **0**. Can optionally be set to **1** if [Capture] Channels = **2**. Channels (0, 1) correspond to the (left, right) channel of a stereo audio input.
+  
 <div id='id-section3'/>
 
 ## [Capture]
@@ -104,7 +105,8 @@ This section can be omitted if you plan to use the 'pyaudio' library. If you wan
   * Device: device name for capture. **plughw:CARD=Generic,DEV=0** (default for Linux), **MME: Microsoft Sound Mapper - Input** (default for Windows).
   * Format: **S16_LE** (default), **S24_3LE**, **S32_LE**
   * PeriodSize: [for alsaaudio only] period size for capture. Default is '1024'.
-
+  * Channels: [for alsaaudio only] number of channels tp be captured. Default is **1**, can be set to **2**.
+  
 <div id='id-section4'/>
 
 ## [Email]

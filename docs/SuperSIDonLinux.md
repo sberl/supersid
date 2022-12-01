@@ -8,8 +8,7 @@ This has been tested on
 
 ## Preparation
 
-[Set up your Raspberry Pi]
-(https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi)
+[Set up your Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#setting-up-your-raspberry-pi)
 with the image **UBUNTU SERVER 20.04.3 LTS (RPI 3/4/400)** *64 bit server OS
 with long-term support for arm64 architectures*.  Boot on the new micro-SD card,
 follow normal process for any fresh system install.  Connect to the internet.
@@ -38,8 +37,9 @@ Get the source from GitHub.com
 
 Now do the following:
 ```console
-    ~/supersid $ mkdir Data
-    ~/supersid $ mkdir outgoing
+    $ cd ~/supersid
+    $ mkdir Data
+    $ mkdir outgoing
 ```
 These directories will be used to store the data that will be sent via ftp to
 Stanford.
@@ -63,8 +63,7 @@ If your machine does not have ntp installed then you want to install it:
     $ sudo apt-get install ntpdate ntp
 ```
 
-Follow the tutorial [Raspberry Pi sync date and time]
-(https://victorhurdugaci.com/raspberry-pi-sync-date-and-time)
+Follow the tutorial [Raspberry Pi sync date and time](https://victorhurdugaci.com/raspberry-pi-sync-date-and-time)
 
 Optional: Virtual environment management for Python:
 If your machine is being used for other purposes as well as SuperSID, you may
@@ -78,8 +77,16 @@ https://docs.python.org/3/tutorial/venv.html
 
 Install the venv package.
 ```console
-    $ sudo python3 -m pip install venv
+    $ sudo python3 -m pip install virtualenv
 ```
+
+For Ubuntu use the following command (matching your Python 3.x version):
+```console
+    $ python3 --version
+    Python 3.8.10
+    $ sudo apt install python3.8-venv
+```
+
 
 ## 3) Installing SuperSID
 
@@ -103,6 +110,8 @@ From /home/pi:
 
 Your prompt should now start with '(supersid-env)'
 This ensures that we run in Python 3.x as per current configuration.
+Once `source supersid-env/bin/activate` is executed, `python` and `python3`
+can be used synonymously.
 
 ### 3.2) Global or local installation
 
@@ -149,7 +158,7 @@ the sound card with line in of the same sound card.
 
 ```console
     $ cd ~/supersid/supersid
-    $ python3 find_alsa_devices.py --help | less
+    $ python3 find_alsa_devices.py --help
     $ python3 -u find_alsa_devices.py 2>&1
 ```
 
@@ -324,6 +333,7 @@ Is the sound card listed by arecord?
 ```
 
 Is the volume too low or the channel muted?
+
 Set the volume to be between 80% and 90%, unmute the relevant channels.
 ```console
     $ alsamixer
@@ -368,8 +378,8 @@ plot file of an individual station is desired.
 
 Sending the ftp is accomplished by the program 'ftp_to_stanford.py' which is
 called by 'supersid.py' at midnight (UTC).  'ftp_to_stanford.py' reads the
-supersid file from '~/supersid/Data/' directory and converts them to filtered
-files for each station.  These are stored in '~/supersid/outgoing' and sent via
+supersid file from `~/supersid/Data/` directory and converts them to filtered
+files for each station.  These are stored in `~/supersid/outgoing` and sent via
 ftp.
 
 
@@ -428,4 +438,3 @@ supersid_plot arguments:
      examples: -p myplot.pdf, -p myplot.jpg, -p myplot.png, -p myplot.tiff
 - -e destination email address
 - -w retrieve NOAA flare information
-
