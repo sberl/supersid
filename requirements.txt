@@ -1,7 +1,7 @@
 matplotlib
-numpy==1.23.0
-pandas==2.1.1
-pyalsaaudio==0.10.0
+numpy~=1.23.0
+pandas~=2.1.0
+pyalsaaudio~=0.10.0
 pyparsing
 python-dateutil
 six
