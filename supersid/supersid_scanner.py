@@ -169,10 +169,8 @@ class SuperSID_scanner():
         """
         filenames = []
         if log_format.startswith('both') or log_format.startswith('sid'):
-            # filename is '' to ensure one file per station
             fnames = self.logger.log_sid_format(
                 self.config.stations,
-                '',
                 log_type=log_type,
                 extended=log_format.endswith('extended'))
             filenames += fnames
