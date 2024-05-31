@@ -94,9 +94,6 @@ class Config(dict):
                 # suitable for automatic FTP upload
                 ('log_format', str, SUPERSID_EXTENDED),
 
-                # Server, Client, Standalone (default)
-                ('mode', str, 'Standalone'),
-
                 # text, tk (default)
                 ('viewer', str, 'tk'),
 
