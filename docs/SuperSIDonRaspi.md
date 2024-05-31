@@ -66,20 +66,63 @@ the actual UTC time.  Then the data you collect can be compared to data from
 other sources such as other SuperSID users, and Xray flux data collected by
 satellites.
 
-If you installed *Raspbian bullseye*, ntp is already installed and configured.
+This section has been update for *Raspbian bookworm*.
+There are two options to synch the time which shall not run in parallel:
+- systemd-timesyncd which uses SNTP protocol
+- ntpd which uses NTP protocol and is reported to be more accurate than systemd-timesyncd
+
+## 2.1) disable systemd-timesyncd, if running
 ```console
     $ timedatectl status
 ```
-You should read in one of the lines 'NTP service: active'.
+If you read 'NTP service: n/a' or 'NTP service: inactive', this is desired. Continue with 2.2)
+If you 'NTP service: active' the serivce has to be disabled.
+```console
+    $ sudo systemctl disable systemd-timesyncd --now
+    $ sudo timedatectl set-ntp false
+```
 
+## 2.2) install and enable ntpd
 If your machine does not have ntp installed then you want to install it:
 ```console
+    $ sudo apt-get purge ntp ntpsec
     $ sudo apt-get install ntpdate ntp
 ```
 
-Follow the tutorial [Raspberry Pi sync date and time](https://victorhurdugaci.com/raspberry-pi-sync-date-and-time)
+Raspbian unexpectedly installs ntpsec instead of ntp.
+Then it creates links to mimik 'ntpsec.service' as 'ntp.service' and 'ntpd.service'.
+And the configuration file is moved from '/etc/ntp.conf' to '/etc/ntpsec/ntp.conf'.
 
-Optional: Virtual environment management for Python:
+Follow the tutorial [Raspberry Pi sync date and time](https://victorhurdugaci.com/raspberry-pi-sync-date-and-time)
+But edit '/etc/ntpsec/ntp.conf' instead of '/etc/ntp.conf'.
+Do not comment the lines for the localhost (step 5 of the guide).
+
+These comands are all synonymuous to start the service:
+```console
+    $ sudo systemctl restart ntp
+    $ sudo systemctl restart ntpd
+    $ sudo systemctl restart ntpsec
+```
+
+Verify it is up and running:
+```console
+    $ systemctl status ntp
+```
+You should read 'Active: active (running) since ... some date / time ...'.
+
+
+```console
+    $ ntpq -pn
+```
+You should see a list of servers. The smaller the strato (st), the closer the server is to the original time source.
+If ntpq timed out, test the service with ntpdate.
+
+```console
+    $ ntpdate -d 0.debian.pool.ntp.org
+    $ ntpdate -d localhost
+```
+
+## 2.3) Optional: Virtual environment management for Python
 If your machine is being used for other purposes as well as SuperSID, you may
 want to install SuperSID in its own virtual python environment.  This way you
 will not be plagued with version conflicts with the various python packages
@@ -367,11 +410,11 @@ ftp.
 ```console
     $ cd ~/supersid/supersid
     $ ./supersid.py
-```  
-There are three arguments that can be used with supersid.py  
-Using -r will allow supersid.py to read an existing csv file and add new data to it.  This can be useful in the event of a power interruption.  
-Using -c will allow you to specify a cfg file  
-Using -v will allow you to specify a different viewer than that which is listed in your cfg file.  Options are either text or tk  
+```
+There are three arguments that can be used with supersid.py
+Using -r will allow supersid.py to read an existing csv file and add new data to it.  This can be useful in the event of a power interruption.
+Using -c will allow you to specify a cfg file
+Using -v will allow you to specify a different viewer than that which is listed in your cfg file.  Options are either text or tk
 
 
 ## 8) SD Card Backup
