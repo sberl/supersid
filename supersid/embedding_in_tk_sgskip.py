@@ -20,7 +20,6 @@ import numpy as np
 import random
 
 # Implement the default Matplotlib key bindings.
-from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                NavigationToolbar2Tk)
 from matplotlib.figure import Figure
@@ -95,18 +94,10 @@ class tkSidViewer():
         toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root, pack_toolbar=False)
         toolbar.update()
 
-        self.canvas.mpl_connect(
-            "key_press_event", lambda event: print(f"you pressed {event.key}"))
-        self.canvas.mpl_connect("key_press_event", key_press_handler)
-
-        slider_update = tk.Scale(self.tk_root, from_=1, to=5, orient=tk.HORIZONTAL,
-                                      command=self.update_frequency, label="Frequency [Hz]")
-
         # Packing order is important. Widgets are processed sequentially and if there
         # is no space left, because the window is too small, they are not displayed.
         # The canvas is rather flexible in its size, so we pack it last which makes
         # sure the UI controls are displayed as long as possible.
-        slider_update.pack(side=tk.BOTTOM)
         toolbar.pack(side=tk.BOTTOM, fill=tk.X)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
