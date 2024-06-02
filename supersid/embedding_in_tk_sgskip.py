@@ -77,6 +77,7 @@ class tkSidViewer():
 
         self.tk_root.config(menu=menubar)
 
+        self.tk_root.bind("<Configure>", self.onsize)
 
         # FigureCanvas
         self.psd_figure = Figure(facecolor='beige')
@@ -129,6 +130,30 @@ class tkSidViewer():
                 "Are you sure you want to exit SuperSID?"):
             self.running = False
             self.tk_root.destroy()
+
+    def onsize(self, event):
+        """
+        Resize the figure to fill the available space.
+        The border is defined by left_gap, bottom_gap, right_gap, top_gap.
+        """
+        width = self.tk_root.winfo_width()
+        height = self.tk_root.winfo_height()
+
+        left_gap = 20       # px
+        bottom_gap = 20     # px
+        right_gap = 10      # px
+        top_gap = 10        # px
+
+        left = left_gap / width
+        bottom = bottom_gap / height
+        right = (width - right_gap) / width
+        top = (height - top_gap) / height
+        self.psd_figure.subplots_adjust(
+            left=left,
+            bottom=bottom,
+            right=right,
+            top=top)
+        self.psd_figure.tight_layout()
 
     def refresh_psd(self, z=None):
         self.update_frequency(random.randint(1, 10))
