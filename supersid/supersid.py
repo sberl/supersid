@@ -15,6 +15,20 @@ Then it creates its necessary elements:
     - Timer for sampling
     - <still missing> network management with client-server protocol
 """
+
+# memory leak investigation
+# 
+# measure text viewer
+#   mprof run python supersid.py -c ..\Config\supersid.cfg.KlHo -v text
+#   mprof plot
+#
+# measure tk viewer
+#   mprof run python supersid.py -c ..\Config\supersid.cfg.KlHo -v tk
+#   mprof plot
+
+import gc
+import objgraph
+
 import sys
 import os.path
 import argparse
@@ -211,6 +225,14 @@ class SuperSID():
         # captured data & message
         self.viewer.status_display(message, level=2)
 
+        if gc.garbage:
+            print("gc.garbage")     # did not yet trigger
+            print(gc.garbage)       # did not yet trigger
+
+        objgraph.show_growth()      # text triggers 2 times, then silence
+                                    # tk triggers many times
+                                    # sometimes whne the mouse is moved
+
     def save_current_buffers(self, filename='', log_type='raw',
                              log_format='both'):
         """Save buffer data from logger.sid_file.
@@ -258,6 +280,10 @@ class SuperSID():
             self.timer.stop()
         if self.viewer:
             self.viewer.close()
+
+        if gc.garbage:
+            print("gc.garbage")     # did not yet trigger
+            print(gc.garbage)       # did not yet trigger
 
     def about_app(self):
         """Return a text indicating  information on the app, incl, version."""
