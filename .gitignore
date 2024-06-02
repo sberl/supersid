@@ -43,3 +43,6 @@ Data
 #Virtual Enviroment
 venv/
 .DS_Store
+
+# mprof log files
+supersid/mprofile_*.dat
