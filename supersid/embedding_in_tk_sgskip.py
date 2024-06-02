@@ -87,10 +87,8 @@ class tkSidViewer():
             .get_tk_widget() \
             .pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        # pack_toolbar=False will make it easier to use a layout manager later on.
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root, pack_toolbar=False)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root)
         self.toolbar.update()
-        self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.axes = self.psd_figure.add_subplot()
         self.axes.format_coord = Formatter()
@@ -98,6 +96,19 @@ class tkSidViewer():
         # add the psd labels manually for proper layout at startup
         self.axes.set_ylabel("f(t)")
         self.axes.set_xlabel("time [s]")
+
+        # StatusBar
+        self.statusbar_txt = tk.StringVar()
+
+        # width=1 avoids resizing when the length of statusbar_txt changes
+        self.label = tk.Label(self.tk_root, bd=1, relief=tk.SUNKEN,
+                              anchor=tk.W,
+                              textvariable=self.statusbar_txt,
+                              font=('arial', 12, 'normal'),
+                              width=1)
+
+        self.statusbar_txt.set('Initialization...')
+        self.label.pack(fill=tk.X)
 
         self.t = np.arange(0, 3, .01)
         self.line, = self.axes.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
