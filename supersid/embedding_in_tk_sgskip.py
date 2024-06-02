@@ -24,6 +24,16 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                NavigationToolbar2Tk)
 from matplotlib.figure import Figure
 
+
+class Formatter(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, bin_freq, bin_power):
+        """Display cursor position in lower right of display"""
+        return "frequency=%.0f  " % bin_freq + " power=%.3f  " % bin_power
+
+
 class tkSidViewer():
     """Create the Tkinter GUI."""
 
@@ -33,10 +43,11 @@ class tkSidViewer():
 
         fig = Figure(figsize=(5, 4), dpi=100)
         self.t = np.arange(0, 3, .01)
-        ax = fig.add_subplot()
-        self.line, = ax.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
-        ax.set_xlabel("time [s]")
-        ax.set_ylabel("f(t)")
+        self.axes = fig.add_subplot()
+        self.axes.format_coord = Formatter()
+        self.line, = self.axes.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
+        self.axes.set_xlabel("time [s]")
+        self.axes.set_ylabel("f(t)")
 
         self.canvas = FigureCanvasTkAgg(fig, master=self.tk_root)  # A tk.DrawingArea.
         self.canvas.draw()
