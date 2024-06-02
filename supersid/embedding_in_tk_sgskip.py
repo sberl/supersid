@@ -77,27 +77,26 @@ class tkSidViewer():
 
         self.tk_root.config(menu=menubar)
 
-        self.psd_figure = Figure(figsize=(5, 4), dpi=100)
-        self.t = np.arange(0, 3, .01)
-        self.axes = self.psd_figure.add_subplot()
-        self.axes.format_coord = Formatter()
-        self.line, = self.axes.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
-        self.axes.set_xlabel("time [s]")
-        self.axes.set_ylabel("f(t)")
 
+        self.psd_figure = Figure(figsize=(5, 4), dpi=100)
         self.canvas = FigureCanvas(self.psd_figure, master=self.tk_root)  # A tk.DrawingArea.
         self.canvas.draw()
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # pack_toolbar=False will make it easier to use a layout manager later on.
         toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root, pack_toolbar=False)
         toolbar.update()
-
-        # Packing order is important. Widgets are processed sequentially and if there
-        # is no space left, because the window is too small, they are not displayed.
-        # The canvas is rather flexible in its size, so we pack it last which makes
-        # sure the UI controls are displayed as long as possible.
         toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        self.axes = self.psd_figure.add_subplot()
+        self.axes.format_coord = Formatter()
+
+        # add the psd labels manually for proper layout at startup
+        self.axes.set_ylabel("f(t)")
+        self.axes.set_xlabel("time [s]")
+
+        self.t = np.arange(0, 3, .01)
+        self.line, = self.axes.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
 
     def update_frequency(self, new_val):
         # retrieve frequency
