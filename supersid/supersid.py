@@ -19,11 +19,11 @@ Then it creates its necessary elements:
 # memory leak investigation
 # 
 # measure text viewer
-#   mprof run python supersid.py -c ..\Config\supersid.cfg.KlHo -v text
+#   mprof run python supersid.py -c ..\Config\supersid.cfg.mem -v text
 #   mprof plot
 #
 # measure tk viewer
-#   mprof run python supersid.py -c ..\Config\supersid.cfg.KlHo -v tk
+#   mprof run python supersid.py -c ..\Config\supersid.cfg.mem -v tk
 #   mprof plot
 
 import gc

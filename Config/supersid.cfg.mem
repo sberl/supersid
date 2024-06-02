@@ -1,0 +1,100 @@
+# This is a comment with a hash.
+; This is another comment with a semicolon.
+# Comments are added only for demonstration purpose.
+
+[PARAMETERS]
+# viewer = tk
+viewer = text
+site_name = EXAMPLE
+monitor_id = SAMPLE1
+contact = you@domain.tld
+
+# coordinates of your station, example: Greenwich
+longitude = -0.001
+latitude = 51.478
+utc_offset = +00:00
+time_zone = UTC
+
+audio_sampling_rate = 48000
+
+log_interval = 5
+log_format = supersid_extended
+log_type = filtered
+scaling_factor = 1.0
+
+# fixed y axis for the tk viewer (float value)
+psd_min = NaN
+psd_max = NaN
+psd_ticks = 0
+
+hourly_save = YES
+
+# data_path shall be an absolute path or a path relative to the supersid script folder
+data_path = ../Data
+
+paper_size = A4
+
+number_of_stations = 2
+
+# VLF station data is gathered from two sources:
+# https://www.mwlist.org/vlf.php
+# https://sidstation.loudet.org/stations-list-en.xhtml
+# In case of contradictions, sidstation.loudet.org is used.
+
+[STATION_1]
+# https://www.mwlist.org/vlf.php?kHz=19.80
+# https://sidstation.loudet.org/stations-list-en.xhtml 19800 = NWC
+# Harold E. Holt, North West Cape, Exmouth, Australia @-21.816328,+114.165586
+# https://www.luftlinie.org/51.478,-0.001/-21.816328,+114.165586
+# 13547 km
+# 24h
+call_sign = NWC
+color = y
+frequency = 19800
+channel = 0
+
+[STATION_2]
+# https://www.mwlist.org/vlf.php?kHz=18.20
+# https://sidstation.loudet.org/stations-list-en.xhtml 18200 = VTX3
+# South Vijayanarayanam, India @+08.387015,+077.752762
+# https://www.luftlinie.org/51.478,-0.001/+08.387015,+077.752762
+# 8432 km
+call_sign = VTX3
+color = k
+frequency = 18200
+channel = 1
+
+[Capture]
+# Linux example using alsaaudio
+# Audio = alsaaudio
+# Device = plughw:CARD=Generic,DEV=0
+# Format = S16_LE
+# PeriodSize = 1024
+# Channels = 1
+
+# Windows example using either sounddevice or pyaudio
+Audio = sounddevice
+# Audio = pyaudio
+Device = MME: Microphone (High Definition Aud
+Format = S32_LE
+Channels = 2
+
+[FTP]
+automatic_upload = no
+ftp_server = sid-ftp.stanford.edu
+ftp_directory = /incoming/SuperSID/NEW/
+# local_tmp shall be an absolute path or a path relative to the supersid script folder
+local_tmp = ../outgoing
+call_signs = NWC
+
+[Email]
+# required to connect to the mail server when using 'supersid_plot.py -e receiver@domain.tld'
+from_mail = you@domain.tld
+email_server = mail.domain.tld
+email_port = 587
+email_tls = yes
+email_login = your_user_name
+email_password = your_password
+
+# email_server for gmail would be smtp.gmail.com  
+# email_port for gmail would be 587  
