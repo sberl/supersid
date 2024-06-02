@@ -78,15 +78,18 @@ class tkSidViewer():
         self.tk_root.config(menu=menubar)
 
 
-        self.psd_figure = Figure(figsize=(5, 4), dpi=100)
-        self.canvas = FigureCanvas(self.psd_figure, master=self.tk_root)  # A tk.DrawingArea.
+        # FigureCanvas
+        self.psd_figure = Figure(facecolor='beige')
+        self.canvas = FigureCanvas(self.psd_figure, master=self.tk_root)
         self.canvas.draw()
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.canvas \
+            .get_tk_widget() \
+            .pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # pack_toolbar=False will make it easier to use a layout manager later on.
-        toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root, pack_toolbar=False)
-        toolbar.update()
-        toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root, pack_toolbar=False)
+        self.toolbar.update()
+        self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.axes = self.psd_figure.add_subplot()
         self.axes.format_coord = Formatter()
