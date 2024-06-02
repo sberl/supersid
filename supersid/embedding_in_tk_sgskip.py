@@ -77,15 +77,15 @@ class tkSidViewer():
 
         self.tk_root.config(menu=menubar)
 
-        fig = Figure(figsize=(5, 4), dpi=100)
+        self.psd_figure = Figure(figsize=(5, 4), dpi=100)
         self.t = np.arange(0, 3, .01)
-        self.axes = fig.add_subplot()
+        self.axes = self.psd_figure.add_subplot()
         self.axes.format_coord = Formatter()
         self.line, = self.axes.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
         self.axes.set_xlabel("time [s]")
         self.axes.set_ylabel("f(t)")
 
-        self.canvas = FigureCanvas(fig, master=self.tk_root)  # A tk.DrawingArea.
+        self.canvas = FigureCanvas(self.psd_figure, master=self.tk_root)  # A tk.DrawingArea.
         self.canvas.draw()
 
         # pack_toolbar=False will make it easier to use a layout manager later on.
