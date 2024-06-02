@@ -15,8 +15,8 @@ import gc
 import objgraph
 
 import tkinter as tk
-
 import numpy as np
+import random
 
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler
@@ -82,7 +82,12 @@ class tkSidViewer():
                                     # the frequency and moving the mouse wildly
 
     def run(self):
+        self.refresh_psd()  # start the re-draw loop
         self.tk_root.mainloop()
+
+    def refresh_psd(self, z=None):
+        self.update_frequency(random.randint(1, 10))
+        self.tk_root.after(random.randint(10, 50), self.refresh_psd)
 
 
 def main():
