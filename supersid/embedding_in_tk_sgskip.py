@@ -112,6 +112,8 @@ class tkSidViewer():
 
         self.t = np.arange(0, 3, .01)
         self.line, = self.axes.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
+        self.y_max = -float("inf")
+        self.y_min = float("inf")
 
     def update_frequency(self, new_val):
         # retrieve frequency
@@ -120,7 +122,17 @@ class tkSidViewer():
         # update data
         y = random.uniform(1.5, 3.0) * np.sin(2 * np.pi * f * self.t)
         self.line.set_data(self.t, y)
-        self.axes.set_yticks(np.linspace(np.min(y), np.max(y), 9))
+
+        # change y labels if new min/max is reached
+        changed = False
+        if np.max(y) > self.y_max:
+            self.y_max = np.max(y)
+            changed = True
+        if np.min(y) < self.y_min:
+            self.y_min = np.min(y)
+            changed = True
+        if changed:
+            self.axes.set_yticks(np.linspace(self.y_min, self.y_max, 9))
 
         # required to update canvas and attached toolbar!
         self.canvas.draw()
