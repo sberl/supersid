@@ -118,7 +118,7 @@ class tkSidViewer():
         f = float(new_val)
 
         # update data
-        y = 2 * np.sin(2 * np.pi * f * self.t)
+        y = random.uniform(1.5, 3.0) * np.sin(2 * np.pi * f * self.t)
         self.line.set_data(self.t, y)
         self.axes.set_yticks(np.linspace(np.min(y), np.max(y), 9))
 
