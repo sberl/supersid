@@ -113,6 +113,25 @@ class tkSidViewer():
         self.t = np.arange(0, 3, .01)
         self.line, = self.axes.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
 
+    def update_frequency(self, new_val):
+        # retrieve frequency
+        f = float(new_val)
+
+        # update data
+        y = 2 * np.sin(2 * np.pi * f * self.t)
+        self.line.set_data(self.t, y)
+        self.axes.set_yticks(np.linspace(np.min(y), np.max(y), 9))
+
+        # required to update canvas and attached toolbar!
+        self.canvas.draw()
+
+        if gc.garbage:
+            print("gc.garbage")     # did not yet trigger
+            print(gc.garbage)       # did not yet trigger
+
+        objgraph.show_growth()      # triggers rarely when klicking the cntrol for
+                                    # the frequency and moving the mouse wildly
+
     def run(self):
         self.refresh_psd()  # start the re-draw loop
         self.tk_root.mainloop()
@@ -148,33 +167,8 @@ class tkSidViewer():
             top=top)
         self.psd_figure.tight_layout()
 
-    def get_psd(self, data, NFFT, FS):
-        """Call 'psd' within axes, both calculates and plots the spectrum."""
-        try:
-            self.axes.clear()
-            Pxx = {}
-            for channel in range(1):# range(self.controller.config['Channels']):
-                Pxx[channel], freqs = self.axes.psd(
-                    data[:, channel], NFFT=NFFT, Fs=FS)
-            # self.set_graph_limits()
-            self.canvas.draw()
-        except RuntimeError as err_re:
-            print("Warning:", err_re)
-            Pxx, freqs = None, None
-        return Pxx, freqs
-
     def refresh_psd(self, z=None):
-        data = np.random.rand(48000, 1)
-        NFFT = 1024
-        FS = 48000
-        Pxx, freqs = self.get_psd(data, NFFT, FS)
-
-        if gc.garbage:
-            print("gc.garbage")     # did not yet trigger
-            print(gc.garbage)       # did not yet trigger
-
-        objgraph.show_growth()      # triggers rarely when klicking the cntrol for
-                                    # the frequency and moving the mouse wildly
+        self.update_frequency(random.randint(1, 10))
         self.tk_root.after(random.randint(10, 50), self.refresh_psd)
 
     def save_file(self, param=None):
