@@ -13,15 +13,13 @@ Embedding in Tk
 
 import gc
 import objgraph
+import random
 
 import tkinter as tk
 import tkinter.messagebox as MessageBox
 import numpy as np
-import random
-
-# Implement the default Matplotlib key bindings.
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
-                                               NavigationToolbar2Tk)
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
 
@@ -87,7 +85,7 @@ class tkSidViewer():
         self.axes.set_xlabel("time [s]")
         self.axes.set_ylabel("f(t)")
 
-        self.canvas = FigureCanvasTkAgg(fig, master=self.tk_root)  # A tk.DrawingArea.
+        self.canvas = FigureCanvas(fig, master=self.tk_root)  # A tk.DrawingArea.
         self.canvas.draw()
 
         # pack_toolbar=False will make it easier to use a layout manager later on.
