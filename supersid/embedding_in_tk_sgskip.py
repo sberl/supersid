@@ -15,6 +15,7 @@ import gc
 import objgraph
 
 import tkinter as tk
+import tkinter.messagebox as MessageBox
 import numpy as np
 import random
 
@@ -41,6 +42,44 @@ class tkSidViewer():
         self.tk_root = tk.Tk()
         self.tk_root.wm_title("Embedding in Tk")
 
+        # All Menus creation
+        menubar = tk.Menu(self.tk_root)
+        filemenu = tk.Menu(menubar, tearoff=0)
+        filemenu.add_command(label="Save Raw buffers",
+                             command=lambda: self.save_file('r'),
+                             underline=5, accelerator="Ctrl+R")
+        filemenu.add_command(label="Save Filtered buffers",
+                             command=lambda: self.save_file('f'),
+                             underline=5, accelerator="Ctrl+F")
+        filemenu.add_command(label="Save Extended raw buffers",
+                             command=lambda: self.save_file('e'),
+                             underline=5, accelerator="Ctrl+E")
+        filemenu.add_command(label="Save filtered as ...",
+                             command=lambda: self.save_file('s'),
+                             underline=5, accelerator="Ctrl+S")
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit",
+                             command=lambda: self.close(force_close=False))
+        self.tk_root.bind_all("<Control-r>", self.save_file)
+        self.tk_root.bind_all("<Control-f>", self.save_file)
+        self.tk_root.bind_all("<Control-e>", self.save_file)
+        self.tk_root.bind_all("<Control-s>", self.save_file)
+        self.tk_root.bind_all("<Control-p>", self.on_plot)
+        # user click on the [X] to close the window
+        self.tk_root.protocol("WM_DELETE_WINDOW", lambda: self.close(False))
+        menubar.add_cascade(label="File", menu=filemenu)
+
+        plotmenu = tk.Menu(menubar, tearoff=0)
+        plotmenu.add_command(label="Plot", command=self.on_plot,
+                             underline=0, accelerator="Ctrl+P")
+        menubar.add_cascade(label="Plot", menu=plotmenu)
+
+        helpmenu = tk.Menu(menubar, tearoff=0)
+        helpmenu.add_command(label="About...", command=self.on_about)
+        menubar.add_cascade(label="Help", menu=helpmenu)
+
+        self.tk_root.config(menu=menubar)
+
         fig = Figure(figsize=(5, 4), dpi=100)
         self.t = np.arange(0, 3, .01)
         self.axes = fig.add_subplot()
@@ -60,8 +99,6 @@ class tkSidViewer():
             "key_press_event", lambda event: print(f"you pressed {event.key}"))
         self.canvas.mpl_connect("key_press_event", key_press_handler)
 
-        button_quit = tk.Button(master=self.tk_root, text="Quit", command=self.tk_root.destroy)
-
         slider_update = tk.Scale(self.tk_root, from_=1, to=5, orient=tk.HORIZONTAL,
                                       command=self.update_frequency, label="Frequency [Hz]")
 
@@ -69,7 +106,6 @@ class tkSidViewer():
         # is no space left, because the window is too small, they are not displayed.
         # The canvas is rather flexible in its size, so we pack it last which makes
         # sure the UI controls are displayed as long as possible.
-        button_quit.pack(side=tk.BOTTOM)
         slider_update.pack(side=tk.BOTTOM)
         toolbar.pack(side=tk.BOTTOM, fill=tk.X)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -96,9 +132,26 @@ class tkSidViewer():
         self.refresh_psd()  # start the re-draw loop
         self.tk_root.mainloop()
 
+    def close(self, force_close=True):
+        if not force_close and MessageBox.askyesno(
+                "Confirm exit",
+                "Are you sure you want to exit SuperSID?"):
+            self.running = False
+            self.tk_root.destroy()
+
     def refresh_psd(self, z=None):
         self.update_frequency(random.randint(1, 10))
         self.tk_root.after(random.randint(10, 50), self.refresh_psd)
+
+    def save_file(self, param=None):
+        pass
+
+    def on_plot(self, dummy=None):
+        pass
+
+    def on_about(self):
+        """Display the About box message."""
+        MessageBox.showinfo("SuperSID", "TODO: self.controller.about_app()")
 
 
 def main():
