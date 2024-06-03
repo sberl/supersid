@@ -91,12 +91,16 @@ class tkSidViewer():
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root)
         self.toolbar.update()
 
+        NFFT = 1024
+        FS = 48000
+
         self.axes = self.psd_figure.add_subplot()
         self.axes.format_coord = Formatter()
 
         # add the psd labels manually for proper layout at startup
-        self.axes.set_ylabel("f(t)")
-        self.axes.set_xlabel("time [s]")
+        self.axes.set_ylabel("Power Spectral Density (dB/Hz)")
+        self.axes.set_xlabel("Frequency")
+        self.axes.set_xticks(np.linspace(0, FS/2, 6))
 
         # StatusBar
         self.statusbar_txt = tk.StringVar()
@@ -111,17 +115,13 @@ class tkSidViewer():
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
 
-        self.t = np.arange(0, 3, .01)   # x-axis data
-        self.line = None                # no y-data yet
-        self.y_max = -float("inf")      # negative infinite y max
-        self.y_min = +float("inf")      # positive infinite y min
+        self.t = np.arange(0, (FS/2)+1, FS/NFFT)  # x-axis data (number of samples)
+        self.line = None                        # no y-data yet
+        self.y_max = -float("inf")              # negative infinite y max
+        self.y_min = +float("inf")              # positive infinite y min
 
-    def update_frequency(self, new_val):
-        # retrieve frequency
-        f = float(new_val)
-
-        # update data
-        y = random.uniform(1.5, 3.0) * np.sin(2 * np.pi * f * self.t)
+    def update_psd(self, Pxx):
+        y = Pxx[0]                              # y-axis data (channel 0)
 
         if self.line is None:
             self.line, = self.axes.plot(self.t, y)
@@ -195,7 +195,7 @@ class tkSidViewer():
         FS = 48000
         Pxx, freqs = self.get_psd(data, NFFT, FS)
 
-        self.update_frequency(random.randint(1, 10))
+        self.update_psd(Pxx)
 
         if gc.garbage:
             print("gc.garbage")     # did not yet trigger
