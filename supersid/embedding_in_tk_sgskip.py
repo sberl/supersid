@@ -21,6 +21,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
+from matplotlib.mlab import psd as mlab_psd
 
 
 class Formatter(object):
@@ -110,10 +111,10 @@ class tkSidViewer():
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
 
-        self.t = np.arange(0, 3, .01)
-        self.line, = self.axes.plot(self.t, 2 * np.sin(2 * np.pi * self.t))
-        self.y_max = -float("inf")
-        self.y_min = float("inf")
+        self.t = np.arange(0, 3, .01)   # x-axis data
+        self.line = None                # no y-data yet
+        self.y_max = -float("inf")      # negative infinite y max
+        self.y_min = +float("inf")      # positive infinite y min
 
     def update_frequency(self, new_val):
         # retrieve frequency
@@ -121,7 +122,11 @@ class tkSidViewer():
 
         # update data
         y = random.uniform(1.5, 3.0) * np.sin(2 * np.pi * f * self.t)
-        self.line.set_data(self.t, y)
+
+        if self.line is None:
+            self.line, = self.axes.plot(self.t, y)
+        else:
+            self.line.set_data(self.t, y)
 
         # change y labels if new min/max is reached
         changed = False
@@ -136,13 +141,6 @@ class tkSidViewer():
 
         # required to update canvas and attached toolbar!
         self.canvas.draw()
-
-        if gc.garbage:
-            print("gc.garbage")     # did not yet trigger
-            print(gc.garbage)       # did not yet trigger
-
-        objgraph.show_growth()      # triggers rarely when klicking the cntrol for
-                                    # the frequency and moving the mouse wildly
 
     def run(self):
         self.refresh_psd()  # start the re-draw loop
@@ -179,8 +177,32 @@ class tkSidViewer():
             top=top)
         self.psd_figure.tight_layout()
 
+    def get_psd(self, data, NFFT, FS):
+        """Call 'psd', calculates the spectrum."""
+        try:
+            Pxx = {}
+            for channel in range(1): # range(self.controller.config['Channels']):
+                Pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
+        except RuntimeError as err_re:
+            print("Warning:", err_re)
+            Pxx, freqs = None, None
+        return Pxx, freqs
+
     def refresh_psd(self, z=None):
+        data = np.random.rand(48000, 1)
+        NFFT = 1024
+        FS = 48000
+        Pxx, freqs = self.get_psd(data, NFFT, FS)
+
         self.update_frequency(random.randint(1, 10))
+
+        if gc.garbage:
+            print("gc.garbage")     # did not yet trigger
+            print(gc.garbage)       # did not yet trigger
+
+        objgraph.show_growth()      # triggers rarely when klicking the cntrol for
+                                    # the frequency and moving the mouse wildly
         self.tk_root.after(random.randint(10, 50), self.refresh_psd)
 
     def save_file(self, param=None):
