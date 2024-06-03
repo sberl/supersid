@@ -398,7 +398,7 @@ class Config(dict):
 
         # check viewer
         self['viewer'] = self['viewer'].lower()
-        if self['viewer'] not in ('text', 'tk'):
+        if self['viewer'] not in ('text', 'tk', 'test'):
             self.config_ok = False
             self.config_err = "'viewer' must be either one of 'text', 'tk'."
             return

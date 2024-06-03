@@ -28,6 +28,7 @@ Then it creates its necessary elements:
 
 import gc
 import objgraph
+import numpy as np
 
 import sys
 import os.path
@@ -82,13 +83,17 @@ class SuperSID():
             # Lighter text version a.k.a. "console mode"
             from textsidviewer import textSidViewer
             self.viewer = textSidViewer(self)
+        elif self.config['viewer'] == 'test':
+            # Lighter text version a.k.a. "console mode"
+            from embedding_in_tk_sgskip import tkSidViewer
+            self.viewer = tkSidViewer(self)
         else:
             print("ERROR: Unknown viewer", sid.config['viewer'])
             sys.exit(2)
 
         # Assign desired PSD function for calculation after capture
         # currently: using matplotlib's psd
-        if (self.config['viewer'] == 'tk'):
+        if (self.config['viewer'] in ['tk', 'test']):
             # calculate psd and draw result in one call
             self.psd = self.viewer.get_psd
         elif self.config['viewer'] == 'text':
@@ -179,6 +184,8 @@ class SuperSID():
             if self.sampler.sampler_ok:
                 Pxx, freqs = self.psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
+                print("Pxx", Pxx[0].shape, np.min(Pxx[0]), np.max(Pxx[0]), Pxx[1].shape, np.min(Pxx[1]), np.max(Pxx[1]))
+                print("freqs", freqs.shape, np.min(freqs), np.max(freqs))
                 if Pxx is not None:
                     for channel, binSample in zip(
                             self.sampler.monitored_channels,
@@ -319,7 +326,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "-v", "--viewer",
         default=None,
-        choices=['text', 'tk'],
+        choices=['text', 'tk', 'test'],
         help="viewer (overrides viewer setting in the configuration file)")
     args = parser.parse_args()
 
