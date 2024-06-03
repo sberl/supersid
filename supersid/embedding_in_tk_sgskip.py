@@ -4,20 +4,24 @@ Embedding in Tk
 ===============
 
 """
-import sys
-import subprocess
+
+# memory leak investigation
+# 
+# measure
+#   mprof run python embedding_in_tk_sgskip.py
+#   mprof plot
+
+import gc
+import objgraph
+import random
 
 import tkinter as tk
 import tkinter.messagebox as MessageBox
-import tkinter.filedialog as FileDialog
-
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from matplotlib.mlab import psd as mlab_psd
-
-from supersid_common import script_relative_to_cwd_relative
 
 
 class Formatter(object):
@@ -32,16 +36,9 @@ class Formatter(object):
 class tkSidViewer():
     """Create the Tkinter GUI."""
 
-    def __init__(self, controller):
-        """Init SuperSID Viewer using Tkinter GUI for standalone and client.
-
-        Creation of the Frame with menu and graph display using matplotlib
-        """
-        self.version = "1.4 20170920 (tk)"
-        self.controller = controller  # previously referred as 'parent'
+    def __init__(self):
         self.tk_root = tk.Tk()
-        self.tk_root.title("supersid @ " + self.controller.config['site_name'])
-        self.running = False
+        self.tk_root.wm_title("Embedding in Tk")
 
         # All Menus creation
         menubar = tk.Menu(self.tk_root)
@@ -94,7 +91,7 @@ class tkSidViewer():
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root)
         self.toolbar.update()
 
-        FS = self.controller.config['audio_sampling_rate']
+        FS = 48000
         # NFFT = 1024 for 44100 and 48000,
         #        2048 for 96000,
         #        4096 for 192000
@@ -106,6 +103,7 @@ class tkSidViewer():
 
         self.axes = self.psd_figure.add_subplot()
         self.axes.format_coord = Formatter()
+        self.axes.grid(True)
 
         # add the psd labels manually for proper layout at startup
         self.axes.set_ylabel("Power Spectral Density (dB/Hz)")
@@ -125,15 +123,36 @@ class tkSidViewer():
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
 
-        self.t = np.arange(0, (FS/2)+1, FS/NFFT)    # x-axis data (frequency)
-        self.line = None                            # no y-data yet
-        self.y_max = -float("inf")                  # negative infinite y max
-        self.y_min = +float("inf")                  # positive infinite y min
+        self.t = np.arange(0, (FS/2)+1, FS/NFFT)  # x-axis data (number of samples)
+        self.line = None                        # no y-data yet
+        self.y_max = -float("inf")              # negative infinite y max
+        self.y_min = +float("inf")              # positive infinite y min
+
+    def update_psd(self, Pxx):
+        y = 10 * np.log10(Pxx[0]) # y-axis data (channel 0)
+
+        if self.line is None:
+            self.line, = self.axes.plot(self.t, y)
+        else:
+            self.line.set_data(self.t, y)
+
+        # change y labels if new min/max is reached
+        changed = False
+        if np.max(y) > self.y_max:
+            self.y_max = np.max(y)
+            changed = True
+        if np.min(y) < self.y_min:
+            self.y_min = np.min(y)
+            changed = True
+        if changed:
+            self.axes.set_yticks(np.linspace(self.y_min, self.y_max, 9))
+
+        # required to update canvas and attached toolbar!
+        self.canvas.draw()
 
     def run(self):
-        self.running = True
+        self.refresh_psd()  # start the re-draw loop
         self.tk_root.mainloop()
-        self.running = False
 
     def close(self, force_close=True):
         if not force_close and MessageBox.askyesno(
@@ -166,129 +185,49 @@ class tkSidViewer():
             top=top)
         self.psd_figure.tight_layout()
 
-    def status_display(self, message, level=0, field=0):
-        """Update the main frame by changing the message in status bar."""
-        if self.running:
-            self.statusbar_txt.set(message)
-
     def get_psd(self, data, NFFT, FS):
-        """Call mlab_psd() to calculates the spectrum, then refresh_psd() to plot"""
+        """Call 'psd', calculates the spectrum."""
         try:
             Pxx = {}
-            for channel in range(self.controller.config['Channels']):
+            for channel in range(1): # range(self.controller.config['Channels']):
                 Pxx[channel], freqs = \
                     mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
-            self.refresh_psd(Pxx)
         except RuntimeError as err_re:
             print("Warning:", err_re)
             Pxx, freqs = None, None
-#        else:
-#            bottom, top = self.axes.get_ylim()
-#            dist = top - bottom
-#            for s in self.controller.config.stations:
-#                freq = int(s['frequency'])
-#                self.axes.axvline(x=freq, color='r')
-#                self.axes.text(freq, bottom + (dist * 0.95), s['call_sign'],
-#                               horizontalalignment='center',
-#                               bbox={'facecolor': 'w', 'alpha': 0.5,
-#                                     'fill': True})
         return Pxx, freqs
 
-    def refresh_psd(self, Pxx):
-        """Redraw the graphic PSD plot"""
-        y = 10 * np.log10(Pxx[0]) # y-axis data (channel 0)
+    def refresh_psd(self, z=None):
+        data = np.random.rand(48000, 1)
+        NFFT = 1024
+        FS = 48000
+        Pxx, freqs = self.get_psd(data, NFFT, FS)
 
-        if self.line is None:
-            self.line, = self.axes.plot(self.t, y)
-        else:
-            self.line.set_data(self.t, y)
+        self.update_psd(Pxx)
 
-        # change y labels if new min/max is reached
-        changed = False
-        if np.max(y) > self.y_max:
-            self.y_max = np.max(y)
-            changed = True
-        if np.min(y) < self.y_min:
-            self.y_min = np.min(y)
-            changed = True
-        if changed:
-            self.axes.set_yticks(np.linspace(self.y_min, self.y_max, 9))
+        if gc.garbage:
+            print("gc.garbage")     # did not yet trigger
+            print(gc.garbage)       # did not yet trigger
 
-        # required to update canvas and attached toolbar!
-        try:
-            self.canvas.draw()
-            self.need_refresh = False
-        except IndexError as err_idx:
-            print("Warning:", err_idx)
+        objgraph.show_growth()      # triggers rarely when klicking the cntrol for
+                                    # the frequency and moving the mouse wildly
+        self.tk_root.after(random.randint(10, 50), self.refresh_psd)
 
     def save_file(self, param=None):
-        """Save the files as per user's menu choice."""
-        param = param if isinstance(
-            param, str) else param.keysym  # which is the letter with the CTRL-
-        if param == 'r':
-            saved_files = self.controller.save_current_buffers(
-                log_type='raw',
-                log_format='both')
-        elif param == 'f':
-            saved_files = self.controller.save_current_buffers(
-                log_type='filtered',
-                log_format='both')
-        elif param == 'e':
-            saved_files = self.controller.save_current_buffers(
-                log_type='raw',
-                log_format='both_extended')
-        elif param == 's':
-            filename = self.AskSaveasFilename()
-            if filename:
-                saved_files = self.controller.save_current_buffers(
-                    filename,
-                    log_type='filtered',
-                    log_format='supersid')
-            else:
-                saved_files = None
-        if saved_files:
-            MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
+        pass
 
     def on_plot(self, dummy=None):
-        """Save current buffers (raw) and display the data using supersid_plot.
-        Using a separate process to prevent interference with data capture
-        """
-        filenames = self.controller.save_current_buffers(
-            log_format='supersid_format')
-        assert (1 == len(filenames)), \
-            f"expected exactly one saved file, got {len(filenames)}"
-        assert (1 == len(self.controller.config.filenames)), \
-            "expected exactly one configuration file, got " \
-            f"{len(self.controller.config.filenames)}"
-        print("plotting", filenames[0])
-        subprocess.Popen([
-            sys.executable,
-            script_relative_to_cwd_relative('supersid_plot.py'),
-            '-f',
-            filenames[0],
-            '-c',
-            script_relative_to_cwd_relative(
-                self.controller.config.filenames[0])])
+        pass
 
     def on_about(self):
         """Display the About box message."""
-        MessageBox.showinfo("SuperSID", self.controller.about_app())
+        MessageBox.showinfo("SuperSID", "TODO: self.controller.about_app()")
 
-    def AskSaveasFilename(
-            self,
-            title='Save File',
-            filetypes=None,
-            initialfile=''):
-        """Return a string containing file name.
 
-        the calling routine will need to open the file
-        """
-        if filetypes is None:
-            filetypes = [
-                ('CSV File', '*.csv'),
-                ('Any File', '*.*')]
-        fileName = FileDialog.asksaveasfilename(parent=self.tk_root,
-                                                filetypes=filetypes,
-                                                initialfile=initialfile,
-                                                title=title)
-        return fileName
+def main():
+    viewer = tkSidViewer()
+    viewer.run()
+
+
+if __name__ == "__main__":
+    main()

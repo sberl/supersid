@@ -28,7 +28,6 @@ Then it creates its necessary elements:
 
 import gc
 import objgraph
-import numpy as np
 
 import sys
 import os.path
@@ -184,8 +183,6 @@ class SuperSID():
             if self.sampler.sampler_ok:
                 Pxx, freqs = self.psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
-                print("Pxx", Pxx[0].shape, np.min(Pxx[0]), np.max(Pxx[0]), Pxx[1].shape, np.min(Pxx[1]), np.max(Pxx[1]))
-                print("freqs", freqs.shape, np.min(freqs), np.max(freqs))
                 if Pxx is not None:
                     for channel, binSample in zip(
                             self.sampler.monitored_channels,
