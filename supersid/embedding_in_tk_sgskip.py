@@ -5,6 +5,19 @@ Embedding in Tk
 
 """
 
+# memory leak investigation
+# 
+# measure
+#   mprof run python embedding_in_tk_sgskip.py
+#   mprof plot
+
+import gc
+import objgraph
+import random
+import argparse
+from supersid_common import exist_file
+from config import readConfig, CONFIG_FILE_NAME
+
 import tkinter as tk
 import tkinter.messagebox as MessageBox
 import numpy as np
@@ -126,6 +139,7 @@ class tkSidViewer():
         self.y_min = +float("inf")                  # positive infinite y min
 
     def run(self):
+        self.tk_root.after(1000, self.tick)
         self.running = True
         self.tk_root.mainloop()
         self.running = False
@@ -217,10 +231,45 @@ class tkSidViewer():
         """Display the About box message."""
         MessageBox.showinfo("SuperSID", "TODO: self.controller.about_app()")
 
+    def tick(self):
+        FS = self.controller.config['audio_sampling_rate']
+        # NFFT = 1024 for 44100 and 48000,
+        #        2048 for 96000,
+        #        4096 for 192000
+        # -> the frequency resolution is constant
+        NFFT = max(1024, 1024 * FS // 48000)
+        data = np.random.rand(FS, self.controller.config['Channels'])
+        self.get_psd(data, NFFT, FS)
+
+        if gc.garbage:
+            print("gc.garbage")     # did not yet trigger
+            print(gc.garbage)       # did not yet trigger
+
+        objgraph.show_growth()      # triggers rarely when klicking the cntrol for
+                                    # the frequency and moving the mouse wildly
+        self.tk_root.after(1000, self.tick)
+
+
+class SuperSID():
+    running = False  # class attribute indicates the SID application running
+
+    def __init__(self, config_file):
+        self.config = readConfig(config_file)
+        print(self.config)
+        viewer = tkSidViewer(self)
+        viewer.run()
+
 
 def main():
-    viewer = tkSidViewer()
-    viewer.run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c", "--config", dest="cfg_filename",
+        type=exist_file,
+        default=CONFIG_FILE_NAME,
+        help="Supersid configuration file")
+    args = parser.parse_args()
+
+    sid = SuperSID(args.cfg_filename)
 
 
 if __name__ == "__main__":
