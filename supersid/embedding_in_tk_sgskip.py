@@ -5,16 +5,6 @@ Embedding in Tk
 
 """
 
-# memory leak investigation
-# 
-# measure
-#   mprof run python embedding_in_tk_sgskip.py
-#   mprof plot
-
-import gc
-import objgraph
-import random
-
 import tkinter as tk
 import tkinter.messagebox as MessageBox
 import numpy as np
@@ -36,9 +26,16 @@ class Formatter(object):
 class tkSidViewer():
     """Create the Tkinter GUI."""
 
-    def __init__(self):
+    def __init__(self, controller):
+        """Init SuperSID Viewer using Tkinter GUI for standalone and client.
+
+        Creation of the Frame with menu and graph display using matplotlib
+        """
+        self.version = "1.4 20170920 (tk)"
+        self.controller = controller  # previously referred as 'parent'
         self.tk_root = tk.Tk()
-        self.tk_root.wm_title("Embedding in Tk")
+        self.tk_root.wm_title("supersid @ " + self.controller.config['site_name'])
+        self.running = False
 
         # All Menus creation
         menubar = tk.Menu(self.tk_root)
@@ -91,7 +88,7 @@ class tkSidViewer():
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root)
         self.toolbar.update()
 
-        FS = 48000
+        FS = self.controller.config['audio_sampling_rate']
         # NFFT = 1024 for 44100 and 48000,
         #        2048 for 96000,
         #        4096 for 192000
@@ -123,36 +120,15 @@ class tkSidViewer():
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
 
-        self.t = np.arange(0, (FS/2)+1, FS/NFFT)  # x-axis data (number of samples)
-        self.line = None                        # no y-data yet
-        self.y_max = -float("inf")              # negative infinite y max
-        self.y_min = +float("inf")              # positive infinite y min
-
-    def update_psd(self, Pxx):
-        y = 10 * np.log10(Pxx[0]) # y-axis data (channel 0)
-
-        if self.line is None:
-            self.line, = self.axes.plot(self.t, y)
-        else:
-            self.line.set_data(self.t, y)
-
-        # change y labels if new min/max is reached
-        changed = False
-        if np.max(y) > self.y_max:
-            self.y_max = np.max(y)
-            changed = True
-        if np.min(y) < self.y_min:
-            self.y_min = np.min(y)
-            changed = True
-        if changed:
-            self.axes.set_yticks(np.linspace(self.y_min, self.y_max, 9))
-
-        # required to update canvas and attached toolbar!
-        self.canvas.draw()
+        self.t = np.arange(0, (FS/2)+1, FS/NFFT)    # x-axis data (frequency)
+        self.line = None                            # no y-data yet
+        self.y_max = -float("inf")                  # negative infinite y max
+        self.y_min = +float("inf")                  # positive infinite y min
 
     def run(self):
-        self.refresh_psd()  # start the re-draw loop
+        self.running = True
         self.tk_root.mainloop()
+        self.running = False
 
     def close(self, force_close=True):
         if not force_close and MessageBox.askyesno(
@@ -185,33 +161,51 @@ class tkSidViewer():
             top=top)
         self.psd_figure.tight_layout()
 
+    def status_display(self, message, level=0, field=0):
+        pass
+
     def get_psd(self, data, NFFT, FS):
-        """Call 'psd', calculates the spectrum."""
+        """Call mlab_psd() to calculates the spectrum, then refresh_psd() to plot"""
         try:
             Pxx = {}
-            for channel in range(1): # range(self.controller.config['Channels']):
+            for channel in range(self.controller.config['Channels']):
                 Pxx[channel], freqs = \
                     mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
+            self.refresh_psd(Pxx)
         except RuntimeError as err_re:
             print("Warning:", err_re)
             Pxx, freqs = None, None
+
         return Pxx, freqs
 
-    def refresh_psd(self, z=None):
-        data = np.random.rand(48000, 1)
-        NFFT = 1024
-        FS = 48000
-        Pxx, freqs = self.get_psd(data, NFFT, FS)
+    def refresh_psd(self, Pxx):
+        """Redraw the graphic PSD plot"""
+        y = 10 * np.log10(Pxx[0]) # y-axis data (channel 0)
 
-        self.update_psd(Pxx)
+        if self.line is None:
+            self.line, = self.axes.plot(self.t, y)
+        else:
+            self.line.set_data(self.t, y)
 
-        if gc.garbage:
-            print("gc.garbage")     # did not yet trigger
-            print(gc.garbage)       # did not yet trigger
+        # change y labels if new min/max is reached
+        changed = False
+        if np.max(y) > self.y_max:
+            self.y_max = np.max(y)
+            changed = True
+        if np.min(y) < self.y_min:
+            self.y_min = np.min(y)
+            changed = True
+        if changed:
+            self.axes.set_yticks(np.linspace(self.y_min, self.y_max, 9))
 
-        objgraph.show_growth()      # triggers rarely when klicking the cntrol for
-                                    # the frequency and moving the mouse wildly
-        self.tk_root.after(random.randint(10, 50), self.refresh_psd)
+        self.tk_root.after(10, self.draw)
+        
+    def draw(self):
+        # required to update canvas and attached toolbar!
+        try:
+            self.canvas.draw()
+        except IndexError as err_idx:
+            print("Warning:", err_idx)
 
     def save_file(self, param=None):
         pass
