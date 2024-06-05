@@ -218,9 +218,6 @@ class tkSidViewer():
         if changed:
             self.axes.set_yticks(np.linspace(self.y_min, self.y_max, 9))
 
-        self.tk_root.after(10, self.draw)
-        
-    def draw(self):
         # required to update canvas and attached toolbar!
         try:
             self.canvas.draw()

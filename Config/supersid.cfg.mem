@@ -85,7 +85,7 @@ ftp_server = sid-ftp.stanford.edu
 ftp_directory = /incoming/SuperSID/NEW/
 # local_tmp shall be an absolute path or a path relative to the supersid script folder
 local_tmp = ../outgoing
-call_signs = NWC
+call_signs = 
 
 [Email]
 # required to connect to the mail server when using 'supersid_plot.py -e receiver@domain.tld'
