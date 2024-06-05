@@ -17,7 +17,7 @@ time_zone = UTC
 
 audio_sampling_rate = 48000
 
-log_interval = 5
+log_interval = 1
 log_format = supersid_extended
 log_type = filtered
 scaling_factor = 1.0
