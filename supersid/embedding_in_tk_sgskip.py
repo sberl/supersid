@@ -136,14 +136,18 @@ class tkSidViewer():
         self.label.pack(fill=tk.X)
 
         self.t = np.arange(0, (FS/2)+1, FS/NFFT)    # x-axis data (frequency)
-        self.line = None                            # no y-data yet
+        self.line = {}                              # no y-data yet
         self.y_max = -float("inf")                  # negative infinite y max
         self.y_min = +float("inf")                  # positive infinite y min
+
+        self.need_refresh = False
 
     def start_timer(self):
         self.tk_root.after(1000, self.tick)
 
     def run(self):
+        self.need_refresh = False
+        self.refresh_psd()  # start the re-draw loop
         self.running = True
         self.tk_root.mainloop()
         self.running = False
@@ -184,45 +188,45 @@ class tkSidViewer():
         if self.running:
             self.statusbar_txt.set(message)
 
-    def get_psd(self, data, NFFT, FS):
-        """Call mlab_psd() to calculates the spectrum, then refresh_psd() to plot"""
-        try:
-            Pxx = {}
-            for channel in range(self.controller.config['Channels']):
-                Pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
-            self.refresh_psd(Pxx)
-        except RuntimeError as err_re:
-            print("Warning:", err_re)
-            Pxx, freqs = None, None
+    def update_psd(self, Pxx):
+        # decouple the PSD calculation (done in timer context)
+        # from displaying the data with TK/matplotlib
+        self.Pxx = Pxx
+        self.need_refresh = True
 
-        return Pxx, freqs
-
-    def refresh_psd(self, Pxx):
+    def redraw_psd(self):
         """Redraw the graphic PSD plot"""
-        y = 10 * np.log10(Pxx[0]) # y-axis data (channel 0)
+        y_axis_changed = False
+        for channel in range(self.controller.config['Channels']):
+            y = 10 * np.log10(self.Pxx[channel])
 
-        if self.line is None:
-            self.line, = self.axes.plot(self.t, y)
-        else:
-            self.line.set_data(self.t, y)
+            if channel not in self.line:
+                self.line[channel], = self.axes.plot(self.t, y)
+            else:
+                self.line[channel].set_data(self.t, y)
 
-        # change y labels if new min/max is reached
-        changed = False
-        if np.max(y) > self.y_max:
-            self.y_max = np.max(y)
-            changed = True
-        if np.min(y) < self.y_min:
-            self.y_min = np.min(y)
-            changed = True
-        if changed:
+            # change y labels if new min/max is reached
+            if np.max(y) > self.y_max:
+                self.y_max = np.max(y)
+                y_axis_changed = True
+            if np.min(y) < self.y_min:
+                self.y_min = np.min(y)
+                y_axis_changed = True
+        if y_axis_changed:
             self.axes.set_yticks(np.linspace(self.y_min, self.y_max, 9))
 
         # required to update canvas and attached toolbar!
-        try:
-            self.canvas.draw()
-        except IndexError as err_idx:
-            print("Warning:", err_idx)
+        self.canvas.draw()
+
+    def refresh_psd(self):
+        """Redraw the graphic PSD plot if needed.
+
+        i.e.new data have been given to get_psd
+        """
+        if self.need_refresh:
+            self.redraw_psd()
+            self.need_refresh = False
+        self.tk_root.after(100, self.refresh_psd)
 
     def save_file(self, param=None):
         pass
@@ -239,20 +243,23 @@ class tkSidViewer():
         if not once:
             self.status_display("tkSidViewer::tick()")
             once = True
-        FS = self.controller.config['audio_sampling_rate']
-        channels = self.controller.config['Channels']
-        provide_dummy_data(FS, channels, self)
+        provide_dummy_data(self.controller, self)
         self.tk_root.after(1000, self.tick)
 
 
-def provide_dummy_data(FS, channels, viewer):
+def provide_dummy_data(controller, viewer):
+    FS = controller.config['audio_sampling_rate']
+    channels = controller.config['Channels']
     # NFFT = 1024 for 44100 and 48000,
     #        2048 for 96000,
     #        4096 for 192000
     # -> the frequency resolution is constant
     NFFT = max(1024, 1024 * FS // 48000)
     data = np.random.rand(FS, channels)
-    viewer.get_psd(data, NFFT, FS)
+
+    Pxx, freqs = controller.calc_psd(data)
+    if (Pxx is not None):
+        viewer.update_psd(Pxx)
 
     if gc.garbage:
         print("gc.garbage")     # did not yet trigger
@@ -279,12 +286,31 @@ class SuperSID():
         if not once:
             self.viewer.status_display("SuperSID::on_timer()")
             once = True
-        FS = self.config['audio_sampling_rate']
-        channels = self.config['Channels']
         if self.viewer.running:
-            provide_dummy_data(FS, channels, self.viewer)
+            provide_dummy_data(self, self.viewer)
         else:
             self.timer.stop()
+
+    def calc_psd(self, data):
+        """Call mlab_psd() to calculates the spectrum, then refresh_psd() to plot"""
+
+
+        try:
+            FS = self.config['audio_sampling_rate']
+            # NFFT = 1024 for 44100 and 48000,
+            #        2048 for 96000,
+            #        4096 for 192000
+            # -> the frequency resolution is constant
+            NFFT = max(1024, 1024 * FS // 48000)
+            Pxx = {}
+            for channel in range(self.config['Channels']):
+                Pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
+        except RuntimeError as err_re:
+            print("Warning:", err_re)
+            Pxx, freqs = None, None
+
+        return Pxx, freqs
 
 
 def main():
