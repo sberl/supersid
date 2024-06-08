@@ -16,7 +16,8 @@ import tkinter.filedialog as FileDialog
 
 import math
 import numpy as np
-import matplotlib
+import matplotlib.ticker
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -41,11 +42,11 @@ class tkSidViewer():
 
         Creation of the Frame with menu and graph display using matplotlib
         """
-        matplotlib.use('TkAgg')
+#        matplotlib.use('TkAgg')
         self.version = "1.4 20170920 (tk)"
         self.controller = controller  # previously referred as 'parent'
         self.tk_root = tk.Tk()
-        self.tk_root.title("supersid @ " + self.controller.config['site_name'])
+        self.tk_root.wm_title("supersid @ " + self.controller.config['site_name'])
         self.running = False
 
         # All Menus creation
@@ -85,21 +86,21 @@ class tkSidViewer():
         menubar.add_cascade(label="Help", menu=helpmenu)
 
         self.tk_root.config(menu=menubar)
-        try:
-            # full screen, works in Windows but not in Linux
-            self.tk_root.state('zoomed')
-        except Exception:
-            try:
-                # large window but doesn't match the screen in Windows
-                w = self.tk_root.winfo_screenwidth()
-                h = self.tk_root.winfo_screenheight()
-                self.tk_root.geometry("%dx%d+0+0" % (w, h))
-            except Exception:
-                try:
-                    # full screen, but not resizeable
-                    self.tk_root.attributes("-fullscreen", True)
-                except Exception:
-                    pass
+#        try:
+#            # full screen, works in Windows but not in Linux
+#            self.tk_root.state('zoomed')
+#        except Exception:
+#            try:
+#                # large window but doesn't match the screen in Windows
+#                w = self.tk_root.winfo_screenwidth()
+#                h = self.tk_root.winfo_screenheight()
+#                self.tk_root.geometry("%dx%d+0+0" % (w, h))
+#            except Exception:
+#                try:
+#                    # full screen, but not resizeable
+#                    self.tk_root.attributes("-fullscreen", True)
+#                except Exception:
+#                    pass
 
         self.tk_root.bind("<Configure>", self.onsize)
 
@@ -113,15 +114,20 @@ class tkSidViewer():
 
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.tk_root)
         self.toolbar.update()
-        self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.axes = self.psd_figure.add_subplot(111)
+        self.axes = self.psd_figure.add_subplot()
         self.axes.format_coord = Formatter()
+        self.axes.grid(True)
+
+        self.station_labels = []
+        self.line = {}              # no psd data yet
+        self.y_max = -float("inf")  # negative infinite y max
+        self.y_min = +float("inf")  # positive infinite y min
 
         # add the psd labels manually for proper layout at startup
         self.axes.set_ylabel("Power Spectral Density (dB/Hz)")
         self.axes.set_xlabel("Frequency")
-        self.set_graph_limits()
+        self.set_x_limits()
 
         # StatusBar
         self.statusbar_txt = tk.StringVar()
@@ -135,12 +141,12 @@ class tkSidViewer():
 
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
-        self.need_refresh = False
+        self.need_psd_refresh = False
+        self.need_text_refresh = False
 
     def run(self):
-        self.need_refresh = False
-        self.refresh_psd()  # start the re-draw loop
         self.running = True
+        self.refresh_psd()  # start the re-draw loop
         self.tk_root.mainloop()
         self.running = False
 
@@ -175,67 +181,162 @@ class tkSidViewer():
             top=top)
         self.psd_figure.tight_layout()
 
-    def status_display(self, message, level=0, field=0):
+    def status_display(self, message):
         """Update the main frame by changing the message in status bar."""
-        if self.running:
-            self.statusbar_txt.set(message)
+        self.message = message
+        self.need_text_refresh = True
 
-    def set_graph_limits(self):
+    def set_x_limits(self):
+        FS = self.controller.config['audio_sampling_rate']
+        # NFFT = 1024 for 44100 and 48000,
+        #        2048 for 96000,
+        #        4096 for 192000
+        # -> the frequency resolution is constant
+        NFFT = max(1024, 1024 * FS // 48000)
+        if FS > 96000:
+            step = 10000    # one tick per 10 kHz
+        elif FS > 48000:
+            step = 5000     # one tick per 5 kHz
+        else:
+            step = 2500     # one tick per 2.5 kHz
+        x_steps = (FS // 2) // step
+        x_max = x_steps * step
+
         # use the entire x-axis for data
-        self.axes.set_xlim([
-            0, self.controller.config['audio_sampling_rate'] // 2])
-
+        self.t = np.arange(0, (FS/2)+1, FS/NFFT)    # x-axis data (frequency)
+        self.axes.set_xticks(np.linspace(0, x_max, x_steps+1))
+        self.axes.set_xlim([0, FS // 2])
+    
+    def set_y_limits(self):
         psd_min = self.controller.config['psd_min']
         psd_max = self.controller.config['psd_max']
         psd_ticks = self.controller.config['psd_ticks']
+        if (psd_ticks
+                and (not math.isnan(psd_min))
+                and (not math.isnan(psd_max))):
+            self.axes.set_yticks(np.linspace(psd_min, psd_max, psd_ticks))
+        elif (not np.isinf(self.y_min) and (not np.isinf(self.y_max))):
+            l = matplotlib.ticker.AutoLocator()
+            l.create_dummy_axis()
+            ticks = l.tick_values(self.y_min, self.y_max)
+
+            # correct min/max if theouter ticks are already outside
+            if ticks[0] < self.y_min:
+                self.y_min = ticks[0]
+            if ticks[-1] > self.y_max:
+                self.y_max = ticks[-1]
+
+            self.axes.set_yticks(ticks)
         if not math.isnan(psd_min):
             # set minimum for the y-axis if not configured as NaN
             self.axes.set_ylim(bottom=psd_min)
         if not math.isnan(psd_max):
             # set maximum for the y-axis if not configured as NaN
             self.axes.set_ylim(top=psd_max)
-        if (psd_ticks
-                and (not math.isnan(psd_min))
-                and (not math.isnan(psd_max))):
-            self.axes.set_yticks(np.linspace(psd_min, psd_max, psd_ticks))
 
-    def get_psd(self, data, NFFT, FS):
-        """Call 'psd' within axes, both calculates and plots the spectrum."""
-        try:
-            self.axes.clear()
-            Pxx = {}
-            for channel in range(self.controller.config['Channels']):
-                Pxx[channel], freqs = self.axes.psd(
-                    data[:, channel], NFFT=NFFT, Fs=FS)
-            self.set_graph_limits()
-            self.need_refresh = True
-        except RuntimeError as err_re:
-            print("Warning:", err_re)
-            Pxx, freqs = None, None
-        else:
-            bottom, top = self.axes.get_ylim()
-            dist = top - bottom
-            for s in self.controller.config.stations:
-                freq = int(s['frequency'])
-                self.axes.axvline(x=freq, color='r')
-                self.axes.text(freq, bottom + (dist * 0.95), s['call_sign'],
-                               horizontalalignment='center',
-                               bbox={'facecolor': 'w', 'alpha': 0.5,
-                                     'fill': True})
-        return Pxx, freqs
+    def update_psd(self, Pxx):
+        # decouple the PSD calculation (done in timer context)
+        # from displaying the data with TK/matplotlib
+        self.Pxx = Pxx
+        self.need_psd_refresh = True
 
-    def refresh_psd(self, z=None):
+    def redraw_psd(self):
+        """Redraw the graphic PSD plot"""
+        y_axis_changed = False
+        psd_max = self.controller.config['psd_max']
+        psd_min = self.controller.config['psd_min']
+        for channel in range(self.controller.config['Channels']):
+            y = 10 * np.log10(self.Pxx[channel])
+
+            if channel not in self.line:
+                self.line[channel], = self.axes.plot(self.t, y)
+            else:
+                self.line[channel].set_data(self.t, y)
+
+            # change y labels if new min/max is reached
+            # if not otherwise configured
+            if math.isnan(psd_max):
+                if np.max(y) > self.y_max:
+                    self.y_max = np.max(y)
+                    y_axis_changed = True
+            if math.isnan(psd_min):
+                if np.min(y) < self.y_min:
+                    self.y_min = np.min(y)
+                    y_axis_changed = True
+
+        if not math.isnan(psd_max):
+            # psd_max is configured ...
+            if np.isinf(self.y_max):
+                # ... but y_max not yet set
+                # set it now
+                self.y_max = psd_max
+                y_axis_changed = True
+                
+        if not math.isnan(psd_min):
+            # psd_min is configured ...
+            if np.isinf(self.y_min):
+                # ... but y_min not yet set
+                # set it now
+                self.y_min = psd_min
+                y_axis_changed = True
+
+        if y_axis_changed:
+            self.set_y_limits()
+            self.mark_stations()
+
+        # required to update canvas and attached toolbar!
+        self.canvas.draw()
+
+    def mark_stations(self):
+        """Place the horizontal markers for the observed stations."""
+        for label in self.station_labels:
+            label.remove()
+        self.station_labels = []
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        colors = prop_cycle.by_key()['color']
+        bottom, top = self.axes.get_ylim()
+        dist = top - bottom
+        top = True
+        for s in self.controller.config.stations:
+            color = colors[s['channel']]
+            freq = int(s['frequency'])
+            self.axes.axvline(x=freq, color=color, alpha=0.5)
+            if top:
+                label = self.axes.text(freq, bottom + (dist * 0.975),
+                                       s['call_sign'],
+                                       verticalalignment='top',
+                                       horizontalalignment='center',
+                                       rotation=90,
+                                       bbox={'facecolor': color,
+                                             'alpha': 0.5,
+                                             'fill': True})
+            else:
+                label = self.axes.text(freq, bottom + (dist * 0.025),
+                                       s['call_sign'],
+                                       verticalalignment='baseline',
+                                       horizontalalignment='center',
+                                       rotation=90,
+                                       bbox={'facecolor': color,
+                                             'alpha': 0.5,
+                                             'fill': True})
+            top = not top
+            self.station_labels.append(label)
+
+    def refresh_psd(self):
         """Redraw the graphic PSD plot if needed.
 
         i.e.new data have been given to get_psd
         """
-        if self.need_refresh:
-            try:
-                self.canvas.draw()
-                self.need_refresh = False
-            except IndexError as err_idx:
-                print("Warning:", err_idx)
-        self.tk_root.after(2000, self.refresh_psd)
+        if self.running:
+            if self.need_psd_refresh:
+                self.redraw_psd()
+                self.need_psd_refresh = False
+
+            if self.need_text_refresh:
+                self.statusbar_txt.set(self.message)
+                self.need_text_refresh = False
+
+            self.tk_root.after(100, self.refresh_psd)
 
     def save_file(self, param=None):
         """Save the files as per user's menu choice."""

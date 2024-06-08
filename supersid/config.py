@@ -362,7 +362,7 @@ class Config(dict):
             return
 
         # log_interval should be > 2
-        if self['log_interval'] < 1:    # TODO: roll back, just for memory leak test
+        if self['log_interval'] < 2:    # TODO: <= 2
             self.config_ok = False
             self.config_err = "'log_interval' <= 2. Too fast! Please increase."
             return

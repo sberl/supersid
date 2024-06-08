@@ -111,7 +111,7 @@ class SuperSID_scanner():
         # Get new data and pass them to the View
         message = "%s  [%d]  Capturing data..." % (self.timer.get_utc_now(),
                                                    current_index)
-        self.viewer.status_display(message, level=1)
+        self.viewer.status_display(message)
 
         try:
             # return a list of signal strength
@@ -152,7 +152,7 @@ class SuperSID_scanner():
 
         # end of this thread/need to handle to View to
         # display captured data & message
-        self.viewer.status_display(message, level=2)
+        self.viewer.status_display(message)
 
     def save_current_buffers(self, filename='',
                              log_type='raw',

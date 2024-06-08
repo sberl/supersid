@@ -15,9 +15,10 @@ latitude = 51.478
 utc_offset = +00:00
 time_zone = UTC
 
-audio_sampling_rate = 48000
+# typically one of 44100, 48000, 96000, 192000
+audio_sampling_rate = 192000
 
-log_interval = 1
+log_interval = 2
 log_format = supersid_extended
 log_type = filtered
 scaling_factor = 1.0
@@ -34,7 +35,7 @@ data_path = ../Data
 
 paper_size = A4
 
-number_of_stations = 2
+number_of_stations = 4
 
 # VLF station data is gathered from two sources:
 # https://www.mwlist.org/vlf.php
@@ -42,6 +43,17 @@ number_of_stations = 2
 # In case of contradictions, sidstation.loudet.org is used.
 
 [STATION_1]
+# https://www.mwlist.org/vlf.php?kHz=18.20
+# https://sidstation.loudet.org/stations-list-en.xhtml 18200 = VTX3
+# South Vijayanarayanam, India @+08.387015,+077.752762
+# https://www.luftlinie.org/51.478,-0.001/+08.387015,+077.752762
+# 8432 km
+call_sign = VTX3
+color = k
+frequency = 18200
+channel = 0
+
+[STATION_2]
 # https://www.mwlist.org/vlf.php?kHz=19.80
 # https://sidstation.loudet.org/stations-list-en.xhtml 19800 = NWC
 # Harold E. Holt, North West Cape, Exmouth, Australia @-21.816328,+114.165586
@@ -51,18 +63,29 @@ number_of_stations = 2
 call_sign = NWC
 color = y
 frequency = 19800
-channel = 0
+channel = 1
 
-[STATION_2]
+[STATION_3]
 # https://www.mwlist.org/vlf.php?kHz=18.20
 # https://sidstation.loudet.org/stations-list-en.xhtml 18200 = VTX3
 # South Vijayanarayanam, India @+08.387015,+077.752762
 # https://www.luftlinie.org/51.478,-0.001/+08.387015,+077.752762
 # 8432 km
-call_sign = VTX3
+call_sign = ABC
 color = k
-frequency = 18200
+frequency = 20400
 channel = 1
+
+[STATION_4]
+# https://www.mwlist.org/vlf.php?kHz=18.20
+# https://sidstation.loudet.org/stations-list-en.xhtml 18200 = VTX3
+# South Vijayanarayanam, India @+08.387015,+077.752762
+# https://www.luftlinie.org/51.478,-0.001/+08.387015,+077.752762
+# 8432 km
+call_sign = XYZ
+color = k
+frequency = 22000
+channel = 0
 
 [Capture]
 # Linux example using alsaaudio
