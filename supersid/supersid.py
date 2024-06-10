@@ -15,20 +15,6 @@ Then it creates its necessary elements:
     - Timer for sampling
     - <still missing> network management with client-server protocol
 """
-
-# memory leak investigation
-# 
-# measure text viewer
-#   mprof run python supersid.py -c ..\Config\supersid.cfg.mem -v text
-#   mprof plot
-#
-# measure tk viewer
-#   mprof run python supersid.py -c ..\Config\supersid.cfg.mem -v tk
-#   mprof plot
-
-import gc
-import objgraph
-
 import sys
 import os.path
 import argparse
@@ -83,10 +69,6 @@ class SuperSID():
             # Lighter text version a.k.a. "console mode"
             from textsidviewer import textSidViewer
             self.viewer = textSidViewer(self)
-        elif self.config['viewer'] == 'test':
-            # Lighter text version a.k.a. "console mode"
-            from embedding_in_tk_sgskip import tkSidViewer
-            self.viewer = tkSidViewer(self)
         else:
             print("ERROR: Unknown viewer", sid.config['viewer'])
             sys.exit(2)
@@ -219,14 +201,6 @@ class SuperSID():
         # captured data & message
         self.viewer.status_display(message)
 
-        if gc.garbage:
-            print("gc.garbage")     # did not yet trigger
-            print(gc.garbage)       # did not yet trigger
-
-        objgraph.show_growth()      # text triggers 2 times, then silence
-                                    # tk triggers many times
-                                    # sometimes whne the mouse is moved
-
     def get_psd(self, data, NFFT, FS):
         """Call 'psd', calculates the spectrum."""
         try:
@@ -321,7 +295,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "-v", "--viewer",
         default=None,
-        choices=['text', 'tk', 'test'],
+        choices=['text', 'tk'],
         help="viewer (overrides viewer setting in the configuration file)")
     args = parser.parse_args()
 

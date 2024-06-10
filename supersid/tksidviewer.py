@@ -42,7 +42,6 @@ class tkSidViewer():
 
         Creation of the Frame with menu and graph display using matplotlib
         """
-#        matplotlib.use('TkAgg')
         self.version = "1.4 20170920 (tk)"
         self.controller = controller  # previously referred as 'parent'
         self.tk_root = tk.Tk()
@@ -86,6 +85,8 @@ class tkSidViewer():
         menubar.add_cascade(label="Help", menu=helpmenu)
 
         self.tk_root.config(menu=menubar)
+#        disabled as there is no maximized version for Windows
+#        found that shows the matpltlib buttons when maximized
 #        try:
 #            # full screen, works in Windows but not in Linux
 #            self.tk_root.state('zoomed')

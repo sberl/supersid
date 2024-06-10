@@ -362,7 +362,7 @@ class Config(dict):
             return
 
         # log_interval should be > 2
-        if self['log_interval'] < 2:    # TODO: <= 2
+        if self['log_interval'] <= 2:
             self.config_ok = False
             self.config_err = "'log_interval' <= 2. Too fast! Please increase."
             return
@@ -398,7 +398,7 @@ class Config(dict):
 
         # check viewer
         self['viewer'] = self['viewer'].lower()
-        if self['viewer'] not in ('text', 'tk', 'test'):
+        if self['viewer'] not in ('text', 'tk'):
             self.config_ok = False
             self.config_err = "'viewer' must be either one of 'text', 'tk'."
             return
