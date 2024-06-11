@@ -118,6 +118,10 @@ class Config(dict):
                 # 0 means automatic ticks
                 ('psd_ticks', int, 0),
 
+                # number of samples displayed in the waterfall diagram
+                # 0 means waterfall diagram is disabled
+                ('waterfall_samples', int, 0),
+
                 #####################
                 # mandatory entries #
                 #####################

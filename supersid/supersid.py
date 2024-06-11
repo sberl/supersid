@@ -43,7 +43,7 @@ class SuperSID():
         self.viewer = None
 
         # read the configuration file or exit
-        self.config = readConfig(args.cfg_filename)
+        self.config = readConfig(config_file)
         self.config["supersid_version"] = self.version
         if viewer is not None:
             self.config['viewer'] = viewer
