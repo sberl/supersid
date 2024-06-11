@@ -56,7 +56,7 @@ class tkSidViewer():
         self.tk_root = tk.Tk()
         self.tk_root.title("supersid @ " + self.controller.config['site_name'])
         self.running = False
-        self.Pxx = [None] * controller.config['Channels']
+        self.waterfall = [None] * controller.config['Channels']
         self.xlim = (0, self.controller.config['audio_sampling_rate'] // 2)
 
         # All Menus creation
@@ -241,22 +241,22 @@ class tkSidViewer():
                 if self.controller.config['waterfall_samples']:
                     pxx = np.log10(Pxx[channel][:-1].reshape(
                         (1, Pxx[channel].shape[0] - 1)))
-                    if self.Pxx[channel] is None:
+                    if self.waterfall[channel] is None:
                         min_val = pxx.min()
-                        self.Pxx[channel] = np.full(
+                        self.waterfall[channel] = np.full(
                             (
                                 self.controller.config['waterfall_samples'],
                                 Pxx[channel].shape[0] - 1
                             ),
                             min_val)
-                    self.Pxx[channel] = np.append(
-                        self.Pxx[channel], pxx, axis=0)
-                    if (self.Pxx[channel].shape[0] >
+                    self.waterfall[channel] = np.append(
+                        self.waterfall[channel], pxx, axis=0)
+                    if (self.waterfall[channel].shape[0] >
                             self.controller.config['waterfall_samples']):
-                        self.Pxx[channel] = self.Pxx[channel][1:]
+                        self.waterfall[channel] = self.waterfall[channel][1:]
                     self.waterfall_axes[channel].pcolormesh(
                         freqs,
-                        range(self.Pxx[channel].shape[0]+1), self.Pxx[channel])
+                        range(self.waterfall[channel].shape[0]+1), self.waterfall[channel])
                     self.waterfall_axes[channel].set_yticklabels([])
 
             # all but the last subplot have no x label
