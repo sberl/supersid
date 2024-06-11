@@ -1,7 +1,6 @@
 """SuperSID text mode viewer.
 
 Minimal output for SuperSID in text mode i.e. within terminal window.
-Useful for Server mode
 
 Each Viewer must implement:
 - __init__(): all initializations
