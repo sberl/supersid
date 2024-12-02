@@ -24,13 +24,22 @@ from matplotlib.figure import Figure
 from supersid_common import script_relative_to_cwd_relative
 
 
-class Formatter(object):
+class PsdFormatter(object):
     def __init__(self):
         pass
 
     def __call__(self, bin_freq, bin_power):
         """Display cursor position in lower right of display"""
         return "frequency=%.0f  " % bin_freq + " power=%.3f  " % bin_power
+
+
+class WaterfallFormatter(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, bin_freq, y):
+        """Display cursor position in lower right of display"""
+        return "frequency=%.0f  " % bin_freq
 
 
 class tkSidViewer():
@@ -47,6 +56,8 @@ class tkSidViewer():
         self.tk_root = tk.Tk()
         self.tk_root.title("supersid @ " + self.controller.config['site_name'])
         self.running = False
+        self.waterfall = [None] * controller.config['Channels']
+        self.xlim = (0, self.controller.config['audio_sampling_rate'] // 2)
 
         # All Menus creation
         menubar = tk.Menu(self.tk_root)
@@ -104,8 +115,8 @@ class tkSidViewer():
         self.tk_root.bind("<Configure>", self.onsize)
 
         # FigureCanvas
-        self.psd_figure = Figure(facecolor='beige')
-        self.canvas = FigureCanvas(self.psd_figure, master=self.tk_root)
+        self.figure = Figure(facecolor='beige')
+        self.canvas = FigureCanvas(self.figure, master=self.tk_root)
         self.canvas.draw()
         self.canvas \
             .get_tk_widget() \
@@ -115,12 +126,31 @@ class tkSidViewer():
         self.toolbar.update()
         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.axes = self.psd_figure.add_subplot(111)
-        self.axes.format_coord = Formatter()
+        if self.controller.config['waterfall_samples']:
+            num_subplots = 1 + self.controller.config['Channels']
+        else:
+            num_subplots = 1
+        self.axarr = self.figure.subplots(
+            num_subplots,
+            1,
+            sharex=True,
+            gridspec_kw={'wspace': 0, 'hspace': 0})
+
+        self.psd_axes = self.figure.axes[0]
+        self.waterfall_axes = self.figure.axes[1:]
+
+        # set formatter for position under the mouse pointer
+        self.psd_axes.format_coord = PsdFormatter()
+        for ax in self.waterfall_axes:
+            ax.format_coord = WaterfallFormatter()
+            ax.set_yticklabels([])
 
         # add the psd labels manually for proper layout at startup
-        self.axes.set_ylabel("Power Spectral Density (dB/Hz)")
-        self.axes.set_xlabel("Frequency")
+        self.psd_axes.set_ylabel("Power Spectral Density (dB/Hz)")
+        for i in range(len(self.figure.axes) - 1):
+            self.figure.axes[i].set_xlabel(None)
+        self.figure.axes[-1].set_xlabel("Frequency")
+
         self.set_graph_limits()
 
         # StatusBar
@@ -159,8 +189,8 @@ class tkSidViewer():
         width = self.tk_root.winfo_width()
         height = self.tk_root.winfo_height()
 
-        left_gap = 20       # px
-        bottom_gap = 20     # px
+        left_gap = 70       # px
+        bottom_gap = 50     # px
         right_gap = 10      # px
         top_gap = 10        # px
 
@@ -168,12 +198,11 @@ class tkSidViewer():
         bottom = bottom_gap / height
         right = (width - right_gap) / width
         top = (height - top_gap) / height
-        self.psd_figure.subplots_adjust(
+        self.figure.subplots_adjust(
             left=left,
             bottom=bottom,
             right=right,
             top=top)
-        self.psd_figure.tight_layout()
 
     def status_display(self, message, level=0, field=0):
         """Update the main frame by changing the message in status bar."""
@@ -182,46 +211,77 @@ class tkSidViewer():
 
     def set_graph_limits(self):
         # use the entire x-axis for data
-        self.axes.set_xlim([
-            0, self.controller.config['audio_sampling_rate'] // 2])
+        self.psd_axes.set_xlim(self.xlim)
 
         psd_min = self.controller.config['psd_min']
         psd_max = self.controller.config['psd_max']
         psd_ticks = self.controller.config['psd_ticks']
         if not math.isnan(psd_min):
             # set minimum for the y-axis if not configured as NaN
-            self.axes.set_ylim(bottom=psd_min)
+            self.psd_axes.set_ylim(bottom=psd_min)
         if not math.isnan(psd_max):
             # set maximum for the y-axis if not configured as NaN
-            self.axes.set_ylim(top=psd_max)
+            self.psd_axes.set_ylim(top=psd_max)
         if (psd_ticks
                 and (not math.isnan(psd_min))
                 and (not math.isnan(psd_max))):
-            self.axes.set_yticks(np.linspace(psd_min, psd_max, psd_ticks))
+            self.psd_axes.set_yticks(np.linspace(psd_min, psd_max, psd_ticks))
 
     def get_psd(self, data, NFFT, FS):
         """Call 'psd' within axes, both calculates and plots the spectrum."""
         try:
-            self.axes.clear()
+            self.xlim = self.psd_axes.get_xlim()
+            for ax in self.figure.axes:
+                ax.clear()
             Pxx = {}
             for channel in range(self.controller.config['Channels']):
-                Pxx[channel], freqs = self.axes.psd(
+                Pxx[channel], freqs = self.psd_axes.psd(
                     data[:, channel], NFFT=NFFT, Fs=FS)
+
+                if self.controller.config['waterfall_samples']:
+                    pxx = np.log10(Pxx[channel][:-1].reshape(
+                        (1, Pxx[channel].shape[0] - 1)))
+                    if self.waterfall[channel] is None:
+                        min_val = pxx.min()
+                        self.waterfall[channel] = np.full(
+                            (
+                                self.controller.config['waterfall_samples'],
+                                Pxx[channel].shape[0] - 1
+                            ),
+                            min_val)
+                    self.waterfall[channel] = np.append(
+                        self.waterfall[channel], pxx, axis=0)
+                    if (self.waterfall[channel].shape[0] >
+                            self.controller.config['waterfall_samples']):
+                        self.waterfall[channel] = self.waterfall[channel][1:]
+                    self.waterfall_axes[channel].pcolormesh(
+                        freqs,
+                        range(self.waterfall[channel].shape[0]+1), self.waterfall[channel])
+                    self.waterfall_axes[channel].set_yticklabels([])
+
+            # all but the last subplot have no x label
+            for i in range(len(self.figure.axes) - 1):
+                self.figure.axes[i].set_xlabel(None)
+            self.figure.axes[-1].set_xlabel("Frequency")
+
             self.set_graph_limits()
             self.need_refresh = True
         except RuntimeError as err_re:
             print("Warning:", err_re)
             Pxx, freqs = None, None
         else:
-            bottom, top = self.axes.get_ylim()
+            bottom, top = self.psd_axes.get_ylim()
             dist = top - bottom
             for s in self.controller.config.stations:
                 freq = int(s['frequency'])
-                self.axes.axvline(x=freq, color='r')
-                self.axes.text(freq, bottom + (dist * 0.95), s['call_sign'],
-                               horizontalalignment='center',
-                               bbox={'facecolor': 'w', 'alpha': 0.5,
-                                     'fill': True})
+                self.psd_axes.axvline(x=freq, color='r')
+                self.psd_axes.text(
+                    freq,
+                    bottom + (dist * 0.95),
+                    s['call_sign'],
+                    horizontalalignment='center',
+                    bbox={'facecolor': 'w', 'alpha': 0.5,
+                          'fill': True})
         return Pxx, freqs
 
     def refresh_psd(self, z=None):
