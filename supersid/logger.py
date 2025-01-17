@@ -92,14 +92,12 @@ class Logger():
             print("Continue recording with data from file",
                   read_file, "included.")
 
-    def log_sid_format(self, stations,  filename='', log_type=FILTERED,
-                       extended=False):
+    def log_sid_format(self, stations, log_type=FILTERED, extended=False):
         """One file per station. By default, buffered data is filtered."""
         filenames = []
         for station in stations:
             my_filename = self.config.data_path \
-                + (filename or self.sid_file.get_sid_filename(
-                    station['call_sign']))
+                + self.sid_file.get_sid_filename(station['call_sign'])
             filenames.append(my_filename)
             self.sid_file.write_data_sid(station, my_filename, log_type,
                                          extended=extended,
