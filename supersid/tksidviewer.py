@@ -283,8 +283,7 @@ class tkSidViewer():
             '-f',
             filenames[0],
             '-c',
-            script_relative_to_cwd_relative(
-                self.controller.config.filenames[0])])
+            self.controller.config.filenames[0]])
 
     def on_about(self):
         """Display the About box message."""
