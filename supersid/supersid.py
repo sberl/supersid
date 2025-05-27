@@ -19,6 +19,7 @@ import sys
 import os.path
 import argparse
 import subprocess
+from datetime import datetime
 
 # SuperSID Package classes
 from sidtimer import SidTimer
@@ -47,6 +48,22 @@ class SuperSID():
         self.config["supersid_version"] = self.version
         if viewer is not None:
             self.config['viewer'] = viewer
+
+        # command line parameter -r/--read has precedence over automatic read
+        if read_file is None:
+            # if there are hourly saves ...
+            if self.config['hourly_save'] == 'YES':
+                # ... figure out the file name ...
+                utcnow = datetime.utcnow()
+                utc_starttime = "%d-%02d-%02d 00:00:00" \
+                    % (utcnow.year, utcnow.month, utcnow.day)
+                fileName = self.config.data_path + \
+                    "hourly_current_buffers.raw.ext.%s.csv" % (
+                        utc_starttime[:10])
+                # ... check the existence ...
+                if os.path.isfile(fileName):
+                    # ... and force reading
+                    read_file = fileName
 
         # Create Logger -
         # Logger will read an existing file if specified
@@ -250,6 +267,12 @@ class SuperSID():
     def close(self):
         """Call all necessary stop/close functions of children objects."""
         self.__class__.running = False
+        if self.config['hourly_save'] == 'YES':
+            fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
+                    self.logger.sid_file.sid_params['utc_starttime'][:10])
+            self.save_current_buffers(filename=fileName,
+                                      log_type='raw',
+                                      log_format='supersid_extended')
         if self.sampler:
             self.sampler.close()
         if self.timer:

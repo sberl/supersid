@@ -70,7 +70,10 @@ class textSidViewer:
         print(" C) list the Config file(s) parameters")
         print(" V) Version")
         print(" ?) display this menu")
-        print(" X) eXit (without saving)")
+        if self.controller.config['hourly_save'] == 'YES':
+            print(" X) eXit (with saving)")
+        else:
+            print(" X) eXit (without saving)")
         print("-" * self.MAXLINE)
 
     def check_keyboard(self):
