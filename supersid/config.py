@@ -456,7 +456,7 @@ class Config(dict):
         if 'Format' in self:
             if self['Format'] not in [S16_LE, S24_3LE, S32_LE]:
                 self.config_ok = False
-                self.config_err = "'Format' must be either one of {}." \
+                self.config_err = "'Format' must be one of {}." \
                     .format([S16_LE, S24_3LE, S32_LE])
                 return
 
