@@ -240,8 +240,8 @@ class Config(dict):
                         self.config_err = "'"+pkey+"' is not found in '%s'. " \
                             "Please check." % filename
                         return
-                    else:  # optional, assign default
-                        self.setdefault(pkey, pdefault)
+                    # optional parameter, assign default
+                    self.setdefault(pkey, pdefault)
                 else:
                     self.sectionfound.add(section)
 
@@ -254,16 +254,16 @@ class Config(dict):
 
         for i in range(self['number_of_stations']):
             section = "STATION_" + str(i+1)
-            tmpDict = {}
+            tmp_dict = {}
             try:
                 for parameter in (CALL_SIGN, FREQUENCY, COLOR, CHANNEL):
                     if parameter == CHANNEL:
-                        tmpDict[parameter] = \
+                        tmp_dict[parameter] = \
                             config_parser.getint(section, parameter)
                     else:
-                        tmpDict[parameter] = \
+                        tmp_dict[parameter] = \
                             config_parser.get(section, parameter)
-                self.stations.append(tmpDict)
+                self.stations.append(tmp_dict)
             except configparser.NoSectionError:
                 self.config_ok = False
                 self.config_err = section + \
@@ -271,8 +271,8 @@ class Config(dict):
                 return
             except configparser.NoOptionError:
                 if CHANNEL == parameter:
-                    tmpDict[parameter] = 0  # default is 0, the left channel
-                    self.stations.append(tmpDict)
+                    tmp_dict[parameter] = 0  # default is 0, the left channel
+                    self.stations.append(tmp_dict)
                 else:
                     self.config_ok = False
                     self.config_err = section + \
@@ -314,7 +314,7 @@ class Config(dict):
                     "[STATION_{}] {}={} must be >= 0 and < 'Channels'={}." \
                     .format(i+1, CHANNEL, station[CHANNEL], self['Channels'])
                 return
-            if ((self['audio_sampling_rate'] // 2) < int(station[FREQUENCY])):
+            if (self['audio_sampling_rate'] // 2) < int(station[FREQUENCY]):
                 # configured sampling rate is below Nyquist sampling rate
                 self.config_ok = False
                 self.config_err = "[STATION_{}] {}={}: " \
@@ -408,34 +408,33 @@ class Config(dict):
         # and create it as a Config instance property
         self['data_path'] = script_relative_to_cwd_relative(self['data_path'])\
             + os.sep
-        self.data_path = self['data_path']
 
         # data_path must be a folder with read/write permission
-        if not os.path.isdir(self.data_path):
+        if not os.path.isdir(self['data_path']):
             self.config_ok = False
             self.config_err = "'data_path' does not point to a valid " \
-                "directory:\n" + self.data_path
+                "directory:\n" + self['data_path']
             return
-        if not os.access(self.data_path, os.R_OK | os.W_OK):
+        if not os.access(self['data_path'], os.R_OK | os.W_OK):
             self.config_ok = False
             self.config_err = "'data_path' must have read/write " \
-                "permission:\n" + self.data_path
+                "permission:\n" + self['data_path']
             return
 
         # when present, 'local_tmp' must be a folder with read/write access
         if 'local_tmp' in self:
             self['local_tmp'] = script_relative_to_cwd_relative(
                 self['local_tmp']) + os.sep
-            self.local_tmp = self['local_tmp']
-            if not os.path.isdir(self.local_tmp):
+            #self.local_tmp = self['local_tmp']
+            if not os.path.isdir(self['local_tmp']):
                 self.config_ok = False
                 self.config_err = "'local_tmp' does not point to a valid " \
-                    "directory:\n" + self.local_tmp
+                    "directory:\n" + self['local_tmp']
                 return
-            if not os.access(self.local_tmp, os.R_OK | os.W_OK):
+            if not os.access(self['local_tmp'], os.R_OK | os.W_OK):
                 self.config_ok = False
                 self.config_err = "'local_tmp' must have read/write " \
-                    "permission:\n" + self.local_tmp
+                    "permission:\n" + self['local_tmp']
                 return
 
         # default audio to sounddevice if not declared
@@ -461,7 +460,7 @@ class Config(dict):
                 return
 
 
-def readConfig(cfg_filename):
+def read_config(cfg_filename):
     """Read and return the configuration or terminate the program."""
     config = Config(cfg_filename)
     config.supersid_check()
@@ -475,7 +474,7 @@ def readConfig(cfg_filename):
     return config
 
 
-def printConfig(config):
+def print_config(config):
     """Print the configuration in a nice format."""
     assert (len(config.filenames) == 1), \
         "expected exactly one configuration file name"
@@ -485,15 +484,15 @@ def printConfig(config):
     for section in sorted(config.sectionfound):
         print("\t{}".format(section))
     print("--- Key Value pairs " + "-"*22)
-    for k, v in sorted(config.items()):
-        print("\t{} = {}".format(k, v))
+    for kv_key, kv_value in sorted(config.items()):
+        print("\t{} = {}".format(kv_key, kv_value))
     print("--- Stations " + "-"*29)
-    for st in config.stations:
+    for station in config.stations:
         print("\t{} = {}, {} = {}, {} = {}, {} = {}".format(
-            CALL_SIGN, st[CALL_SIGN],
-            FREQUENCY, st[FREQUENCY],
-            COLOR, st[COLOR],
-            CHANNEL, st[CHANNEL]))
+            CALL_SIGN, station[CALL_SIGN],
+            FREQUENCY, station[FREQUENCY],
+            COLOR, station[COLOR],
+            CHANNEL, station[CHANNEL]))
 
 
 if __name__ == '__main__':
@@ -505,5 +504,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # read the configuration file or exit
-    cfg = readConfig(args.cfg_filename)
-    printConfig(cfg)
+    cfg = read_config(args.cfg_filename)
+    print_config(cfg)
