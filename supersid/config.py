@@ -467,7 +467,7 @@ def read_config(cfg_filename):
     if config.config_ok:
         assert (len(config.filenames) == 1), \
             "expected exactly one configuration file name"
-        print("Config file '{}' read successfully".format(config.filenames[0]))
+        print(f"Config file '{config.filenames[0]}' read successfully")
     else:
         print("Error:", config.config_err)
         sys.exit(1)
@@ -479,21 +479,19 @@ def print_config(config):
     assert (len(config.filenames) == 1), \
         "expected exactly one configuration file name"
     print("--- Config file " + "-"*26)
-    print("\t{}".format(config.filenames[0]))
+    print(f"\t{config.filenames[0]}")
     print("--- Sections " + "-"*29)
     for section in sorted(config.sectionfound):
-        print("\t{}".format(section))
+        print(f"\t{section}")
     print("--- Key Value pairs " + "-"*22)
     for kv_key, kv_value in sorted(config.items()):
-        print("\t{} = {}".format(kv_key, kv_value))
+        print(f"\t{kv_key} = {kv_value}")
     print("--- Stations " + "-"*29)
     for station in config.stations:
-        print("\t{} = {}, {} = {}, {} = {}, {} = {}".format(
-            CALL_SIGN, station[CALL_SIGN],
-            FREQUENCY, station[FREQUENCY],
-            COLOR, station[COLOR],
-            CHANNEL, station[CHANNEL]))
-
+        print(f"\t{CALL_SIGN} = {station[CALL_SIGN]} "
+          f"{FREQUENCY} = {station[FREQUENCY]}, "
+          f"{COLOR} = {station[COLOR]}, "
+          f"{CHANNEL} = {station[CHANNEL]}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
