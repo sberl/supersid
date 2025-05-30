@@ -228,17 +228,15 @@ class Config(dict):
                     self[pkey] = pcast(config_parser.get(section, pkey))
                 except ValueError:
                     self.config_ok = False
-                    self.config_err = "'%s' is not of the type %s in " \
-                        "'supersid.cfg'. Please check." % (pkey, pcast)
-                    return
+                    self.config_err = (f"{pkey} is not of the type {pcast} in "
+                                      f"{self.filenames}. Please check.")
                 except configparser.NoSectionError:
                     # it's ok: some sections are optional
                     pass
                 except configparser.NoOptionError:
                     if pdefault is None:  # missing mandatory parameter
                         self.config_ok = False
-                        self.config_err = "'"+pkey+"' is not found in '%s'. " \
-                            "Please check." % filename
+                        self.config_err = f"{pkey} is not found in {self.filenames}. Please check."
                         return
                     # optional parameter, assign default
                     self.setdefault(pkey, pdefault)
@@ -310,19 +308,16 @@ class Config(dict):
             if ((station[CHANNEL] < 0) or
                     (station[CHANNEL] >= self['Channels'])):
                 self.config_ok = False
-                self.config_err = \
-                    "[STATION_{}] {}={} must be >= 0 and < 'Channels'={}." \
-                    .format(i+1, CHANNEL, station[CHANNEL], self['Channels'])
+                self.config_err =  (f"[STATION_{i+1}] {CHANNEL}={station[CHANNEL]} "
+                                f"must be >= 0 and < 'Channels'={station[CHANNEL]}.")
                 return
             if (self['audio_sampling_rate'] // 2) < int(station[FREQUENCY]):
                 # configured sampling rate is below Nyquist sampling rate
                 self.config_ok = False
-                self.config_err = "[STATION_{}] {}={}: " \
-                    "audio_sampling_rate={} must be >= {}." \
-                    .format(
-                        i+1, FREQUENCY, station[FREQUENCY],
-                        self['audio_sampling_rate'], int(station[FREQUENCY])*2
-                        )
+                self.config_err = (f"[STATION_{i+1}] {FREQUENCY}={station[FREQUENCY]}: "
+                                    f"audio_sampling_rate={self['audio_sampling_rate']} "
+                                    f"must be >= {int(station[FREQUENCY])*2}.")
+
                 return
 
         if 'stations' not in self:
@@ -379,8 +374,7 @@ class Config(dict):
             BOTH_EXTENDED]
         if self['log_format'] not in log_formats:
             self.config_ok = False
-            self.config_err = "'log_format' must be either one of {}." \
-                .format(log_formats)
+            self.config_err = f"'log_format' must be either one of {log_formats}."
             return
 
         # check log_format on conjunction with automatic_upload
@@ -392,9 +386,9 @@ class Config(dict):
         if ((self['automatic_upload'] == 'yes') and
                 (self['log_format'] not in log_formats_for_automatic_upload)):
             self.config_ok = False
-            self.config_err = "'log_format' must be either one of {} for " \
-                "'automatic_upload = yes'." \
-                .format(log_formats_for_automatic_upload)
+            self.config_err = (f"'log_format' must be either one of "
+                                f"{log_formats_for_automatic_upload} for "
+                                f"'automatic_upload = yes'.")
             return
 
         # check viewer
@@ -455,8 +449,7 @@ class Config(dict):
         if 'Format' in self:
             if self['Format'] not in [S16_LE, S24_3LE, S32_LE]:
                 self.config_ok = False
-                self.config_err = "'Format' must be one of {}." \
-                    .format([S16_LE, S24_3LE, S32_LE])
+                self.config_err = "'Format' must be one of [S16_LE, S24_3LE, S32_LE]"
                 return
 
 
