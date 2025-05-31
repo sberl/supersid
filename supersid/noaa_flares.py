@@ -20,14 +20,14 @@ import urllib.error
 import os
 from os import path
 from datetime import datetime, date
-
-from supersid_common import *
+from supersid_common import script_relative_to_cwd_relative
 
 
 class NOAA_flares(object):
     """This object carries a list of all events of a given day."""
 
-    ngdc_URL = "https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/solar-flares/x-rays/goes/xrs/"
+    ngdc_URL = ("https://www.ngdc.noaa.gov/stp/space-weather/"
+                "solar-data/solar-features/solar-flares/x-rays/goes/xrs/")
 
     def __init__(self, day):
         if isinstance(day, str):
@@ -53,7 +53,7 @@ class NOAA_flares(object):
             # fetch it first then read line by line to grab the data
             # from the expected day
             file_path = self.http_ngdc()
-            with open(file_path, "rt") as fin:
+            with open(file_path, "rt", encoding="utf-8") as fin:
                 for line in fin:
                     fields = line.split()
                     # compare YYMMDD only
@@ -110,7 +110,7 @@ class NOAA_flares(object):
                 print("from URL:", url)
                 print(err, "\n")
             else:
-                with open(file_path, "wt") as fout:
+                with open(file_path, "wt", encoding="utf-8") as fout:
                     fout.write(txt)
         return file_path
 
@@ -174,10 +174,14 @@ class NOAA_flares(object):
             print(eventName, BeginTime, MaxTime, EndTime, Particulars)
 
 
+# Run some test cases
 if __name__ == '__main__':
+    print("eventName, BeginTime, MaxTime, EndTime, Particulars")
     flare = NOAA_flares("20140104")
     print(flare.day, "\n", flare.print_XRAlist(), "\n")
     flare = NOAA_flares("20170104")
     print(flare.day, "\n", flare.print_XRAlist(), "\n")
     flare = NOAA_flares("20201211")
+    print(flare.day, "\n", flare.print_XRAlist(), "\n")
+    flare = NOAA_flares("20250529")
     print(flare.day, "\n", flare.print_XRAlist(), "\n")

@@ -14,7 +14,7 @@ from threading import Timer
 from time import sleep
 from matplotlib.mlab import psd as mlab_psd
 
-from config import FILTERED, RAW, printConfig
+from config import FILTERED, RAW, print_config
 
 
 class textSidViewer:
@@ -89,7 +89,7 @@ class textSidViewer:
         elif s == "?":
             self.print_menu()
         elif s == "c":
-            printConfig(self.controller.config)
+            print_config(self.controller.config)
             self.print_menu()
         elif s == "v":
             print("\n")

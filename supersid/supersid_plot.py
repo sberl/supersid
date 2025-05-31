@@ -36,7 +36,7 @@ from email import encoders, utils
 import argparse
 # SuperSID modules
 from sidfile import SidFile
-from config import readConfig, printConfig, CONFIG_FILE_NAME
+from config import read_config, print_config, CONFIG_FILE_NAME
 from supersid_common import exist_file
 
 try:
@@ -460,9 +460,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # read the configuration file or exit
-    config = readConfig(args.cfg_filename)
+    config = read_config(args.cfg_filename)
     if args.verbose:
-        printConfig(config)
+        print_config(config)
 
     if args.filename is None:  # no --file option specified
         if len(args.file_list) > 0:

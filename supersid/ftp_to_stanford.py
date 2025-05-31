@@ -33,7 +33,7 @@ from os import path
 import ftplib
 from datetime import datetime, timedelta
 from sidfile import SidFile
-from config import readConfig, FILTERED, RAW, CONFIG_FILE_NAME
+from config import read_config, FILTERED, RAW, CONFIG_FILE_NAME
 from supersid_common import exist_file
 
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # read the configuration file or exit
-    cfg = readConfig(args.cfg_filename)
+    cfg = read_config(args.cfg_filename)
     if cfg.get('local_tmp') is None:
         print("Error: 'local_tmp' has to be configured for FTP")
         sys.exit(1)

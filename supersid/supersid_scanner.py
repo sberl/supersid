@@ -19,7 +19,7 @@ import argparse
 # SuperSID Package classes
 from sidtimer import SidTimer
 from sampler import Sampler
-from config import readConfig, CONFIG_FILE_NAME
+from config import read_config, CONFIG_FILE_NAME
 from logger import Logger
 from textsidviewer import textSidViewer
 from supersid_common import exist_file, slugify
@@ -41,7 +41,7 @@ class SuperSID_scanner():
         self.viewer = None
 
         # read the configuration file or exit
-        self.config = readConfig(config_file)
+        self.config = read_config(config_file)
 
         (self.scan_duration, self.scan_from, self.scan_to) = scan_params
         print("Scanning for %d minutes on [%d:%d]..." % scan_params)
@@ -250,7 +250,7 @@ if __name__ == '__main__':
         from sampler import pyaudio_soundcard
         import wave
 
-        config = readConfig(args.config_file)
+        config = read_config(args.config_file)
         config.supersid_check()
         device = pyaudio_soundcard(
             config['Device'],

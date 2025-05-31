@@ -24,7 +24,7 @@ from datetime import datetime
 # SuperSID Package classes
 from sidtimer import SidTimer
 from sampler import Sampler
-from config import readConfig, CONFIG_FILE_NAME
+from config import read_config, CONFIG_FILE_NAME
 from logger import Logger
 from supersid_common import exist_file, script_relative_to_cwd_relative
 
@@ -44,7 +44,7 @@ class SuperSID():
         self.viewer = None
 
         # read the configuration file or exit
-        self.config = readConfig(config_file)
+        self.config = read_config(config_file)
         self.config["supersid_version"] = self.version
         if viewer is not None:
             self.config['viewer'] = viewer
@@ -57,7 +57,7 @@ class SuperSID():
                 utcnow = datetime.utcnow()
                 utc_starttime = "%d-%02d-%02d 00:00:00" \
                     % (utcnow.year, utcnow.month, utcnow.day)
-                fileName = self.config.data_path + \
+                fileName = self.config['data_path'] + \
                     "hourly_current_buffers.raw.ext.%s.csv" % (
                         utc_starttime[:10])
                 # ... check the existence ...
