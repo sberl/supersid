@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-
+"""
+A bunch of common functions used throughout the Supersid python code
+"""
 import os.path
 import argparse
 import unicodedata
@@ -9,7 +11,7 @@ import re
 def exist_file(x):
     """Check for argparse that file exists but does not open it."""
     if not os.path.isfile(x):
-        raise argparse.ArgumentTypeError("{0} does not exist".format(x))
+        raise argparse.ArgumentTypeError(f"{x} does not exist")
     return x
 
 
@@ -59,7 +61,8 @@ if __name__ == '__main__':
     for file in [
             'supersid_common.py',
             './supersid_common.py',
-            '../Config/supersid.cfg']:
+            '../Config/supersid.cfg',
+            "not_a_file"]:
         try:
             print(exist_file(script_relative_to_cwd_relative(file)))
         except Exception as e:
