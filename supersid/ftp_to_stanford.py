@@ -73,8 +73,9 @@ if __name__ == '__main__':
     if args.askYesterday:
         yesterday = datetime.utcnow() - timedelta(days=1)
         args.file_list.append(
-            f"{cfg['data_path']}{path.sep}{cfg['site_name']}_{yesterday.year}-"
-            f"{yesterday.month:02d}-{yesterday.day:02d}.csv")
+            path.normpath(f"{cfg['data_path']}{path.sep}{cfg['site_name']}_{yesterday.year}-"
+            f"{yesterday.month:02d}-{yesterday.day:02d}.csv"))
+        print(f"Yesterday file: {args.file_list[-1]}")
 
     # generate all the SID files ready to send in the local_tmp file
     files_to_send = []  # TODO: remove files_to_send
@@ -106,8 +107,8 @@ if __name__ == '__main__':
                 # generate the SID file of that station
                 # UTC_StartTime = 2014-05-31 00:00:00
                 file_startdate = sid.sid_params['utc_starttime']
-                file_name = (f"{cfg['local_tmp']}{path.sep}{cfg['site_name']}_{station_name}_"
-                             f"{file_startdate[:10]}.csv")
+                file_name = path.normpath(f"{cfg['local_tmp']}{path.sep}{cfg['site_name']}_"
+                                          f"{station_name}_{file_startdate[:10]}.csv")
                 # if the original file is filtered then we can save it "as is"
                 # else we need to apply_bema i.e. filter it
                 sid.write_data_sid(

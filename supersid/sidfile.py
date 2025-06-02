@@ -47,7 +47,7 @@ class SidFile():
     _timestamp_format = _TIMESTAMP_STANDARD  # conservative default
 
     def __init__(self, filename="",
-                 sid_params={},
+                 sid_params=None,
                  force_read_timestamp=False):
         """Two ways to create a SIDfile.
 
@@ -62,6 +62,8 @@ class SidFile():
         """
         self.version = "1.4 20150801"
         self.filename = filename
+        if sid_params is None:
+            sid_params = {}
         self.sid_params = sid_params    # dictionary of all header pairs
         self.is_extended = False
         self.timestamp_format = SidFile._TIMESTAMP_STANDARD
@@ -69,7 +71,7 @@ class SidFile():
         if filename:
             # Read all lines in a buffer used by 'read_data' and 'read_header'
             try:
-                with open(self.filename, "rt") as fin:
+                with open(self.filename, "rt", encoding="utf-8") as fin:
                     self.lines = fin.readlines()
             except IOError as why:
                 print("Error reading", filename)
@@ -165,6 +167,9 @@ class SidFile():
                 # to avoid ambiguity from user's supersid.cfg
                 key = tokens[0][1:].strip().lower()
                 self.sid_params[key] = tokens[1].strip()
+        if self.headerNbLines == 0:
+            print(f"Error: No header found in file {self.filename}")
+            exit(2) 
 
     def read_timestamp_format(self):
         """Check the timestamp on the first line to deduce the format"""
