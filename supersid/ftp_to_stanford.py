@@ -33,7 +33,7 @@ from os import path
 import ftplib
 from datetime import datetime, timedelta
 from sidfile import SidFile
-from config import readConfig, FILTERED, RAW, CONFIG_FILE_NAME
+from config import read_config, FILTERED, RAW, CONFIG_FILE_NAME
 from supersid_common import exist_file
 
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # read the configuration file or exit
-    cfg = readConfig(args.cfg_filename)
+    cfg = read_config(args.cfg_filename)
     if cfg.get('local_tmp') is None:
         print("Error: 'local_tmp' has to be configured for FTP")
         sys.exit(1)
@@ -73,10 +73,10 @@ if __name__ == '__main__':
     if args.askYesterday:
         yesterday = datetime.utcnow() - timedelta(days=1)
         args.file_list.append(
-            "{}{}{}_{}-{:02d}-{:02d}.csv"
-            .format(
-                cfg['data_path'], path.sep, cfg['site_name'],
-                yesterday.year, yesterday.month, yesterday.day))
+            path.normpath(f"{cfg['data_path']}{path.sep}{cfg['site_name']}_{yesterday.year}-"
+            f"{yesterday.month:02d}-{yesterday.day:02d}.csv"))
+        print(f"Yesterday file: {args.file_list[-1]}")
+
     # generate all the SID files ready to send in the local_tmp file
     files_to_send = []  # TODO: remove files_to_send
     for input_file in args.file_list:
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                 sid.sid_params['contact'] = cfg['contact']
             # print(sid.sid_params)
             for station in stations:
-                print("Preparing data for station {}".format(station))
+                print(f"Preparing data for station {station}")
                 # if necessary, apply a multiplicator factor to the signal
                 # of one station [NWC:100000]
                 if ':' in station:
@@ -107,11 +107,8 @@ if __name__ == '__main__':
                 # generate the SID file of that station
                 # UTC_StartTime = 2014-05-31 00:00:00
                 file_startdate = sid.sid_params['utc_starttime']
-                file_name = "{}{}{}_{}_{}.csv".format(cfg['local_tmp'],
-                                                      path.sep,
-                                                      cfg['site_name'],
-                                                      station_name,
-                                                      file_startdate[:10])
+                file_name = path.normpath(f"{cfg['local_tmp']}{path.sep}{cfg['site_name']}_"
+                                          f"{station_name}_{file_startdate[:10]}.csv")
                 # if the original file is filtered then we can save it "as is"
                 # else we need to apply_bema i.e. filter it
                 sid.write_data_sid(
@@ -121,7 +118,7 @@ if __name__ == '__main__':
                     extended=False,
                     apply_bema=sid.sid_params['logtype'] == RAW)
                 files_to_send.append(file_name)    # TODO: remove files_to_send
-                print("Saved {}".format(file_name))
+                print(f"Saved {file_name}")
 
         else:
             print("Error:", input_file, "does not exist.")
@@ -140,7 +137,7 @@ if __name__ == '__main__':
         ftp.cwd(cfg['ftp_directory'])
         # ftp.dir(data.append)
         for f in files_to_send:
-            print("Sending {}".format(f))
+            print(f"Sending {f}")
             try:
                 ftp.storlines("STOR " + path.basename(f), open(f, "rb"))
                 # TODO: delete file f once sent

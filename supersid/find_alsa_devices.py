@@ -19,7 +19,7 @@ from pprint import pprint
 import pandas as pd     # python3 -m pip install pandas
 import numpy as np
 
-from config import readConfig, CONFIG_FILE_NAME
+from config import read_config, CONFIG_FILE_NAME
 from supersid_common import exist_file, slugify
 from isine import SinePlayer
 
@@ -1054,7 +1054,7 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
         action='store_true')
     args = parser.parse_args()
 
-    config = readConfig(args.cfg_filename)
+    config = read_config(args.cfg_filename)
 
     t_start = time.time()
 
@@ -1120,7 +1120,7 @@ If not set a loopback from DEVICE line out to DEVICE line in is expected.
             args.device,
             args.test_tone,
             args.save_wav,
-            config.data_path)
+            config['data_path'])
     else:
         print(
             "ERROR: 'alsaaudio' is not available.\n"

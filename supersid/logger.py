@@ -96,7 +96,7 @@ class Logger():
         """One file per station. By default, buffered data is filtered."""
         filenames = []
         for station in stations:
-            my_filename = self.config.data_path \
+            my_filename = self.config['data_path'] \
                 + self.sid_file.get_sid_filename(station['call_sign'])
             filenames.append(my_filename)
             self.sid_file.write_data_sid(station, my_filename, log_type,
@@ -109,7 +109,7 @@ class Logger():
         """Cascade all buffers in one file."""
         my_filename = filename \
             if filename and path.isabs(filename) \
-            else self.config.data_path \
+            else self.config['data_path'] \
             + (filename or self.sid_file.get_supersid_filename())
         self.sid_file.write_data_supersid(my_filename, log_type,
                                           extended=extended,
