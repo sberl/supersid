@@ -7,7 +7,6 @@ import argparse
 import unicodedata
 import re
 
-
 def exist_file(x):
     """Check for argparse that file exists but does not open it."""
     if not os.path.isfile(x):
