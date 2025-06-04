@@ -111,7 +111,7 @@ To update (pull) to the latest version, do:
 
 Identify the available audio library / host API / audio device / sample rate combinations. If you have grep available, you can filter the results.
 
-The [Thesycon USB Descriptor Dumper](https://www.thesycon.de/eng/usb_descriptordumper.shtml) may give you some insights about the device capabilities. I.e. supportde sample rate and bits per sample.
+The [Thesycon USB Descriptor Dumper](https://www.thesycon.de/eng/usb_descriptordumper.shtml) may give you some insights about the device capabilities. I.e. supported sample rate and bits per sample.
 
 If your proprietary sound card software has configuration options to select microphone input or line input, select the line input.<br/>
 If your proprietary sound card software has configuration options, deselect all sound effects, set 16 bit and the desired sample rate (48000, 96000 or 192000).<br/>
@@ -135,8 +135,8 @@ The experience with a small set of sound cards leads to following rules of thumb
 - **MME: <YourSoundCard>** is typically a good choice
 
 Caution: The **MME** host API allows to configure higher baudrates than the configuration of the HW or the HW allows.
-It will simply upsample the data in the driver but there is a hard cutof at the limit of the sound card configuration or at the limit of the ADC.
-This cutof will be visible in the graphical viewer of supersid.py (tk).
+It will simply upsample the data in the driver but there is a hard cutoff at the limit of the sound card configuration or at the limit of the ADC.
+This cutoff will be visible in the graphical viewer of supersid.py (tk).
 
 Selected:
 ```example
