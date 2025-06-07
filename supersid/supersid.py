@@ -230,7 +230,7 @@ class SuperSID():
                                    + datetime.fromtimestamp(audioTime, tz=timezone.utc).minute
                                    * 60 + datetime.fromtimestamp(audioTime, tz=timezone.utc).second) / self.config['log_interval'])
 
-            message = datetime.fromtimestamp(audioTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(time.time() - audioTime - 1) + "  [%d]  " % current_index
+            message = datetime.fromtimestamp(audioTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(time.time() - audioTime) + "  [%d]  " % current_index
             for station, strength in zip(self.config.stations,
                                         signal_strengths):
                 station['raw_buffer'][current_index] = strength

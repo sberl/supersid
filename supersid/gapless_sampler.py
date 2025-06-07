@@ -30,6 +30,7 @@ import datetime
 from struct import unpack as st_unpack
 from numpy import array
 from matplotlib.mlab import psd as mlab_psd
+from datetime import timezone
 
 from config import FREQUENCY, S16_LE, S24_3LE, S32_LE
 
@@ -281,9 +282,19 @@ try:
             self.bufferStartTime = time.time()
             
             #Drop a number of samples in order to get to the next 5 second interval.
-            dropsamples = int(((5 - datetime.datetime.fromtimestamp(self.bufferStartTime).second % 5) + (datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000)) * self.audio_sampling_rate)
-            self.stream.read(dropsamples)
-            self.bufferStartTime = int(self.bufferStartTime + dropsamples / self.audio_sampling_rate) + 1
+            print("Audio Stream started at:")
+            print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
+            timepast5sec = (datetime.datetime.fromtimestamp(self.bufferStartTime).second + datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000) % 5
+            print(timepast5sec)
+            dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
+            print("Drop samples:")
+            print(int(dropsamples))
+            self.stream.read(int(dropsamples))
+            self.bufferStartTime = self.bufferStartTime + dropsamples / self.audio_sampling_rate
+            print("Seconds: ")
+            print(dropsamples / self.audio_sampling_rate)
+            print("Buffer now at:")
+            print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
 
 
             
@@ -343,7 +354,7 @@ try:
                     oneSecondChunk = self.localbuffer[:self.audio_sampling_rate]
                     self.localbuffer = self.localbuffer[self.audio_sampling_rate:]
                     self.bufferStartTime += 1
-                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.bufferStartTime - 1)
+                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.bufferStartTime)
                 else:
                     return (None, None)
             except sounddevice.PortAudioError as err:
