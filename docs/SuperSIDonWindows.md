@@ -86,7 +86,7 @@ Open a `CMD` window.
     > "C:\Program Files\Python39\python.exe" -m pipwin install PyAudio
 ```
 
-If you choose the option 1.2 (system level install)), then you'll have to replace any occurence of `python` below with `"C:\Program Files\Python39\python.exe"`.
+If you choose the option 1.2 (system level install), then you'll have to replace any occurence of `python` below with `"C:\Program Files\Python39\python.exe"`.
 
 
 ## 2) Install SuperSID

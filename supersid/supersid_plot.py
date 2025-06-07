@@ -471,7 +471,7 @@ if __name__ == '__main__':
         else:
             # try building the file name from given options
             # or found in the provided .cfg file
-            Now = datetime.datetime.now()  # by default today
+            Now = datetime.datetime.utcnow()  # by default today
             if args.askYesterday:
                 Now -= datetime.timedelta(days=1)
             # stations can be given as a comma delimited string
