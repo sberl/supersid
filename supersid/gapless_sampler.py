@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Sampler handles audio data capture.
+GaplessSampler is a more noise resistant audio sampler.
 
 Also handles calculating PSD, extracting signal strengths at monitored
 frequencies, saving spectrum and spectrogram (image) to png file
 
-The Sampler class will use an audio 'device' to capture 1 second of sound.
+The GaplessSampler class will use an audio 'device' to continuously capture
+sound and return 1 second slices.
 This 'device' can be a local sound card:
      - controlled by sounddevice or pyaudio on Windows or other system
      - controlled by alsaaudio on Linux
@@ -14,8 +15,10 @@ This 'device' can be a local sound card:
 
     All these 'devices' must implement:
      - __init__: open the 'device' for future capture
-     - capture_1sec: obtain one second of sound and return as an array
-        of 'audio_sampling_rate' integers
+     - update: When called the sampler must read the audio buffers and
+        accumulate them in a local array. If there are more than 1 second
+        of samples, it should return a tuple containing the data as an
+        array of 'audio_sampling rate' integers and the current audio time.
      - close: close the 'device'
 """
 import sys
@@ -162,63 +165,6 @@ try:
                                          periodsize=periodsize,
                                          device=device)
                 self.name = "alsaaudio '{}'".format(device)
-
-        def capture_1sec(self):
-            """
-            return one second recording as numpy array
-            after unpacking, the format is
-                for Channels = 1: [left, ..., left]
-                for Channels = 2: [left, right ..., left, right]
-
-            the returned data format is
-                for Channels = 1: [[left], ..., [left]]
-                for Channels = 2: [[left, right], ..., [left, right]]
-
-            access the left channel as unpacked_data[:, 0]
-            access the right channel as unpacked_data[:, 1]
-            """
-            raw_data = b''
-            num_bytes = self.FORMAT_LENGTHS[self.format] \
-                * self.channels \
-                * self.audio_sampling_rate
-            t = time.time()
-            while len(raw_data) < num_bytes:
-                length, data = self.inp.read()
-                if length > 0:
-                    raw_data += data
-            self.duration = time.time() - t
-
-            # truncate to one second, if we received too much
-            raw_data = raw_data[:num_bytes]
-
-            if self.format == S16_LE:
-                unpacked_data = array(st_unpack(
-                    "<%ih" % (self.audio_sampling_rate * self.channels),
-                    raw_data))
-                return unpacked_data.reshape((
-                    self.audio_sampling_rate,
-                    self.channels))
-            elif self.format == S24_3LE:
-                unpacked_data = []
-                for i in range(self.audio_sampling_rate * self.channels):
-                    chunk = raw_data[i*3:i*3+3]
-                    unpacked_data.append(st_unpack(
-                        '<i',
-                        chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
-                return array(unpacked_data).reshape((
-                    self.audio_sampling_rate,
-                    self.channels))
-            elif self.format == S32_LE:
-                unpacked_data = array(st_unpack(
-                    "<%ii" % (self.audio_sampling_rate * self.channels),
-                    raw_data))
-                return unpacked_data.reshape((
-                    self.audio_sampling_rate,
-                    self.channels))
-            else:
-                raise NotImplementedError(
-                    "Format conversion for '{}' is not yet implemented!"
-                    .format(self.format))
 
         def close(self):
             pass  # to check later if there is something to do
@@ -394,46 +340,6 @@ try:
                 print("Error reading device", self.name)
                 print(err)
 
-        def capture_1sec(self):
-            """
-            return one second recording as numpy array
-            after unpacking, the format is
-                for Channels = 1: [left, ..., left]
-                for Channels = 2: [left, right ..., left, right]
-
-            the returned data format is
-                for Channels = 1: [[left], ..., [left]]
-                for Channels = 2: [[left, right], ..., [left, right]]
-
-            access the left channel as unpacked_data[:, 0]
-            access the right channel as unpacked_data[:, 1]
-            """
-            unpacked_data = array([])
-            try:
-                t = time.time()
-                if self.format in [S16_LE, S32_LE]:
-                    unpacked_data = sounddevice.rec(
-                        frames=self.audio_sampling_rate,
-                        dtype=self.FORMAT_MAP[self.format],
-                        blocking=True).flatten()
-                else:
-                    # 'int24' is not supported by sounddevice.rec(),
-                    # insetad sounddevice.RawInputStream() has to be used
-                    # in combination with a callback to sonsume the data
-                    raise NotImplementedError(
-                        "'int24' is not supported by sounddevice.rec()")
-                self.duration = time.time() - t
-                assert (len(unpacked_data) ==
-                        (self.audio_sampling_rate * self.channels)), \
-                    "expected the number of samples to be identical with " \
-                    "sampling rate * number of channels"
-            except sounddevice.PortAudioError as err:
-                print("Error reading device", self.name)
-                print(err)
-            return unpacked_data.reshape((
-                self.audio_sampling_rate,
-                self.channels))
-
         def close(self):
             pass  # to check later if there is something to do
 
@@ -603,76 +509,6 @@ try:
                 .format(hostapi_name))
             return None
 
-        def capture_1sec(self):
-            """
-            return one second recording as numpy array
-            after unpacking, the format is
-                for Channels = 1: [left, ..., left]
-                for Channels = 2: [left, right ..., left, right]
-
-            the returned data format is
-                for Channels = 1: [[left], ..., [left]]
-                for Channels = 2: [[left, right], ..., [left, right]]
-
-            access the left channel as unpacked_data[:, 0]
-            access the right channel as unpacked_data[:, 1]
-            """
-            t = time.time()
-            raw_data = bytearray(self.capture(1))
-            self.duration = time.time() - t
-            if self.format == S16_LE:
-                unpacked_data = array(st_unpack(
-                    "<%ih" % (self.audio_sampling_rate * self.channels),
-                    raw_data))
-                return unpacked_data.reshape((
-                    self.audio_sampling_rate,
-                    self.channels))
-            elif self.format == S24_3LE:
-                unpacked_data = []
-                for i in range(self.audio_sampling_rate * self.channels):
-                    chunk = raw_data[i*3:i*3+3]
-                    unpacked_data.append(st_unpack(
-                        '<i',
-                        chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
-                return array(unpacked_data).reshape((
-                    self.audio_sampling_rate,
-                    self.channels))
-            elif self.format == S32_LE:
-                unpacked_data = array(st_unpack(
-                    "<%ii" % (self.audio_sampling_rate * self.channels),
-                    raw_data))
-                return unpacked_data.reshape((
-                    self.audio_sampling_rate,
-                    self.channels))
-            else:
-                raise NotImplementedError(
-                    "Format conversion for '{}' is not yet implemented!"
-                    .format(self.format))
-
-        def capture(self, secs):
-            frames = []
-            expected_number_of_bytes = self.FORMAT_LENGTHS[self.format] \
-                * self.audio_sampling_rate \
-                * self.channels \
-                * secs
-            while len(frames) < expected_number_of_bytes:
-                try:
-                    # TODO: investigate exception_on_overflow=True
-                    # ignoring overflows seems not to be the best idea
-                    data = self.pa_stream.read(
-                        self.CHUNK,
-                        exception_on_overflow=False)
-                    frames.extend(data)
-                except IOError as err:
-                    print("IOError reading device:", str(err))
-                    if -9981 == err.errno:
-                        # -9981 is input overflow. This should not happen
-                        # with exception_on_overflow=False
-                        pass
-                    else:
-                        break   # avoid an endless loop, i.e. with error -9988
-            return frames[:expected_number_of_bytes]
-
         def close(self):
             self.pa_stream.stop_stream()
             self.pa_stream.close()
@@ -798,25 +634,6 @@ class GaplessSampler():
                 + self.capture_device.name)
             
             print(err)
-
-    def capture_1sec(self):
-        """Capture 1 second of data, returned data as an array
-        """
-        try:
-            self.data = self.capture_device.capture_1sec()
-        except Exception:
-            self.sampler_ok = False
-            print(
-                "Fail to read data from audio using "
-                + self.capture_device.name)
-            self.data = []
-        else:
-            # Scale A/D raw_data to voltage here
-            # Might substract 5v to make the data look more like SID
-            if(self.scaling_factor != 1.0):
-                self.data = self.data * self.scaling_factor
-
-        return self.data
 
     def close(self):
         if "capture_device" in dir(self):
