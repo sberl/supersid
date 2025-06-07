@@ -171,10 +171,10 @@ try:
                                          device=device)
             
             
-            self.bufferStartTime = time.time()
+            self.audioTime = time.time()
             self.localbuffer = array([])
 
-            timepast5sec = (datetime.datetime.fromtimestamp(self.bufferStartTime).second + datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000) % 5
+            timepast5sec = (datetime.datetime.fromtimestamp(self.audioTime).second + datetime.datetime.fromtimestamp(self.audioTime).microsecond / 1000000) % 5
             dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
 
             while(len(self.localbuffer) < (dropsamples * self.channels)):
@@ -197,7 +197,7 @@ try:
                         raw_data))
                 self.localbuffer = numpy.append(self.localbuffer, unpacked_data)
             self.localbuffer = self.localbuffer[(dropsamples * self.channels):]
-            self.bufferStartTime = self.bufferStartTime + dropsamples / self.audio_sampling_rate
+            self.audioTime = self.audioTime + dropsamples / self.audio_sampling_rate
                 
         def update(self):
             #print("here")
@@ -228,8 +228,8 @@ try:
             if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
                 oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
                 self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
-                self.bufferStartTime += 1
-                return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.bufferStartTime)
+                self.audioTime += 1
+                return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.audioTime)
             else:
                 return (None, None)
             
@@ -345,18 +345,18 @@ try:
             self.localbuffer = array([])
             self.stream = sounddevice.InputStream()
             self.stream.start()
-            self.bufferStartTime = time.time()
+            self.audioTime = time.time()
             
             #Drop a number of samples in order to get to the next 5 second interval.
             #print("Audio Stream started at:")
             #print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
-            timepast5sec = (datetime.datetime.fromtimestamp(self.bufferStartTime).second + datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000) % 5
+            timepast5sec = (datetime.datetime.fromtimestamp(self.audioTime).second + datetime.datetime.fromtimestamp(self.audioTime).microsecond / 1000000) % 5
             #print(timepast5sec)
             dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
             #print("Drop samples:")
             #print(int(dropsamples))
             self.stream.read(int(dropsamples))
-            self.bufferStartTime = self.bufferStartTime + dropsamples / self.audio_sampling_rate
+            self.audioTime = self.audioTime + dropsamples / self.audio_sampling_rate
             #print("Seconds: ")
             #print(dropsamples / self.audio_sampling_rate)
             #print("Buffer now at:")
@@ -419,8 +419,8 @@ try:
                 if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
                     oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
                     self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
-                    self.bufferStartTime += 1
-                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.bufferStartTime)
+                    self.audioTime += 1
+                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.audioTime)
                 else:
                     return (None, None)
             except sounddevice.PortAudioError as err:
@@ -554,12 +554,12 @@ try:
                 frames_per_buffer=self.CHUNK,
                 input_device_index=self.input_device_index)
             self.pa_stream.start_stream()
-            self.bufferStartTime = time.time()
+            self.audioTime = time.time()
             
-            timepast5sec = (datetime.datetime.fromtimestamp(self.bufferStartTime).second + datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000) % 5
+            timepast5sec = (datetime.datetime.fromtimestamp(self.audioTime).second + datetime.datetime.fromtimestamp(self.audioTime).microsecond / 1000000) % 5
             dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
             self.pa_stream.read(int(dropsamples), exception_on_overflow=True)
-            self.bufferStartTime = self.bufferStartTime + dropsamples / self.audio_sampling_rate
+            self.audioTime = self.audioTime + dropsamples / self.audio_sampling_rate
             
         def update(self):
             #print("here")
@@ -589,8 +589,8 @@ try:
                 if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
                     oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
                     self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
-                    self.bufferStartTime += 1
-                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.bufferStartTime)
+                    self.audioTime += 1
+                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.audioTime)
                 else:
                     return (None, None)
             except Exception as err:

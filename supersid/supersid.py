@@ -50,6 +50,8 @@ class SuperSID():
 
         
         self.signal_strength_average = array([])
+        self.audioDriftCorrection = 0
+        self.averageSize = 5
 
         # read the configuration file or exit
         self.config = read_config(config_file)
@@ -174,27 +176,47 @@ class SuperSID():
         signal_strengths = []
         gotNewData = False
         audioTime = None
+        systemTime = None
         try:
-            # capture_1sec() returns list of signal strength,
+            # If update has at least 1 second of data it returns list of signal strengths,
+            # and the current time according to the audio clock.
             # may set sampler_ok = False
             (data, audioTime) = self.sampler.update()
 
             if self.sampler.sampler_ok and data is not None:
+                #Setup any audio clock drift corrections.
+                audioTime = audioTime + self.audioDriftCorrection
+                systemTime = time.time()
+                audioDrift = systemTime - audioTime
+                if self.averageSize == 5:
+                    if audioDrift >= 1:
+                        self.audioDriftCorrection += 1
+                        self.averageSize = 4
+                    if audioDrift <= -1:
+                        self.audioDriftCorrection -= 1
+                        self.averageSize = 6
+
                 Pxx, freqs = self.psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
                 if Pxx is not None:
                     self.signal_strength_average = numpy.append(self.signal_strength_average, Pxx)
                     #print(len(self.signal_strength_average))
-                    if len(self.signal_strength_average) >= 5:
+
+                    if len(self.signal_strength_average) >= self.averageSize:
                         gotNewData = True
                         for channel, binSample in zip(
                                 self.sampler.monitored_channels,
                                 self.sampler.monitored_bins):
                             average = 0
-                            for second in self.signal_strength_average:
+                            for second in self.signal_strength_average[:self.averageSize]:
                                 average += second[channel][binSample]
-                            signal_strengths.append(average / 5)
-                        self.signal_strength_average = array([])
+                            signal_strengths.append(average / self.averageSize)
+
+                        #Preserve the next second if this is the 5th sample, and the audio drift just rose above 1
+                        self.signal_strength_average = self.signal_strength_average[self.averageSize:]
+                        
+                        # If a sample was added or removed, reset the average size now.
+                        self.averageSize = 5
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
@@ -230,7 +252,7 @@ class SuperSID():
                                    + datetime.fromtimestamp(audioTime, tz=timezone.utc).minute
                                    * 60 + datetime.fromtimestamp(audioTime, tz=timezone.utc).second) / self.config['log_interval'])
 
-            message = datetime.fromtimestamp(audioTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(time.time() - audioTime) + "  [%d]  " % current_index
+            message = datetime.fromtimestamp(audioTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(audioDrift) + "(%d)" % self.audioDriftCorrection + "  [%d]  " % current_index
             for station, strength in zip(self.config.stations,
                                         signal_strengths):
                 station['raw_buffer'][current_index] = strength
@@ -242,7 +264,7 @@ class SuperSID():
             self.viewer.status_display(message, level=2)
 
         if not self.stop_timer:
-            self.timer = threading.Timer(0.01, self.gapless_timer)
+            self.timer = threading.Timer(0.05, self.gapless_timer)
             self.timer.start()
 
     def on_timer(self):

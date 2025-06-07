@@ -295,7 +295,7 @@ class tkSidViewer():
                 self.need_refresh = False
             except IndexError as err_idx:
                 print("Warning:", err_idx)
-        self.tk_root.after(100, self.refresh_psd)
+        self.tk_root.after(250, self.refresh_psd)
 
     def save_file(self, param=None):
         """Save the files as per user's menu choice."""
