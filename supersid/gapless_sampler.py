@@ -137,6 +137,8 @@ try:
                         channels,
                         periodsize))
 
+                self.name = "alsaaudio Device guessed as '{}'".format(device)
+
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
                                          channels=self.channels,
@@ -144,7 +146,7 @@ try:
                                          format=self.FORMAT_MAP[self.format],
                                          periodsize=periodsize,
                                          device=device)
-                self.name = "alsaaudio Device guessed as '{}'".format(device)
+                
             else:
                 print(
                     "alsaaudio device '{}', "
@@ -158,6 +160,8 @@ try:
                         format,
                         channels,
                         periodsize))
+                self.name = "alsaaudio '{}'".format(device)
+
                 self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,
                                          alsaaudio.PCM_NORMAL,
                                          channels=self.channels,
@@ -165,8 +169,70 @@ try:
                                          format=self.FORMAT_MAP[self.format],
                                          periodsize=periodsize,
                                          device=device)
-                self.name = "alsaaudio '{}'".format(device)
+            
+            
+            self.bufferStartTime = time.time()
+            self.localbuffer = array([])
 
+            timepast5sec = (datetime.datetime.fromtimestamp(self.bufferStartTime).second + datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000) % 5
+            dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
+
+            while(len(self.localbuffer) < (dropsamples * self.channels)):
+                (samples, raw_data) = self.inp.read()
+                unpacked_data = None
+                if self.format == S16_LE:
+                    unpacked_data = array(st_unpack(
+                        "<%ih" % (len(raw_data/2)),
+                        raw_data))
+                elif self.format == S24_3LE:
+                    unpacked_data = []
+                    for i in range(len(raw_data/3)):
+                        chunk = raw_data[i*3:i*3+3]
+                        unpacked_data.append(st_unpack(
+                            '<i',
+                            chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
+                elif self.format == S32_LE:
+                    unpacked_data = array(st_unpack(
+                        "<%ii" % (len(raw_data)/4),
+                        raw_data))
+                self.localbuffer = numpy.append(self.localbuffer, unpacked_data)
+            self.localbuffer = self.localbuffer[(dropsamples * self.channels):]
+            self.bufferStartTime = self.bufferStartTime + dropsamples / self.audio_sampling_rate
+                
+        def update(self):
+            #print("here")
+            if self.inp.avail() == 0:
+                return (None, None)
+            (length, raw_data) = self.inp.read()
+            if length < 0:
+                print("Buffer overflowed")
+            unpacked_data = None
+            if self.format == S16_LE:
+                unpacked_data = array(st_unpack(
+                    "<%ih" % (len(raw_data/2)),
+                    raw_data))
+            elif self.format == S24_3LE:
+                unpacked_data = []
+                for i in range(len(raw_data/3)):
+                    chunk = raw_data[i*3:i*3+3]
+                    unpacked_data.append(st_unpack(
+                        '<i',
+                        chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
+            elif self.format == S32_LE:
+                unpacked_data = array(st_unpack(
+                    "<%ii" % (len(raw_data)/4),
+                    raw_data))
+                
+            self.localbuffer = numpy.append(self.localbuffer, unpacked_data)
+            #print(len(self.localbuffer))
+            if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
+                oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
+                self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
+                self.bufferStartTime += 1
+                return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.bufferStartTime)
+            else:
+                return (None, None)
+            
         def close(self):
             pass  # to check later if there is something to do
 
@@ -282,19 +348,19 @@ try:
             self.bufferStartTime = time.time()
             
             #Drop a number of samples in order to get to the next 5 second interval.
-            print("Audio Stream started at:")
-            print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
+            #print("Audio Stream started at:")
+            #print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
             timepast5sec = (datetime.datetime.fromtimestamp(self.bufferStartTime).second + datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000) % 5
-            print(timepast5sec)
+            #print(timepast5sec)
             dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
-            print("Drop samples:")
-            print(int(dropsamples))
+            #print("Drop samples:")
+            #print(int(dropsamples))
             self.stream.read(int(dropsamples))
             self.bufferStartTime = self.bufferStartTime + dropsamples / self.audio_sampling_rate
-            print("Seconds: ")
-            print(dropsamples / self.audio_sampling_rate)
-            print("Buffer now at:")
-            print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
+            #print("Seconds: ")
+            #print(dropsamples / self.audio_sampling_rate)
+            #print("Buffer now at:")
+            #print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
 
 
             
@@ -350,9 +416,9 @@ try:
                         print("Buffer overflowed")
                     self.localbuffer = numpy.append(self.localbuffer, data.flatten())
                 #print(len(self.localbuffer))
-                if len(self.localbuffer) > self.audio_sampling_rate:
-                    oneSecondChunk = self.localbuffer[:self.audio_sampling_rate]
-                    self.localbuffer = self.localbuffer[self.audio_sampling_rate:]
+                if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
+                    oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
+                    self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
                     self.bufferStartTime += 1
                     return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.bufferStartTime)
                 else:
@@ -478,6 +544,8 @@ try:
             self.input_device_index = self.get_device_by_name(self.device_name)
             self.audio_sampling_rate = audio_sampling_rate
 
+            self.localbuffer = array([])
+            self.name = "pyaudio '{}'".format(device_name)
             self.pa_stream = self.pa_lib.open(
                 format=self.FORMAT_MAP[self.format],
                 channels=self.channels,
@@ -485,7 +553,49 @@ try:
                 input=True,
                 frames_per_buffer=self.CHUNK,
                 input_device_index=self.input_device_index)
-            self.name = "pyaudio '{}'".format(device_name)
+            self.pa_stream.start_stream()
+            self.bufferStartTime = time.time()
+            
+            timepast5sec = (datetime.datetime.fromtimestamp(self.bufferStartTime).second + datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000) % 5
+            dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
+            self.pa_stream.read(int(dropsamples), exception_on_overflow=True)
+            self.bufferStartTime = self.bufferStartTime + dropsamples / self.audio_sampling_rate
+            
+        def update(self):
+            #print("here")
+            try:
+                if self.pa_stream.get_read_available() == 0:
+                    return (None, None)
+                raw_data = self.pa_stream.read(self.pa_stream.get_read_available())
+                unpacked_data = None
+                if self.format == S16_LE:
+                    unpacked_data = array(st_unpack(
+                        "<%ih" % (len(raw_data/2)),
+                        raw_data))
+                elif self.format == S24_3LE:
+                    unpacked_data = []
+                    for i in range(len(raw_data/3)):
+                        chunk = raw_data[i*3:i*3+3]
+                        unpacked_data.append(st_unpack(
+                            '<i',
+                            chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
+                elif self.format == S32_LE:
+                    unpacked_data = array(st_unpack(
+                        "<%ii" % (len(raw_data)/4),
+                        raw_data))
+                
+                self.localbuffer = numpy.append(self.localbuffer, unpacked_data)
+                #print(len(self.localbuffer))
+                if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
+                    oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
+                    self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
+                    self.bufferStartTime += 1
+                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.bufferStartTime)
+                else:
+                    return (None, None)
+            except Exception as err:
+                print("Error reading device", self.name)
+                print(err)
 
         @staticmethod
         def query_input_devices():
