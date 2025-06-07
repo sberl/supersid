@@ -275,10 +275,17 @@ try:
             sounddevice.default.latency = 'low'
             sounddevice.default.dtype = 'int16'
             self.name = "sounddevice '{}'".format(self.device_name)
+            self.localbuffer = array([])
             self.stream = sounddevice.InputStream()
             self.stream.start()
-            self.localbuffer = array([])
             self.bufferStartTime = time.time()
+            
+            #Drop a number of samples in order to get to the next 5 second interval.
+            dropsamples = int((5 - datetime.datetime.fromtimestamp(self.bufferStartTime).second % 5) * self.audio_sampling_rate)
+            self.stream.read(dropsamples)
+            self.bufferStartTime = int(self.bufferStartTime + dropsamples / self.audio_sampling_rate) + 1
+
+
             
 
         @staticmethod
@@ -327,7 +334,10 @@ try:
                 if self.stream.read_available == 0:
                     return (None, None)
                 if self.format in [S16_LE, S32_LE]:
-                    self.localbuffer = numpy.append(self.localbuffer, self.stream.read(self.stream.read_available)[0].flatten())
+                    (data, overflow) = self.stream.read(self.stream.read_available)
+                    if overflow:
+                        print("Buffer overflowed")
+                    self.localbuffer = numpy.append(self.localbuffer, data.flatten())
                 #print(len(self.localbuffer))
                 if len(self.localbuffer) > self.audio_sampling_rate:
                     oneSecondChunk = self.localbuffer[:self.audio_sampling_rate]
