@@ -2,9 +2,11 @@
 
 ## 1) Install Python
 
-Go for either one option of 1.1) or 1.2). The preferred solution is 1.1) for two reasons:
+There are 2 options for setting up your python environment for SuperSID. You can either create a virtual environment to run the program (option 1.1), or you can install directly into the system environment (option 1.2).
 
-a) It alows to have virtual environments with different Python setups and
+The preferred solution is 1.1 (virtual environment) for two reasons:
+
+a) It allows you to have virtual environments with different Python setups and
 b) the audio modules *sounddevice* and *pyaudio* seem to behave better. They will offer less configuration options for audio cards but there is a higher chance to actually work as expected.
 
 The table below is a comparison between the behaviour of installations 1.1) and 1.2) for the use of a USB sound card which can sample at 48000 Hz and 96000 Hz (and Windows is configured to 96000 Hz).<br/>
@@ -84,7 +86,7 @@ Open a `CMD` window.
     > "C:\Program Files\Python39\python.exe" -m pipwin install PyAudio
 ```
 
-If you choose the option 1.2), then you'll have to replace any occurence of `python` below with `"C:\Program Files\Python39\python.exe"`.
+If you choose the option 1.2 (system level install), then you'll have to replace any occurence of `python` below with `"C:\Program Files\Python39\python.exe"`.
 
 
 ## 2) Install SuperSID
@@ -111,7 +113,7 @@ To update (pull) to the latest version, do:
 
 Identify the available audio library / host API / audio device / sample rate combinations. If you have grep available, you can filter the results.
 
-The [Thesycon USB Descriptor Dumper](https://www.thesycon.de/eng/usb_descriptordumper.shtml) may give you some insights about the device capabilities. I.e. supportde sample rate and bits per sample.
+The [Thesycon USB Descriptor Dumper](https://www.thesycon.de/eng/usb_descriptordumper.shtml) may give you some insights about the device capabilities. I.e. supported sample rate and bits per sample.
 
 If your proprietary sound card software has configuration options to select microphone input or line input, select the line input.<br/>
 If your proprietary sound card software has configuration options, deselect all sound effects, set 16 bit and the desired sample rate (48000, 96000 or 192000).<br/>
@@ -131,12 +133,12 @@ Make sure that the time is approximately one second, not fractions of a second a
 
 The experience with a small set of sound cards leads to following rules of thumb:
 
-- **sounddevice** behaves more gracefull than **pyaudio**
+- **sounddevice** behaves more gracefully than **pyaudio**
 - **MME: <YourSoundCard>** is typically a good choice
 
-Caution: The **MME** host API allows to configure higher baudrates than the configuration of the HW or the HW allows.
-It will simply upsample the data in the driver but there is a hard cutof at the limit of the sound card configuration or at the limit of the ADC.
-This cutof will be visible in the graphical viewer of supersid.py (tk).
+Caution: The **MME** host API allows to configure higher sampling rates than the configuration of the HW or the HW allows.
+It will simply upsample the data in the driver but there is a hard cutoff at the limit of the sound card configuration or at the limit of the ADC.
+This cutoff will be visible in the graphical viewer of supersid.py (tk).
 
 Selected:
 ```example
@@ -170,6 +172,6 @@ See [ConfigHelp.md](./ConfigHelp.md)
 ## 5) Start the SuperSID program
 
 ```console
-    > cd C:\temp\supersid\supersid
-    > python supersid.py -c=..\Config\supersid.cfg
+    > cd <path to your supersid installation>\supersid\supersid
+    > python supersid.py -c ..\Config\supersid.cfg
 ```

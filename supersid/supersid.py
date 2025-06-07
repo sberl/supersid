@@ -19,12 +19,13 @@ import sys
 import os.path
 import argparse
 import subprocess
+from datetime import datetime
 from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
 from sidtimer import SidTimer
 from sampler import Sampler
-from config import readConfig, CONFIG_FILE_NAME
+from config import read_config, CONFIG_FILE_NAME
 from logger import Logger
 from supersid_common import exist_file, script_relative_to_cwd_relative
 
@@ -44,10 +45,26 @@ class SuperSID():
         self.viewer = None
 
         # read the configuration file or exit
-        self.config = readConfig(args.cfg_filename)
+        self.config = read_config(config_file)
         self.config["supersid_version"] = self.version
         if viewer is not None:
             self.config['viewer'] = viewer
+
+        # command line parameter -r/--read has precedence over automatic read
+        if read_file is None:
+            # if there are hourly saves ...
+            if self.config['hourly_save'] == 'YES':
+                # ... figure out the file name ...
+                utcnow = datetime.utcnow()
+                utc_starttime = "%d-%02d-%02d 00:00:00" \
+                    % (utcnow.year, utcnow.month, utcnow.day)
+                fileName = self.config['data_path'] + \
+                    "hourly_current_buffers.raw.ext.%s.csv" % (
+                        utc_starttime[:10])
+                # ... check the existence ...
+                if os.path.isfile(fileName):
+                    # ... and force reading
+                    read_file = fileName
 
         # Create Logger -
         # Logger will read an existing file if specified
@@ -155,7 +172,7 @@ class SuperSID():
                 Pxx, freqs = self.get_psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
                 if Pxx is not None:
-                    self.viewer.update_psd(Pxx)
+                    self.viewer.update_psd(Pxx, freqs)
                     for channel, binSample in zip(
                             self.sampler.monitored_channels,
                             self.sampler.monitored_bins):
@@ -227,10 +244,8 @@ class SuperSID():
         """
         filenames = []
         if log_format.startswith('both') or log_format.startswith('sid'):
-            # filename is '' to ensure one file per station
             fnames = self.logger.log_sid_format(
                 self.config.stations,
-                '',
                 log_type=log_type,
                 extended=log_format.endswith('extended'))
             filenames += fnames
@@ -254,6 +269,12 @@ class SuperSID():
     def close(self):
         """Call all necessary stop/close functions of children objects."""
         self.__class__.running = False
+        if self.config['hourly_save'] == 'YES':
+            fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
+                    self.logger.sid_file.sid_params['utc_starttime'][:10])
+            self.save_current_buffers(filename=fileName,
+                                      log_type='raw',
+                                      log_format='supersid_extended')
         if self.sampler:
             self.sampler.close()
         if self.timer:

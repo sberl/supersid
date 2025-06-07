@@ -79,6 +79,12 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
   * psd_max: float, max value for the y axis of the psd graph, **NaN** (default) means automatic scaling
   * psd_ticks: int, number of ticks for the y axis of the psd graph, **0** (default) means automatic ticks.
     Fixed number of 'psd_ticks' works only in conjunction with 'psd_min' and 'psd_max'.
+  * waterfall_samples: int, the number of samples displayed in the waterfall diagram(s)<br />
+    **0** (default) disables the waterfall diagrams otherwise one waterfall diagramm per numer of Channels.<br />
+    Positive values specify the number of samples to be displayed.<br />
+    60 seconds / log_interval corresponds to one minute.<br />
+    15 minutes at the default log_interval of 5 seconds results in 15 * (60 / 5) = 180.<br />
+    The waterfall diagrams are expensive in terms of RAM and CPU usage. May work with Raspberry Pi 400 with 4GB RAM.
   * bema_wing: beta_wing parameter for sidfile.filter_buffer() calculation. Default is '**6**'.
   * paper_size: one of **A3**, **A4**, **A5**, **Legal**, **Letter**
   * number_of_stations: specify the number of stations to monitor. Each station is described within its own section.

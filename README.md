@@ -7,9 +7,9 @@ Objectives
 ----------
 Monitoring the Sudden Ionospheric Disturbances (SID) is an easy yet exciting Home Based Radio Astronomy Project. This project is an implementation of [Stanford SOLAR Center’s SuperSID][Standford].
 
-The default SuperSID project software runs on Windows OS to record the pre-amplified signal received by the antenna with a “SuperSID Monitor”. 
+The default SuperSID project software runs only on Windows OS to record the pre-amplified signal received by the antenna with a “SuperSID Monitor”. 
 
-This *SuperSID* project is an Open Source implementation that runs on Linux and Windows. The scripts are executable by Python 3.
+This *SuperSID* project is an Open Source implementation that runs on Linux and Windows. The scripts are executable by Python v3.
 
 This *SuperSID* includes a text mode which allows to turn your Raspberry Pi into a SID monitor (tested on Raspbian Wheezy & Pidora distro). TkInter in the default GUI to ensure Python 3 compatibility.
 
@@ -18,7 +18,7 @@ This *SuperSID* includes a text mode which allows to turn your Raspberry Pi into
 |------------------|--------------------------------------
 |Desktop/Laptop PC |Desktop/Laptop PC/Raspberry Pi (512Mb)
 |Windows OS        |Linux and Windows OS
-|Python 2.7        |Python 3.3+
+|Python 2.7        |Python 3.9+
 |Any Soundcard     |USB External Soundcard
 |SuperSID Monitor pre-amp.  |Direct connection to External Soundcard
 
@@ -29,8 +29,10 @@ supersid.py:
  - More options in the [configuration file (.cfg)] (docs/ConfigHelp.md)
  - Continue recording after interruption
  - Auto adjustment of the interval period for better accuracy
- - New extended file format with time stamp to the 1.000th of second
+ - New extended file format with time stamp to the 1000th of second
  - *sidfile.py* can be used as a utility to manipulate SID files
+ - Supports both graphical view with power spectrum display and text only view
+ - Graphical view now has waterfall display
 
 ![tkgui_screenshot01](https://cloud.githubusercontent.com/assets/5303792/9287125/7e65cb9c-4339-11e5-9f5b-4c740b8e8d21.png)
 

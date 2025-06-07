@@ -6,3 +6,4 @@ pyparsing
 python-dateutil
 six
 pyephem
+readchar
