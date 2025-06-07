@@ -229,7 +229,7 @@ class Config(dict):
                 except ValueError:
                     self.config_ok = False
                     self.config_err = (f"{pkey} is not of the type {pcast} in "
-                                      f"{self.filenames}. Please check.")
+                                       f"{self.filenames}. Please check.")
                     return
                 except configparser.NoSectionError:
                     # it's ok: some sections are optional
@@ -310,14 +310,14 @@ class Config(dict):
                     (station[CHANNEL] >= self['Channels'])):
                 self.config_ok = False
                 self.config_err = (f"[STATION_{i+1}] {CHANNEL}={station[CHANNEL]} "
-                                f"must be >= 0 and < 'Channels'={self['Channels']}.")
+                                   f"must be >= 0 and < 'Channels'={self['Channels']}.")
                 return
             if (self['audio_sampling_rate'] // 2) < int(station[FREQUENCY]):
                 # configured sampling rate is below Nyquist sampling rate
                 self.config_ok = False
                 self.config_err = (f"[STATION_{i+1}] {FREQUENCY}={station[FREQUENCY]}: "
-                                    f"audio_sampling_rate={self['audio_sampling_rate']} "
-                                    f"must be >= {int(station[FREQUENCY])*2}.")
+                                   f"audio_sampling_rate={self['audio_sampling_rate']} "
+                                   f"must be >= {int(station[FREQUENCY])*2}.")
                 return
 
         if 'stations' not in self:
@@ -387,8 +387,8 @@ class Config(dict):
                 (self['log_format'] not in log_formats_for_automatic_upload)):
             self.config_ok = False
             self.config_err = (f"'log_format' must be either one of "
-                                f"{log_formats_for_automatic_upload} for "
-                                f"'automatic_upload = yes'.")
+                               f"{log_formats_for_automatic_upload} for "
+                               f"'automatic_upload = yes'.")
             return
 
         # check viewer
@@ -481,9 +481,9 @@ def print_config(config):
     print("--- Stations " + "-"*29)
     for station in config.stations:
         print(f"\t{CALL_SIGN} = {station[CALL_SIGN]} "
-          f"{FREQUENCY} = {station[FREQUENCY]}, "
-          f"{COLOR} = {station[COLOR]}, "
-          f"{CHANNEL} = {station[CHANNEL]}")
+              f"{FREQUENCY} = {station[FREQUENCY]}, "
+              f"{COLOR} = {station[COLOR]}, "
+              f"{CHANNEL} = {station[CHANNEL]}")
 
 
 if __name__ == '__main__':
