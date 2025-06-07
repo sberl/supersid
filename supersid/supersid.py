@@ -192,8 +192,8 @@ class SuperSID():
                                 self.sampler.monitored_bins):
                             average = 0
                             for second in self.signal_strength_average:
-                                average = second[channel][binSample]
-                            signal_strengths.append(average)
+                                average += second[channel][binSample]
+                            signal_strengths.append(average / 5)
                         self.signal_strength_average = array([])
         except IndexError as idxerr:
             print("Index Error:", idxerr)
