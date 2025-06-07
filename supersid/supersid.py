@@ -188,6 +188,17 @@ class SuperSID():
                 audioTime = audioTime + self.audioDriftCorrection
                 systemTime = time.time()
                 audioDrift = systemTime - audioTime
+
+                # If the audio drift is more than 5 seconds, there was a big interrupt
+                # skip the entire missing log intervals until the audio clock is within
+                # 5 seconds of the system clock.
+                while audioDrift > 5:
+                    self.audioDriftCorrection += 5
+                    audioTime += 5
+                    audioDrift -= 5
+
+                # If the drift is less than 5 seconds, then add or remove one FFT
+                # from the average to bring the audio clock towards the system clock.
                 if self.averageSize == 5:
                     if audioDrift >= 1:
                         self.audioDriftCorrection += 1
