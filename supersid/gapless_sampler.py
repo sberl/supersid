@@ -281,7 +281,7 @@ try:
             self.bufferStartTime = time.time()
             
             #Drop a number of samples in order to get to the next 5 second interval.
-            dropsamples = int((5 - datetime.datetime.fromtimestamp(self.bufferStartTime).second % 5) * self.audio_sampling_rate)
+            dropsamples = int(((5 - datetime.datetime.fromtimestamp(self.bufferStartTime).second % 5) + (datetime.datetime.fromtimestamp(self.bufferStartTime).microsecond / 1000000)) * self.audio_sampling_rate)
             self.stream.read(dropsamples)
             self.bufferStartTime = int(self.bufferStartTime + dropsamples / self.audio_sampling_rate) + 1
 
