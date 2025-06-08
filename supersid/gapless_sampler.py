@@ -342,25 +342,9 @@ try:
             sounddevice.default.latency = 'low'
             sounddevice.default.dtype = 'int16'
             self.name = "sounddevice '{}'".format(self.device_name)
-            self.localbuffer = array([])
             self.stream = sounddevice.InputStream()
             self.stream.start()
             self.audioTime = time.time()
-            
-            #Drop a number of samples in order to get to the next 5 second interval.
-            #print("Audio Stream started at:")
-            #print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
-            timepast5sec = (datetime.datetime.fromtimestamp(self.audioTime).second + datetime.datetime.fromtimestamp(self.audioTime).microsecond / 1000000) % 5
-            #print(timepast5sec)
-            dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
-            #print("Drop samples:")
-            #print(int(dropsamples))
-            self.stream.read(int(dropsamples))
-            self.audioTime = self.audioTime + dropsamples / self.audio_sampling_rate
-            #print("Seconds: ")
-            #print(dropsamples / self.audio_sampling_rate)
-            #print("Buffer now at:")
-            #print(datetime.datetime.fromtimestamp(self.bufferStartTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"))
 
 
             
@@ -414,13 +398,8 @@ try:
                     (data, overflow) = self.stream.read(self.stream.read_available)
                     if overflow:
                         print("Buffer overflowed")
-                    self.localbuffer = numpy.append(self.localbuffer, data.flatten())
-                #print(len(self.localbuffer))
-                if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
-                    oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
-                    self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
-                    self.audioTime += 1
-                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.audioTime)
+                    self.audioTime += len(data) / self.channels / self.audio_sampling_rate
+                    return (data.reshape(int(len(data) / self.channels), self.channels), self.audioTime)
                 else:
                     return (None, None)
             except sounddevice.PortAudioError as err:

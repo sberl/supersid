@@ -22,6 +22,7 @@ import subprocess
 import threading
 import numpy
 import time
+import traceback
 from datetime import datetime, timezone
 
 # SuperSID Package classes
@@ -49,7 +50,6 @@ class SuperSID():
         self.viewer = None
 
         
-        self.signal_strength_average = array([])
         self.audioDriftCorrection = 0
         self.averageSize = 5
 
@@ -59,6 +59,7 @@ class SuperSID():
         if viewer is not None:
             self.config['viewer'] = viewer
 
+        self.sample_buffer = array([])
         # command line parameter -r/--read has precedence over automatic read
         if read_file is None:
             # if there are hourly saves ...
@@ -174,7 +175,6 @@ class SuperSID():
 
     def gapless_timer(self):
         signal_strengths = []
-        gotNewData = False
         audioTime = None
         systemTime = None
         try:
@@ -184,6 +184,12 @@ class SuperSID():
             (data, audioTime) = self.sampler.update()
 
             if self.sampler.sampler_ok and data is not None:
+
+
+                # append the data to the sample buffer
+                self.sample_buffer = numpy.append(self.sample_buffer, data)
+                #print(len(self.sample_buffer))
+                
                 #Setup any audio clock drift corrections.
                 audioTime = audioTime + self.audioDriftCorrection
                 systemTime = time.time()
@@ -197,82 +203,86 @@ class SuperSID():
                     audioTime += 5
                     audioDrift -= 5
 
-                # If the drift is less than 5 seconds, then add or remove one FFT
-                # from the average to bring the audio clock towards the system clock.
-                if self.averageSize == 5:
-                    if audioDrift >= 1:
-                        self.audioDriftCorrection += 1
-                        self.averageSize = 4
-                    if audioDrift <= -1:
-                        self.audioDriftCorrection -= 1
-                        self.averageSize = 6
+                # Assume the audio time is the correct time for the last sample recieved
+                # determine what the sample for the next log interval is.
 
-                Pxx, freqs = self.psd(data, self.sampler.NFFT,
-                                      self.sampler.audio_sampling_rate)
-                if Pxx is not None:
-                    self.signal_strength_average = numpy.append(self.signal_strength_average, Pxx)
-                    #print(len(self.signal_strength_average))
+                last_sample_second = (datetime.fromtimestamp(audioTime, tz=timezone.utc).hour * 60 * 60
+                                    + datetime.fromtimestamp(audioTime, tz=timezone.utc).minute * 60
+                                    + datetime.fromtimestamp(audioTime, tz=timezone.utc).second
+                                    + datetime.fromtimestamp(audioTime, tz=timezone.utc).microsecond / 1000000)
+                
+                first_sample_second = last_sample_second - len(self.sample_buffer) / self.sampler.audio_sampling_rate
+                seconds_to_next_log = self.config['log_interval'] - first_sample_second % self.config['log_interval']
+                if seconds_to_next_log == 0:
+                    seconds_to_next_log = self.config['log_interval']
+                #print("Seconds to next log: %f" % seconds_to_next_log)
 
-                    if len(self.signal_strength_average) >= self.averageSize:
-                        gotNewData = True
+                samples_to_next_log = int(seconds_to_next_log * self.sampler.audio_sampling_rate) + 1
+                #print("Samples to next log: %d" % samples_to_next_log)
+
+                samples_needed = int(samples_to_next_log - len(self.sample_buffer))
+                #print("Samples Needed: %d" % samples_needed)
+
+                if samples_needed <= 0:
+                    log_samples = self.sample_buffer[:samples_to_next_log]
+                    #print(log_samples.shape)
+                    self.sample_buffer = self.sample_buffer[samples_to_next_log:]
+
+                    Pxx, freqs = self.psd(log_samples.reshape(len(log_samples), data.shape[1]), self.sampler.NFFT,
+                                        self.sampler.audio_sampling_rate)
+                    if Pxx is not None:
                         for channel, binSample in zip(
                                 self.sampler.monitored_channels,
                                 self.sampler.monitored_bins):
-                            average = 0
-                            for second in self.signal_strength_average[:self.averageSize]:
-                                average += second[channel][binSample]
-                            signal_strengths.append(average / self.averageSize)
+                            signal_strengths.append(Pxx[channel][binSample])
+                        # in case of an exception,
+                        # signal_strengths may not have the expected length
+                    while len(signal_strengths) < len(self.sampler.monitored_bins):
+                        signal_strengths.append(0.0)
+                    # do we need to save some files (hourly) or switch to a new day?
+                    if ((datetime.fromtimestamp(audioTime).minute == 0) and
+                            (datetime.fromtimestamp(audioTime).second < self.config['log_interval'])):
+                        if self.config['hourly_save'] == 'YES':
+                            fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
+                                self.logger.sid_file.sid_params['utc_starttime'][:10])
+                            self.save_current_buffers(filename=fileName,
+                                            log_type='raw',
+                                            log_format='supersid_extended')
+                        # a new day!
+                        if datetime.fromtimestamp(audioTime).hour == 0:
+                            # use log_type and log_format requested by the user
+                            # in the .cfg
+                            self.save_current_buffers(log_type=self.config['log_type'],
+                                                    log_format=self.config['log_format'])
+                            self.clear_all_data_buffers()
+                            self.ftp_to_stanford()
+                    # Save signal strengths into memory buffers
+                    # prepare message for status bar
+                    current_index = int((datetime.fromtimestamp(audioTime, tz=timezone.utc).hour
+                                        * 3600
+                                        + datetime.fromtimestamp(audioTime, tz=timezone.utc).minute
+                                        * 60 + datetime.fromtimestamp(audioTime, tz=timezone.utc).second) / self.config['log_interval'])
 
-                        #Preserve the next second if this is the 5th sample, and the audio drift just rose above 1
-                        self.signal_strength_average = self.signal_strength_average[self.averageSize:]
-                        
-                        # If a sample was added or removed, reset the average size now.
-                        self.averageSize = 5
+                    message = datetime.fromtimestamp(audioTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(audioDrift) + "(%d)" % self.audioDriftCorrection + "  [%d]  " % current_index
+                    for station, strength in zip(self.config.stations,
+                                                signal_strengths):
+                        station['raw_buffer'][current_index] = strength
+                        message += station['call_sign'] + "=%f " % strength
+                    self.logger.sid_file.timestamp[current_index] = datetime.fromtimestamp(audioTime, tz=timezone.utc)
+
+                    # end of this thread/need to handle to View to display
+                    # captured data & message
+                    self.viewer.status_display(message, level=2)
+
+
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
+            tb = traceback.extract_tb(idxerr.__traceback__)
+            print(tb)
         except TypeError as err_te:
             print("Warning:", err_te)
 
-        if gotNewData:
-            # in case of an exception,
-            # signal_strengths may not have the expected length
-            while len(signal_strengths) < len(self.sampler.monitored_bins):
-                signal_strengths.append(0.0)
-            # do we need to save some files (hourly) or switch to a new day?
-            if ((datetime.fromtimestamp(audioTime).minute == 0) and
-                    (datetime.fromtimestamp(audioTime).second < self.config['log_interval'])):
-                if self.config['hourly_save'] == 'YES':
-                    fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
-                        self.logger.sid_file.sid_params['utc_starttime'][:10])
-                    self.save_current_buffers(filename=fileName,
-                                            log_type='raw',
-                                            log_format='supersid_extended')
-                # a new day!
-                if datetime.fromtimestamp(audioTime).hour == 0:
-                    # use log_type and log_format requested by the user
-                    # in the .cfg
-                    self.save_current_buffers(log_type=self.config['log_type'],
-                                            log_format=self.config['log_format'])
-                    self.clear_all_data_buffers()
-                    self.ftp_to_stanford()
-            # Save signal strengths into memory buffers
-            # prepare message for status bar
-            current_index = int((datetime.fromtimestamp(audioTime, tz=timezone.utc).hour
-                                   * 3600
-                                   + datetime.fromtimestamp(audioTime, tz=timezone.utc).minute
-                                   * 60 + datetime.fromtimestamp(audioTime, tz=timezone.utc).second) / self.config['log_interval'])
-
-            message = datetime.fromtimestamp(audioTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(audioDrift) + "(%d)" % self.audioDriftCorrection + "  [%d]  " % current_index
-            for station, strength in zip(self.config.stations,
-                                        signal_strengths):
-                station['raw_buffer'][current_index] = strength
-                message += station['call_sign'] + "=%f " % strength
-            self.logger.sid_file.timestamp[current_index] = datetime.fromtimestamp(audioTime, tz=timezone.utc)
-
-            # end of this thread/need to handle to View to display
-            # captured data & message
-            self.viewer.status_display(message, level=2)
 
         if not self.stop_timer:
             self.timer = threading.Timer(0.05, self.gapless_timer)
