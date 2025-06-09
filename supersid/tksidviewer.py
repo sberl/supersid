@@ -236,7 +236,7 @@ class tkSidViewer():
             Pxx = {}
             for channel in range(self.controller.config['Channels']):
                 Pxx[channel], freqs = self.psd_axes.psd(
-                    data[:, channel], NFFT=NFFT, Fs=FS)
+                    data[:, channel], NFFT=NFFT, Fs=FS, noverlap=int(NFFT / 2))
 
                 if self.controller.config['waterfall_samples']:
                     pxx = np.log10(Pxx[channel][:-1].reshape(
