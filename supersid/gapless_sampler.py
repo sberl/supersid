@@ -171,33 +171,7 @@ try:
                                          device=device)
             
             
-            self.audioTime = time.time()
-            self.localbuffer = array([])
-
-            timepast5sec = (datetime.datetime.fromtimestamp(self.audioTime).second + datetime.datetime.fromtimestamp(self.audioTime).microsecond / 1000000) % 5
-            dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
-
-            while(len(self.localbuffer) < (dropsamples * self.channels)):
-                (samples, raw_data) = self.inp.read()
-                unpacked_data = None
-                if self.format == S16_LE:
-                    unpacked_data = array(st_unpack(
-                        "<%ih" % (len(raw_data/2)),
-                        raw_data))
-                elif self.format == S24_3LE:
-                    unpacked_data = []
-                    for i in range(len(raw_data/3)):
-                        chunk = raw_data[i*3:i*3+3]
-                        unpacked_data.append(st_unpack(
-                            '<i',
-                            chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
-                elif self.format == S32_LE:
-                    unpacked_data = array(st_unpack(
-                        "<%ii" % (len(raw_data)/4),
-                        raw_data))
-                self.localbuffer = numpy.append(self.localbuffer, unpacked_data)
-            self.localbuffer = self.localbuffer[(dropsamples * self.channels):]
-            self.audioTime = self.audioTime + dropsamples / self.audio_sampling_rate
+            self.audioTime = int(time.time() * audio_sampling_rate)
                 
         def update(self):
             #print("here")
@@ -223,15 +197,8 @@ try:
                     "<%ii" % (len(raw_data)/4),
                     raw_data))
                 
-            self.localbuffer = numpy.append(self.localbuffer, unpacked_data)
-            #print(len(self.localbuffer))
-            if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
-                oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
-                self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
-                self.audioTime += 1
-                return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.audioTime)
-            else:
-                return (None, None)
+            self.audioTime += int(len(unpacked_data / self.channels))
+            return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audioTime)
             
         def close(self):
             pass  # to check later if there is something to do
@@ -344,7 +311,7 @@ try:
             self.name = "sounddevice '{}'".format(self.device_name)
             self.stream = sounddevice.InputStream()
             self.stream.start()
-            self.audioTime = time.time()
+            self.audioTime = int(time.time() * audio_sampling_rate)
 
 
             
@@ -398,7 +365,7 @@ try:
                     (data, overflow) = self.stream.read(self.stream.read_available)
                     if overflow:
                         print("Buffer overflowed")
-                    self.audioTime += len(data) / self.channels / self.audio_sampling_rate
+                    self.audioTime += int(len(data) / self.channels)
                     return (data.reshape(int(len(data) / self.channels), self.channels), self.audioTime)
                 else:
                     return (None, None)
@@ -523,7 +490,6 @@ try:
             self.input_device_index = self.get_device_by_name(self.device_name)
             self.audio_sampling_rate = audio_sampling_rate
 
-            self.localbuffer = array([])
             self.name = "pyaudio '{}'".format(device_name)
             self.pa_stream = self.pa_lib.open(
                 format=self.FORMAT_MAP[self.format],
@@ -533,12 +499,7 @@ try:
                 frames_per_buffer=self.CHUNK,
                 input_device_index=self.input_device_index)
             self.pa_stream.start_stream()
-            self.audioTime = time.time()
-            
-            timepast5sec = (datetime.datetime.fromtimestamp(self.audioTime).second + datetime.datetime.fromtimestamp(self.audioTime).microsecond / 1000000) % 5
-            dropsamples = (5 - timepast5sec) * self.audio_sampling_rate
-            self.pa_stream.read(int(dropsamples), exception_on_overflow=True)
-            self.audioTime = self.audioTime + dropsamples / self.audio_sampling_rate
+            self.audioTime = int(time.time() * audio_sampling_rate)
             
         def update(self):
             #print("here")
@@ -563,15 +524,9 @@ try:
                         "<%ii" % (len(raw_data)/4),
                         raw_data))
                 
-                self.localbuffer = numpy.append(self.localbuffer, unpacked_data)
-                #print(len(self.localbuffer))
-                if len(self.localbuffer) > self.audio_sampling_rate * self.channels:
-                    oneSecondChunk = self.localbuffer[:(self.audio_sampling_rate * self.channels)]
-                    self.localbuffer = self.localbuffer[(self.audio_sampling_rate * self.channels):]
-                    self.audioTime += 1
-                    return (oneSecondChunk.reshape(self.audio_sampling_rate, self.channels), self.audioTime)
-                else:
-                    return (None, None)
+                self.audioTime += int(len(unpacked_data) / self.channels)
+
+                return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audioTime)
             except Exception as err:
                 print("Error reading device", self.name)
                 print(err)

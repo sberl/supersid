@@ -22,6 +22,7 @@ import subprocess
 import threading
 import numpy
 import time
+import math
 import traceback
 from datetime import datetime, timezone
 
@@ -50,8 +51,7 @@ class SuperSID():
         self.viewer = None
 
         
-        self.audioDriftCorrection = 0
-        self.averageSize = 5
+        self.audioDriftCorrection = int(0)
 
         # read the configuration file or exit
         self.config = read_config(config_file)
@@ -60,6 +60,10 @@ class SuperSID():
             self.config['viewer'] = viewer
 
         self.sample_buffer = array([])
+        self.audio_clock_drift_pid_error_ema = 0
+        self.audio_clock_drift_pid_sum_error = 0
+
+
         # command line parameter -r/--read has precedence over automatic read
         if read_file is None:
             # if there are hourly saves ...
@@ -116,9 +120,16 @@ class SuperSID():
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
 
         # Create Sampler to collect audio buffer (sound card or other server)
-        self.sampler = GaplessSampler(
-            self,
-            audio_sampling_rate=self.config['audio_sampling_rate'])
+
+        self.sampler = None
+        if self.config['sampler'] == 'gapless':
+            self.sampler = GaplessSampler(
+                self,
+                audio_sampling_rate=self.config['audio_sampling_rate'])
+        elif self.config['sampler'] == 'normal':
+            self.sampler = Sampler(
+                self,
+                audio_sampling_rate=self.config['audio_sampling_rate'])
         if not self.sampler.sampler_ok:
             self.close()
             sys.exit(3)
@@ -129,12 +140,14 @@ class SuperSID():
         for ibuffer, station in enumerate(self.config.stations):
             station['raw_buffer'] = self.logger.sid_file.data[ibuffer]
 
-        # Create Timer
         self.viewer.status_display("Waiting for Timer ... ")
-        self.timer = threading.Timer(0.01, self.gapless_timer)
         self.stop_timer = False
-        self.timer.start()
-        #self.timer = SidTimer(self.config['log_interval'], self.on_timer)
+        # Create Timer
+        if self.config['sampler'] == 'gapless':
+            self.timer = threading.Timer(0.01, self.gapless_timer)
+            self.timer.start()
+        elif self.config['sampler'] == 'normal':
+            self.timer = SidTimer(self.config['log_interval'], self.on_timer)
 
     def clear_all_data_buffers(self):
         """Clear the current memory buffers and pass to the next day."""
@@ -193,40 +206,71 @@ class SuperSID():
                 #Setup any audio clock drift corrections.
                 audioTime = audioTime + self.audioDriftCorrection
                 systemTime = time.time()
-                audioDrift = systemTime - audioTime
+                audioDrift = systemTime - audioTime / self.sampler.audio_sampling_rate
 
                 # If the audio drift is more than 5 seconds, there was a big interrupt
                 # skip the entire missing log intervals until the audio clock is within
                 # 5 seconds of the system clock.
-                while audioDrift > 5:
-                    self.audioDriftCorrection += 5
-                    audioTime += 5
-                    audioDrift -= 5
+                while audioDrift >= self.config['log_interval']:
+                    self.audioDriftCorrection += self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    audioTime += self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    audioDrift -= self.config['log_interval']
+
+                    # Also clear the pid after a large jump in clock drift.
+                    self.audio_clock_drift_pid_error_ema = 0
+                    self.audio_clock_drift_pid_sum_error = 0
+                    
+                while audioDrift <= -self.config['log_interval']:
+                    self.audioDriftCorrection -= self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    audioTime -= self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    audioDrift += self.config['log_interval']
+
+                    # Also clear the pid after a large jump in clock drift.
+                    self.audio_clock_drift_pid_error_ema = 0
+                    self.audio_clock_drift_pid_sum_error = 0
+
+                audioTime_seconds = audioTime / self.sampler.audio_sampling_rate
+
+                # PID control for small drift correction
+                data_sec = (len(data) / self.sampler.audio_sampling_rate)
+                
+                exp = pow(0.99, data_sec)
+                self.audio_clock_drift_pid_error_ema = min(audioDrift, self.audio_clock_drift_pid_error_ema * exp + (1 - exp) * audioDrift)
+                self.audio_clock_drift_pid_sum_error = self.audio_clock_drift_pid_sum_error + self.audio_clock_drift_pid_error_ema * data_sec
+
+                skip_samples = int(self.audio_clock_drift_pid_error_ema * self.sampler.audio_sampling_rate * 0.01
+                                +  self.audio_clock_drift_pid_sum_error * self.sampler.audio_sampling_rate * 0.00001)
+                
+                #print("Audio Drift: %f Drift Correction: %d Skip Samples: %d Error EMA: %f Error Sum: %f Delta EMA: %f" % (audioDrift, self.audioDriftCorrection, skip_samples, self.audio_clock_drift_pid_error_ema, self.audio_clock_drift_pid_sum_error, self.audio_clock_drift_pid_delta_ema))
 
                 # Assume the audio time is the correct time for the last sample recieved
                 # determine what the sample for the next log interval is.
 
-                last_sample_second = (datetime.fromtimestamp(audioTime, tz=timezone.utc).hour * 60 * 60
-                                    + datetime.fromtimestamp(audioTime, tz=timezone.utc).minute * 60
-                                    + datetime.fromtimestamp(audioTime, tz=timezone.utc).second
-                                    + datetime.fromtimestamp(audioTime, tz=timezone.utc).microsecond / 1000000)
+                end_sample_second = (datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).hour * 60 * 60
+                                   + datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).minute * 60
+                                   + datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).second
+                                   + datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).microsecond / 1000000)
                 
-                first_sample_second = last_sample_second - len(self.sample_buffer) / self.sampler.audio_sampling_rate
-                seconds_to_next_log = self.config['log_interval'] - first_sample_second % self.config['log_interval']
-                if seconds_to_next_log == 0:
-                    seconds_to_next_log = self.config['log_interval']
-                #print("Seconds to next log: %f" % seconds_to_next_log)
+                end_sample = int(end_sample_second * self.sampler.audio_sampling_rate)
+                start_sample = end_sample - len(self.sample_buffer)
+                samples_per_log = self.config['log_interval'] * self.sampler.audio_sampling_rate
 
-                samples_to_next_log = int(seconds_to_next_log * self.sampler.audio_sampling_rate) + 1
-                #print("Samples to next log: %d" % samples_to_next_log)
+                samples_past_last_log = start_sample % samples_per_log
 
-                samples_needed = int(samples_to_next_log - len(self.sample_buffer))
-                #print("Samples Needed: %d" % samples_needed)
+                samples_to_next_log = int(samples_per_log - samples_past_last_log)
+                if(samples_to_next_log < 4096):
+                    samples_to_next_log += samples_per_log
+                
+                samples_needed = int(samples_to_next_log - len(self.sample_buffer) - skip_samples)
+
+                log_time = int((audioTime - len(self.sample_buffer) - samples_past_last_log + samples_per_log + 1) / self.sampler.audio_sampling_rate)
 
                 if samples_needed <= 0:
                     log_samples = self.sample_buffer[:samples_to_next_log]
-                    #print(log_samples.shape)
                     self.sample_buffer = self.sample_buffer[samples_to_next_log:]
+
+                    # Correct the audio time to include the skipped samples.
+                    self.audioDriftCorrection += skip_samples
 
                     Pxx, freqs = self.psd(log_samples.reshape(len(log_samples), data.shape[1]), self.sampler.NFFT,
                                         self.sampler.audio_sampling_rate)
@@ -240,8 +284,8 @@ class SuperSID():
                     while len(signal_strengths) < len(self.sampler.monitored_bins):
                         signal_strengths.append(0.0)
                     # do we need to save some files (hourly) or switch to a new day?
-                    if ((datetime.fromtimestamp(audioTime).minute == 0) and
-                            (datetime.fromtimestamp(audioTime).second < self.config['log_interval'])):
+                    if ((datetime.fromtimestamp(log_time).minute == 0) and
+                            (datetime.fromtimestamp(log_time).second < self.config['log_interval'])):
                         if self.config['hourly_save'] == 'YES':
                             fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
                                 self.logger.sid_file.sid_params['utc_starttime'][:10])
@@ -249,7 +293,7 @@ class SuperSID():
                                             log_type='raw',
                                             log_format='supersid_extended')
                         # a new day!
-                        if datetime.fromtimestamp(audioTime).hour == 0:
+                        if datetime.fromtimestamp(log_time).hour == 0:
                             # use log_type and log_format requested by the user
                             # in the .cfg
                             self.save_current_buffers(log_type=self.config['log_type'],
@@ -258,17 +302,17 @@ class SuperSID():
                             self.ftp_to_stanford()
                     # Save signal strengths into memory buffers
                     # prepare message for status bar
-                    current_index = int((datetime.fromtimestamp(audioTime, tz=timezone.utc).hour
+                    current_index = int((datetime.fromtimestamp(log_time, tz=timezone.utc).hour
                                         * 3600
-                                        + datetime.fromtimestamp(audioTime, tz=timezone.utc).minute
-                                        * 60 + datetime.fromtimestamp(audioTime, tz=timezone.utc).second) / self.config['log_interval'])
+                                        + datetime.fromtimestamp(log_time, tz=timezone.utc).minute
+                                        * 60 + datetime.fromtimestamp(log_time, tz=timezone.utc).second) / self.config['log_interval'])
 
-                    message = datetime.fromtimestamp(audioTime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(audioDrift) + "(%d)" % self.audioDriftCorrection + "  [%d]  " % current_index
+                    message = datetime.fromtimestamp(log_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(audioDrift) + "(%d)" % self.audioDriftCorrection + "  [%d]  " % current_index
                     for station, strength in zip(self.config.stations,
                                                 signal_strengths):
                         station['raw_buffer'][current_index] = strength
                         message += station['call_sign'] + "=%f " % strength
-                    self.logger.sid_file.timestamp[current_index] = datetime.fromtimestamp(audioTime, tz=timezone.utc)
+                    self.logger.sid_file.timestamp[current_index] = datetime.fromtimestamp(log_time, tz=timezone.utc)
 
                     # end of this thread/need to handle to View to display
                     # captured data & message
@@ -405,8 +449,10 @@ class SuperSID():
         if self.sampler:
             self.sampler.close()
         if self.timer:
-            self.stop_timer = True
-            #self.timer.stop()
+            if self.config['sampler'] == 'gapless':
+                self.stop_timer = True
+            elif self.config['sampler'] == 'normal':
+                self.timer.stop()
         if self.viewer:
             self.viewer.close()
 
