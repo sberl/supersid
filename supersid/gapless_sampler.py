@@ -145,6 +145,7 @@ try:
                                          rate=audio_sampling_rate,
                                          format=self.FORMAT_MAP[self.format],
                                          periodsize=periodsize,
+                                         periods=256,
                                          device=device)
                 
             else:
@@ -184,30 +185,40 @@ try:
             unpacked_data = None
             if self.format == S16_LE:
                 unpacked_data = array(st_unpack(
-                    "<%ih" % (len(raw_data/2)),
+                    "<%ih" % (len(raw_data)/2),
                     raw_data))
             elif self.format == S24_3LE:
                 unpacked_data = []
-                for i in range(len(raw_data/3)):
+                for i in range(int(len(raw_data)/2)):
                     chunk = raw_data[i*3:i*3+3]
-                    unpacked_data.append(st_unpack(
-                        '<i',
-                        chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
+                    unpacked_data.append(int.from_bytes(chunk, byteorder='little', signed=True))
             elif self.format == S32_LE:
                 unpacked_data = array(st_unpack(
                     "<%ii" % (len(raw_data)/4),
                     raw_data))
                 
             self.audioTime += int(len(unpacked_data / self.channels))
+            unpacked_data = array(unpacked_data)
             return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audioTime)
             
         def close(self):
-            pass  # to check later if there is something to do
+            self.inp.close()
 
         def info(self):
             print(self.name, "at", self.audio_sampling_rate, "Hz")
             try:
-                one_sec = self.capture_1sec()
+                one_sec = array([])
+                tries = 0
+                while tries < 20 and len(one_sec) < self.audio_sampling_rate:
+                    (data, audio_time) = self.update()
+                    if data is not None:
+                        one_sec = numpy.append(one_sec, data)
+                    tries += 1
+                    time.sleep(0.1)
+                if len(one_sec) < self.audio_sampling_rate:
+                    print("The audio device produced no audio.")
+                one_sec = one_sec[:self.audio_sampling_rate]
+                one_sec = one_sec.reshape(self.audio_sampling_rate, self.channels)
                 text_data = ""
                 text_vector_sum = "Vector sum"
                 peak_freq = []
@@ -227,7 +238,6 @@ try:
                     "shape {}, "
                     "format {}, "
                     "channel {}, "
-                    "duration {:3.2f} sec, "
                     "peak freq {} Hz"
                     .format(
                         len(channel_one_sec),
@@ -236,7 +246,6 @@ try:
                         one_sec.shape,
                         self.format,
                         channel,
-                        self.duration,
                         peak_freq))
                 print(text_data)
                 print(text_vector_sum)
@@ -307,8 +316,8 @@ try:
             sounddevice.default.device = self.get_device_by_name(
                 self.device_name)
             sounddevice.default.channels = self.channels
-            sounddevice.default.latency = 'low'
-            sounddevice.default.dtype = 'int16'
+            sounddevice.default.latency = 'high'
+            sounddevice.default.dtype = self.FORMAT_MAP[format]
             self.name = "sounddevice '{}'".format(self.device_name)
             self.stream = sounddevice.InputStream()
             self.stream.start()
@@ -369,13 +378,14 @@ try:
                     self.audioTime += int(len(data) / self.channels)
                     return (data.reshape(int(len(data) / self.channels), self.channels), self.audioTime)
                 else:
-                    return (None, None)
+                    raise ValueError("sounddevice can only use formats S16_LE or S32_LE")
             except sounddevice.PortAudioError as err:
                 print("Error reading device", self.name)
                 print(err)
+                return(None, None)
 
         def close(self):
-            pass  # to check later if there is something to do
+            self.stream.close()
 
         def info(self):
             print(self.name, "at", self.audio_sampling_rate, "Hz")
@@ -386,7 +396,20 @@ try:
                 "get_device_by_name() delivered an unexpected device"
 
             try:
-                one_sec = self.capture_1sec()
+                one_sec = array([])
+                tries = 0
+                while tries < 20 and len(one_sec) < self.audio_sampling_rate:
+                    (data, audio_time) = self.update()
+                    if data is not None:
+                        one_sec = numpy.append(one_sec, data)
+                    tries += 1
+                    time.sleep(0.1)
+                if len(one_sec) < self.audio_sampling_rate:
+                    print("The audio device generated no audio")
+                    return
+                self.stream.close()
+                one_sec = one_sec[:self.audio_sampling_rate]
+                one_sec = one_sec.reshape(self.audio_sampling_rate, 1)
                 text_data = ""
                 text_vector_sum = "Vector sum"
                 peak_freq = []
@@ -405,7 +428,6 @@ try:
                     "shape {}, "
                     "format {}, "
                     "channel {}, "
-                    "duration {:3.2f} sec, "
                     "peak freq {} Hz"
                     .format(
                         len(channel_one_sec),
@@ -414,12 +436,13 @@ try:
                         one_sec.shape,
                         self.format,
                         channel,
-                        self.duration,
                         peak_freq))
                 print(text_data)
                 print(text_vector_sum)
             except Exception as err:
                 print("Exception", type(err), err)
+                tb = traceback.extract_tb(err.__traceback__)
+                print(tb)
 
 except ImportError:
     pass
@@ -511,26 +534,27 @@ try:
                 unpacked_data = None
                 if self.format == S16_LE:
                     unpacked_data = array(st_unpack(
-                        "<%ih" % (len(raw_data/2)),
+                        "<%ih" % (len(raw_data)/2),
                         raw_data))
                 elif self.format == S24_3LE:
                     unpacked_data = []
-                    for i in range(len(raw_data/3)):
+                    for i in range(int(len(raw_data)/3)):
                         chunk = raw_data[i*3:i*3+3]
-                        unpacked_data.append(st_unpack(
-                            '<i',
-                            chunk + (b'\0' if chunk[2] < 128 else b'\xff'))[0])
+                        unpacked_data.append(int.from_bytes(chunk, byteorder='little', signed=True))
                 elif self.format == S32_LE:
                     unpacked_data = array(st_unpack(
                         "<%ii" % (len(raw_data)/4),
                         raw_data))
                 
                 self.audioTime += int(len(unpacked_data) / self.channels)
-
+                unpacked_data = array(unpacked_data)
                 return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audioTime)
             except Exception as err:
                 print("Error reading device", self.name)
                 print(err)
+                tb = traceback.extract_tb(err.__traceback__)
+                print(tb)
+                return(None, None)
 
         @staticmethod
         def query_input_devices():
@@ -583,7 +607,19 @@ try:
         def info(self):
             print(self.name, "at", self.audio_sampling_rate, "Hz")
             try:
-                one_sec = self.capture_1sec()
+                one_sec = array([])
+                tries = 0
+                while tries < 20 and len(one_sec) < self.audio_sampling_rate:
+                    (data, audio_time) = self.update()
+                    if data is not None:
+                        one_sec = numpy.append(one_sec, data)
+                    tries += 1
+                    time.sleep(0.1)
+                if len(one_sec) < self.audio_sampling_rate:
+                    print("The device generated no audio.")
+                    return
+                one_sec = one_sec[:self.audio_sampling_rate]
+                one_sec = one_sec.reshape(self.audio_sampling_rate, self.channels)
                 text_data = ""
                 text_vector_sum = "Vector sum"
                 peak_freq = []
@@ -603,7 +639,6 @@ try:
                     "shape {}, "
                     "format {}, "
                     "channel {}, "
-                    "duration {:3.2f} sec, "
                     "peak freq {} Hz"
                     .format(
                         len(channel_one_sec),
@@ -612,12 +647,13 @@ try:
                         one_sec.shape,
                         self.format,
                         channel,
-                        self.duration,
                         peak_freq))
                 print(text_data)
                 print(text_vector_sum)
             except Exception as err:
                 print("Exception", type(err), err)
+                tb = traceback.extract_tb(err.__traceback__)
+                print(tb)
 
 except ImportError:
     pass
