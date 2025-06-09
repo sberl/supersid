@@ -88,6 +88,13 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
   * bema_wing: beta_wing parameter for sidfile.filter_buffer() calculation. Default is '**6**'.
   * paper_size: one of **A3**, **A4**, **A5**, **Legal**, **Letter**
   * number_of_stations: specify the number of stations to monitor. Each station is described within its own section.
+  * sampler: one of **normal** (default) or **gapless** . In normal mode only 1 second of audio data in each log
+    interval is processes to calcualte the signal estimates. In gapless mode audio is continuously recorded, and
+    all samples across the log interval are processed.
+  * overlap: one of **True** or **False** (default) . When set to False, the FFT is done without any overlap between
+    slices. This is the same behavior as versions before this option was available. When set to True, the FFT slices
+    are given a 50% overlap. The matplotlib's default FFT window is the Hann window, and the 50% overllap is
+    recommended to give all sampeles equal weight in the PSD.
 
 <div id='id-section2'/>
 

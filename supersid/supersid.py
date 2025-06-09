@@ -234,18 +234,30 @@ class SuperSID():
                 # PID control for small drift correction
                 data_sec = (len(data) / self.sampler.audio_sampling_rate)
                 
+                # Calculate the ema decay for 1% per second.
                 exp = pow(0.99, data_sec)
-                self.audio_clock_drift_pid_error_ema = min(audioDrift, self.audio_clock_drift_pid_error_ema * exp + (1 - exp) * audioDrift)
+                
+                # Unless you have some really incredibe hardware, audio samples can never have been recorded in the future. They can have been
+                # recorded in the past. A smaller audio drift will always be more correct than a larger one. The estimate of the drift increases
+                # by 1% per second towards the current caculated drift, mostly ignoring any high latency spikes, while closely folllowing the
+                # lowest measured latency.
+                self.audio_clock_drift_pid_error_ema = min(audioDrift, self.audio_clock_drift_pid_error_ema * exp + audioDrift * (1 - exp))
+                
+                # The integrated error will accumulate and follow the actual difference in speed between the system and audio clodk. If the
+                # audio clock is 10ppm slower than the system clock for example, the sound card will be recording at about 95999hz, and about
+                # 5 samples must be dropped from each 5 second period.
                 self.audio_clock_drift_pid_sum_error = self.audio_clock_drift_pid_sum_error + self.audio_clock_drift_pid_error_ema * data_sec
 
                 skip_samples = int(self.audio_clock_drift_pid_error_ema * self.sampler.audio_sampling_rate * 0.01
                                 +  self.audio_clock_drift_pid_sum_error * self.sampler.audio_sampling_rate * 0.00001)
                 
+                # Scale the number of skipped samples with the audio sampling rate to make the correction consistent.
+                skip_samples = int(skip_samples * self.sampler.audio_sampling_rate / 96000)
+                
                 #print("Audio Drift: %f Drift Correction: %d Skip Samples: %d Error EMA: %f Error Sum: %f Delta EMA: %f" % (audioDrift, self.audioDriftCorrection, skip_samples, self.audio_clock_drift_pid_error_ema, self.audio_clock_drift_pid_sum_error, self.audio_clock_drift_pid_delta_ema))
 
                 # Assume the audio time is the correct time for the last sample recieved
                 # determine what the sample for the next log interval is.
-
                 end_sample_second = (datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).hour * 60 * 60
                                    + datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).minute * 60
                                    + datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).second
@@ -258,6 +270,12 @@ class SuperSID():
                 samples_past_last_log = start_sample % samples_per_log
 
                 samples_to_next_log = int(samples_per_log - samples_past_last_log)
+
+                # If the audio drift correction changes, then the boundry between the samples and the next log will change.
+                # Small samples_to_next_log values will often be values of 1 or 2, but at the start of the recording could
+                # be any value. At 192000 hz recording, 4096 samples are needed to do an FFT without error. In very rare cases
+                # the first log may include up to 86ms of the previous log interval in order to avoid any chance of trying
+                # to compute an FFT with too little data.
                 if(samples_to_next_log < 4096):
                     samples_to_next_log += samples_per_log
                 
