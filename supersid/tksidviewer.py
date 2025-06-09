@@ -25,22 +25,14 @@ from matplotlib.figure import Figure
 from supersid_common import script_relative_to_cwd_relative
 
 
-class PsdFormatter(object):
-    def __init__(self):
-        pass
-
-    def __call__(self, bin_freq, bin_power):
-        """Display cursor position in lower right of display"""
-        return "frequency=%.0f  " % bin_freq + " power=%.3f  " % bin_power
+def psd_format_coord(bin_freq, bin_power):
+    """Display cursor position in lower right of display"""
+    return f"frequency={bin_freq:.0f} power={bin_power:.3f}"
 
 
-class WaterfallFormatter(object):
-    def __init__(self):
-        pass
-
-    def __call__(self, bin_freq, y):
-        """Display cursor position in lower right of display"""
-        return "frequency=%.0f  " % bin_freq
+def waterfall_format_coord(bin_freq, _):
+    """Display cursor position in lower right of display"""
+    return f"frequency={bin_freq:.0f}"
 
 
 class tkSidViewer():
@@ -141,9 +133,9 @@ class tkSidViewer():
         self.waterfall_axes = self.figure.axes[1:]
 
         # set formatter for position under the mouse pointer
-        self.psd_axes.format_coord = PsdFormatter()
+        self.psd_axes.format_coord = psd_format_coord
         for ax in self.waterfall_axes:
-            ax.format_coord = WaterfallFormatter()
+            ax.format_coord = waterfall_format_coord
             ax.set_yticks([])
 
         self.psd_axes.grid(True)
@@ -238,7 +230,7 @@ class tkSidViewer():
         self.t = np.arange(0, (FS/2)+1, FS/NFFT)    # x-axis data (frequency)
         self.psd_axes.set_xticks(np.linspace(0, x_max, x_steps+1))
         self.psd_axes.set_xlim(self.xlim)
-    
+
     def set_y_limits(self):
         psd_min = self.controller.config['psd_min']
         psd_max = self.controller.config['psd_max']
@@ -327,7 +319,7 @@ class tkSidViewer():
                 # set it now
                 self.y_max = psd_max
                 y_axis_changed = True
-                
+
         if not math.isnan(psd_min):
             # psd_min is configured ...
             if np.isinf(self.y_min):
