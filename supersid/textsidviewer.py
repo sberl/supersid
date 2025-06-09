@@ -46,9 +46,12 @@ class textSidViewer:
         """Call 'psd', calculates the spectrum."""
         try:
             Pxx = {}
+            overlap = 0
+            if self.controller.config['overlap']:
+                overlap = int(NFFT / 2)
             for channel in range(self.controller.config['Channels']):
                 Pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS, noverlap=int(NFFT / 2))
+                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS, noverlap=overlap)
         except RuntimeError as err_re:
             print("Warning:", err_re)
             Pxx, freqs = None, None

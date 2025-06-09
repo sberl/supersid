@@ -123,6 +123,9 @@ class Config(dict):
                 # normal (default), gapless
                 ('sampler', str, 'normal'),
 
+                # Whether to use overlap in computing the FFTs
+                ('overlap', bool, False),
+
                 #####################
                 # mandatory entries #
                 #####################
