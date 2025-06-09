@@ -31,7 +31,7 @@ import sys
 import argparse
 from os import path
 import ftplib
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from sidfile import SidFile
 from config import read_config, FILTERED, RAW, CONFIG_FILE_NAME
 from supersid_common import exist_file
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         else [s['call_sign'] for s in cfg.stations]  # i.e. else all stations
     # file list
     if args.askYesterday:
-        yesterday = datetime.utcnow() - timedelta(days=1)
+        yesterday = datetime.now(timezone.utc) - timedelta(days=1)
         args.file_list.append(
             path.normpath(f"{cfg['data_path']}{path.sep}{cfg['site_name']}_{yesterday.year}-"
             f"{yesterday.month:02d}-{yesterday.day:02d}.csv"))

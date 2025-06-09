@@ -19,7 +19,7 @@ import sys
 import os.path
 import argparse
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 
 # SuperSID Package classes
 from sidtimer import SidTimer
@@ -29,7 +29,7 @@ from logger import Logger
 from supersid_common import exist_file, script_relative_to_cwd_relative
 
 
-class SuperSID():
+class SuperSID:
     """Main class which creates all other objects.
 
     In CMV pattern, this is the Controller.
@@ -54,7 +54,7 @@ class SuperSID():
             # if there are hourly saves ...
             if self.config['hourly_save'] == 'YES':
                 # ... figure out the file name ...
-                utcnow = datetime.utcnow()
+                utcnow = datetime.now(timezone.utc)
                 utc_starttime = f"{utcnow.year}-{utcnow.month:02d}-{utcnow.day:02d} 00:00:00"
                 file_name = (f"{self.config['data_path']}"
                              f"hourly_current_buffers.raw.ext.{utc_starttime[:10]}.csv")
@@ -144,7 +144,7 @@ class SuperSID():
             log_format = sid_extended
 
         The files for the upload are generated into the 'local_tmp' folder
-        of the [FTP] section. By default this is the directory '../outgoing'.
+        of the [FTP] section. By default, this is the directory '../outgoing'.
 
         Automatic ftp upload is performed only if 'automatic_upload = yes'
         is set.
@@ -296,7 +296,7 @@ class SuperSID():
                "Viewer: " + self.viewer.version + "\n"
                "\n\nOriginal Author: Eric Gibert  ericgibert@yahoo.fr"
                "\nAdditions by: Steve Berl <steveberl@gmail.com>"
-               "\n\nVisit http://solar-center.stanford.edu/SID/sidmonitor/ "
+               "\n\nVisit https://solar-center.stanford.edu/SID/sidmonitor/ "
                "for more information.")
 
         return msg

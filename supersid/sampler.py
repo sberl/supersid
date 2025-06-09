@@ -699,10 +699,15 @@ class Sampler():
     """Sampler will gather sound capture from various devices."""
 
     def __init__(self, controller, audio_sampling_rate=96000, NFFT=None):
+        """Initialize the sampler."""
         self.version = "1.4 20160207"
+        self.monitored_channels = []
+        self.monitored_bins = []
+        self.data = []
+
+        # Remember constructor parameters
         self.controller = controller
         self.scaling_factor = controller.config['scaling_factor']
-
         self.audio_sampling_rate = audio_sampling_rate
         if NFFT is not None:
             self.NFFT = NFFT

@@ -9,7 +9,7 @@ Implemenation examples are provided at the source's end,
     which can be used to test the module/class.
 """
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 
 
@@ -32,7 +32,7 @@ class SidTimer():
         self.lock = threading.Lock()
 
         self.time_now = time.time()
-        self.utc_now = datetime.utcnow()
+        self.utc_now = datetime.now(timezone.utc)
         self.data_index = 0
 
         # wait for synchro on the next 'interval' sec
@@ -56,7 +56,7 @@ class SidTimer():
         """
         with self.lock:     # only one timer callback at a time
             self.time_now = time.time()
-            self.utc_now = datetime.utcnow()
+            self.utc_now = datetime.now(timezone.utc)
             self._timer = threading.Timer(self.interval
                                           + self.expected_time
                                           - self.time_now, self._ontimer)
