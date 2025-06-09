@@ -325,7 +325,7 @@ try:
                 self.device_name)
             sounddevice.default.channels = self.channels
             sounddevice.default.latency = 'low'
-            sounddevice.default.dtype = 'int16'
+            sounddevice.default.dtype = self.FORMAT_MAP[format]
             self.name = "sounddevice '{}'".format(self.device_name)
 
         @staticmethod
