@@ -144,7 +144,7 @@ class SuperSID():
         self.stop_timer = False
         # Create Timer
         if self.config['sampler'] == 'gapless':
-            self.timer = threading.Timer(0.01, self.gapless_timer)
+            self.timer = threading.Timer(0.1, self.gapless_timer)
             self.timer.start()
         elif self.config['sampler'] == 'normal':
             self.timer = SidTimer(self.config['log_interval'], self.on_timer)
@@ -329,7 +329,7 @@ class SuperSID():
 
 
         if not self.stop_timer:
-            self.timer = threading.Timer(0.05, self.gapless_timer)
+            self.timer = threading.Timer(0.1, self.gapless_timer)
             self.timer.start()
 
     def on_timer(self):

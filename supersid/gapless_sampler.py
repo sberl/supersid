@@ -168,6 +168,7 @@ try:
                                          rate=audio_sampling_rate,
                                          format=self.FORMAT_MAP[self.format],
                                          periodsize=periodsize,
+                                         periods=256,
                                          device=device)
             
             
@@ -496,7 +497,7 @@ try:
                 channels=self.channels,
                 rate=self.audio_sampling_rate,
                 input=True,
-                frames_per_buffer=self.CHUNK,
+                frames_per_buffer=audio_sampling_rate * 10,
                 input_device_index=self.input_device_index)
             self.pa_stream.start_stream()
             self.audioTime = int(time.time() * audio_sampling_rate)
