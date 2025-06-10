@@ -181,7 +181,7 @@ try:
                                          device=device)
             
             
-            self.audioTime = int(time.time() * audio_sampling_rate)
+            self.audio_time = int(time.time() * audio_sampling_rate)
             self.stop = False
             if self.upsream_callback is not None:
                 self.monitor_thread = threading.Thread(target=self.monitor_loop)
@@ -217,9 +217,9 @@ try:
                     "<%ii" % (len(raw_data)/4),
                     raw_data))
                 
-            self.audioTime += int(len(unpacked_data / self.channels))
+            self.audio_time += int(len(unpacked_data / self.channels))
             unpacked_data = array(unpacked_data)
-            return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audioTime)
+            return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audio_time)
             
         def close(self):
             self.stop = True
@@ -353,7 +353,7 @@ try:
             self.local_buffer = array([])
             self.stream = sounddevice.InputStream(callback=self.callback_fun)
             self.stream.start()
-            self.audioTime = int(time.time() * audio_sampling_rate)
+            self.audio_time = int(time.time() * audio_sampling_rate)
             
 
 
@@ -400,8 +400,8 @@ try:
             return None
 
         def callback_fun(self, indata, frames, time, status):
-            self.audioTime += frames
-            self.upstream_callback(indata.reshape(frames, self.channels), self.audioTime)
+            self.audio_time += frames
+            self.upstream_callback(indata.reshape(frames, self.channels), self.audio_time)
 
         def close(self):
             self.stream.close()
@@ -543,7 +543,7 @@ try:
                 input_device_index=self.input_device_index,
                 stream_callback=self.callback_fun)
             self.pa_stream.start_stream()
-            self.audioTime = int(time.time() * audio_sampling_rate)
+            self.audio_time = int(time.time() * audio_sampling_rate)
 
         def callback_fun(self, in_data, frame_count, time_info, status_flags):
             unpacked_data = None
@@ -563,8 +563,8 @@ try:
                     "<%ii" % (frame_count * self.channels),
                     in_data))
                 
-            self.audioTime += frame_count
-            self.upstream_callback(unpacked_data.reshape(frame_count, self.channels), self.audioTime)
+            self.audio_time += frame_count
+            self.upstream_callback(unpacked_data.reshape(frame_count, self.channels), self.audio_time)
             return (None, pyaudio.paContinue)
 
         @staticmethod

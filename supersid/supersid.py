@@ -51,7 +51,7 @@ class SuperSID():
         self.viewer = None
 
         
-        self.audioDriftCorrection = int(0)
+        self.audio_drift_correction = int(0)
 
         # read the configuration file or exit
         self.config = read_config(config_file)
@@ -184,52 +184,43 @@ class SuperSID():
             '-c',
             script_relative_to_cwd_relative(self.config.filenames[0])])
 
-    def gapless_callback(self, data, audioTime):
+    def gapless_callback(self, data, audio_time):
+        systemTime = time.time()
         signal_strengths = []
-        systemTime = None
         try:
-            # If update has at least 1 second of data it returns list of signal strengths,
-            # and the current time according to the audio clock.
-            # may set sampler_ok = False
-            #(data, audioTime) = self.sampler.update()
-
             if self.sampler.sampler_ok and data is not None:
-
-
                 # append the data to the sample buffer
                 self.sample_buffer = numpy.append(self.sample_buffer, data)
-                #print(len(self.sample_buffer))
                 
                 #Setup any audio clock drift corrections.
-                audioTime = audioTime + self.audioDriftCorrection
-                systemTime = time.time()
-                audioDrift = systemTime - audioTime / self.sampler.audio_sampling_rate
+                audio_time = audio_time + self.audio_drift_correction
+                audio_drift = systemTime - audio_time / self.sampler.audio_sampling_rate
 
                 # If the audio drift is more than 5 seconds, there was a big interrupt
                 # skip the entire missing log intervals until the audio clock is within
                 # 5 seconds of the system clock.
-                while audioDrift >= self.config['log_interval']:
-                    self.audioDriftCorrection += self.config['log_interval'] * self.sampler.audio_sampling_rate
-                    audioTime += self.config['log_interval'] * self.sampler.audio_sampling_rate
-                    audioDrift -= self.config['log_interval']
+                while audio_drift >= self.config['log_interval']:
+                    self.audio_drift_correction += self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    audio_time += self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    audio_drift -= self.config['log_interval']
 
                     # Also clear the pid after a large jump in clock drift.
                     self.audio_clock_drift_pid_error_ema = 0
                     self.audio_clock_drift_pid_sum_error = 0
                     
-                while audioDrift <= -self.config['log_interval']:
-                    self.audioDriftCorrection -= self.config['log_interval'] * self.sampler.audio_sampling_rate
-                    audioTime -= self.config['log_interval'] * self.sampler.audio_sampling_rate
-                    audioDrift += self.config['log_interval']
+                while audio_drift <= -self.config['log_interval']:
+                    self.audio_drift_correction -= self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    audio_time -= self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    audio_drift += self.config['log_interval']
 
                     # Also clear the pid after a large jump in clock drift.
                     self.audio_clock_drift_pid_error_ema = 0
                     self.audio_clock_drift_pid_sum_error = 0
 
-                audioTime_seconds = audioTime / self.sampler.audio_sampling_rate
+                audio_time_seconds = audio_time / self.sampler.audio_sampling_rate
 
                 # PID control for small drift correction
-                data_sec = (len(data) / self.sampler.audio_sampling_rate)
+                data_sec = len(data) / self.sampler.audio_sampling_rate
                 
                 # Calculate the ema decay for 1% per second.
                 exp = pow(0.99, data_sec)
@@ -238,7 +229,7 @@ class SuperSID():
                 # recorded in the past. A smaller audio drift will always be more correct than a larger one. The estimate of the drift increases
                 # by 1% per second towards the current caculated drift, mostly ignoring any high latency spikes, while closely folllowing the
                 # lowest measured latency.
-                self.audio_clock_drift_pid_error_ema = min(audioDrift, self.audio_clock_drift_pid_error_ema * exp + audioDrift * (1 - exp))
+                self.audio_clock_drift_pid_error_ema = min(audio_drift, self.audio_clock_drift_pid_error_ema * exp + audio_drift * (1 - exp))
                 
                 # The integrated error will accumulate and follow the actual difference in speed between the system and audio clodk. If the
                 # audio clock is 10ppm slower than the system clock for example, the sound card will be recording at about 95999hz, and about
@@ -255,10 +246,10 @@ class SuperSID():
 
                 # Assume the audio time is the correct time for the last sample recieved
                 # determine what the sample for the next log interval is.
-                end_sample_second = (datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).hour * 60 * 60
-                                   + datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).minute * 60
-                                   + datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).second
-                                   + datetime.fromtimestamp(audioTime_seconds, tz=timezone.utc).microsecond / 1000000)
+                end_sample_second = (datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).hour * 60 * 60
+                                   + datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).minute * 60
+                                   + datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).second
+                                   + datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).microsecond / 1000000)
                 
                 end_sample = int(end_sample_second * self.sampler.audio_sampling_rate)
                 start_sample = end_sample - len(self.sample_buffer)
@@ -278,14 +269,15 @@ class SuperSID():
                 
                 samples_needed = int(samples_to_next_log - len(self.sample_buffer) - skip_samples)
 
-                log_time = int((audioTime - len(self.sample_buffer) - samples_past_last_log + samples_per_log + 1) / self.sampler.audio_sampling_rate)
-
                 if samples_needed <= 0:
+                    # Calculate the timestamp the current log interval started at.
+                    log_time = round((audio_time - end_sample % samples_per_log - samples_per_log) / self.sampler.audio_sampling_rate)
+
                     log_samples = self.sample_buffer[:samples_to_next_log]
                     self.sample_buffer = self.sample_buffer[samples_to_next_log:]
 
                     # Correct the audio time to include the skipped samples.
-                    self.audioDriftCorrection += skip_samples
+                    self.audio_drift_correction += skip_samples
 
                     Pxx, freqs = self.psd(log_samples.reshape(len(log_samples), data.shape[1]), self.sampler.NFFT,
                                         self.sampler.audio_sampling_rate)
@@ -322,7 +314,7 @@ class SuperSID():
                                         + datetime.fromtimestamp(log_time, tz=timezone.utc).minute
                                         * 60 + datetime.fromtimestamp(log_time, tz=timezone.utc).second) / self.config['log_interval'])
 
-                    message = datetime.fromtimestamp(log_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(audioDrift) + "(%d)" % self.audioDriftCorrection + "  [%d]  " % current_index
+                    message = datetime.fromtimestamp(log_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(audio_drift) + "(%d)" % self.audio_drift_correction + "  [%d]  " % current_index
                     for station, strength in zip(self.config.stations,
                                                 signal_strengths):
                         station['raw_buffer'][current_index] = strength
@@ -344,6 +336,7 @@ class SuperSID():
             tb = traceback.extract_tb(err_te.__traceback__)
             print(tb)
         except Exception as err:
+            print("Error:", err)
             tb = traceback.extract_tb(err.__traceback__)
             print(tb)
 
