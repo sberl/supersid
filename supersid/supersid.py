@@ -141,7 +141,6 @@ class SuperSID():
             station['raw_buffer'] = self.logger.sid_file.data[ibuffer]
 
         self.viewer.status_display("Waiting for Timer ... ")
-        self.stop_timer = False
         # Create Timer
 
         if self.config['sampler'] == 'normal':
@@ -453,9 +452,7 @@ class SuperSID():
         if self.sampler:
             self.sampler.close()
         if self.timer:
-            if self.config['sampler'] == 'gapless':
-                self.stop_timer = True
-            elif self.config['sampler'] == 'normal':
+            if self.config['sampler'] == 'normal':
                 self.timer.stop()
         if self.viewer:
             self.viewer.close()

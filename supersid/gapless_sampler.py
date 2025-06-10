@@ -114,9 +114,6 @@ try:
             device is preferred
             """
 
-            # time to capture 1 sec of data excluding the format conversion
-            self.duration = None
-
             self.upsream_callback = upstream_callback
 
             self.format = format
@@ -333,8 +330,6 @@ try:
                     format,
                     channels))
 
-            # time to capture 1 sec of data excluding the format conversion
-            self.duration = None
             self.upstream_callback = upstream_callback
 
             self.audio_sampling_rate = audio_sampling_rate
