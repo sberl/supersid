@@ -237,7 +237,7 @@ class SuperSID():
                 self.audio_clock_drift_pid_sum_error = self.audio_clock_drift_pid_sum_error + self.audio_clock_drift_pid_error_ema * data_sec
 
                 skip_samples = int(self.audio_clock_drift_pid_error_ema * self.sampler.audio_sampling_rate * 0.01
-                                +  self.audio_clock_drift_pid_sum_error * self.sampler.audio_sampling_rate * 0.0001)
+                                +  self.audio_clock_drift_pid_sum_error * self.sampler.audio_sampling_rate * 0.00001)
                 
                 # Scale the number of skipped samples with the log interval to make the correction consistent.
                 skip_samples = int(skip_samples * self.config['log_interval'] / 5)
