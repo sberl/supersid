@@ -185,6 +185,7 @@ class SuperSID():
             script_relative_to_cwd_relative(self.config.filenames[0])])
 
     def gapless_callback(self, data, audio_time):
+        samples_per_log = self.config['log_interval'] * self.sampler.audio_sampling_rate
         systemTime = time.time()
         signal_strengths = []
         try:
@@ -200,8 +201,8 @@ class SuperSID():
                 # skip the entire missing log intervals until the audio clock is within
                 # 5 seconds of the system clock.
                 while audio_drift >= self.config['log_interval']:
-                    self.audio_drift_correction += self.config['log_interval'] * self.sampler.audio_sampling_rate
-                    audio_time += self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    self.audio_drift_correction += samples_per_log
+                    audio_time += samples_per_log
                     audio_drift -= self.config['log_interval']
 
                     # Also clear the pid after a large jump in clock drift.
@@ -209,8 +210,8 @@ class SuperSID():
                     self.audio_clock_drift_pid_sum_error = 0
                     
                 while audio_drift <= -self.config['log_interval']:
-                    self.audio_drift_correction -= self.config['log_interval'] * self.sampler.audio_sampling_rate
-                    audio_time -= self.config['log_interval'] * self.sampler.audio_sampling_rate
+                    self.audio_drift_correction -= samples_per_log
+                    audio_time -= samples_per_log
                     audio_drift += self.config['log_interval']
 
                     # Also clear the pid after a large jump in clock drift.
@@ -236,11 +237,11 @@ class SuperSID():
                 # 5 samples must be dropped from each 5 second period.
                 self.audio_clock_drift_pid_sum_error = self.audio_clock_drift_pid_sum_error + self.audio_clock_drift_pid_error_ema * data_sec
 
-                skip_samples = int(self.audio_clock_drift_pid_error_ema * self.sampler.audio_sampling_rate * 0.01
-                                +  self.audio_clock_drift_pid_sum_error * self.sampler.audio_sampling_rate * 0.00001)
+                skip_samples = (self.audio_clock_drift_pid_error_ema * self.sampler.audio_sampling_rate * 0.01
+                              + self.audio_clock_drift_pid_sum_error * self.sampler.audio_sampling_rate * 0.00001)
                 
                 # Scale the number of skipped samples with the log interval to make the correction consistent.
-                skip_samples = int(skip_samples * self.config['log_interval'] / 5)
+                skip_samples = int(skip_samples * self.config['log_interval'] // 5)
                 
                 #print("Audio Drift: %f Drift Correction: %d Skip Samples: %d Error EMA: %f Error Sum: %f" % (audio_drift, self.audio_drift_correction, skip_samples, self.audio_clock_drift_pid_error_ema, self.audio_clock_drift_pid_sum_error))
                 
@@ -249,9 +250,8 @@ class SuperSID():
                 day_start_samples = int(datetime.combine(datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).date(), ti.min, tzinfo=timezone.utc).timestamp() * self.sampler.audio_sampling_rate)
                 end_sample = audio_time - day_start_samples
                 start_sample = end_sample - len(self.sample_buffer)
-                samples_per_log = self.config['log_interval'] * self.sampler.audio_sampling_rate
                 samples_past_last_log = start_sample % samples_per_log
-                samples_to_next_log = int(samples_per_log - samples_past_last_log)
+                samples_to_next_log = samples_per_log - samples_past_last_log
 
                 # If the audio drift correction changed, then the boundry between the samples and the previous log will change.
                 # Small samples_to_next_log values will often be values of 1 or 2, but at the start of the recording could
@@ -261,10 +261,10 @@ class SuperSID():
                 if(samples_to_next_log < self.sampler.NFFT):
                     samples_to_next_log += samples_per_log
                 
-                samples_needed = int(samples_to_next_log - len(self.sample_buffer))
+                samples_needed = samples_to_next_log - len(self.sample_buffer)
 
                 # Calculate the timestamp the current log interval started at.
-                log_time = round((audio_time - samples_needed - samples_per_log) / self.sampler.audio_sampling_rate)
+                log_time = round((audio_time - len(self.sample_buffer) + samples_to_next_log - samples_per_log) / self.sampler.audio_sampling_rate)
                 
                 # Reduce samples needed by the audio correction.
                 samples_needed -= skip_samples
@@ -306,10 +306,9 @@ class SuperSID():
                             self.ftp_to_stanford()
                     # Save signal strengths into memory buffers
                     # prepare message for status bar
-                    current_index = int((datetime.fromtimestamp(log_time, tz=timezone.utc).hour
-                                        * 3600
-                                        + datetime.fromtimestamp(log_time, tz=timezone.utc).minute
-                                        * 60 + datetime.fromtimestamp(log_time, tz=timezone.utc).second) / self.config['log_interval'])
+                    current_index = (datetime.fromtimestamp(log_time, tz=timezone.utc).hour * 3600
+                                   + datetime.fromtimestamp(log_time, tz=timezone.utc).minute * 60
+                                   + datetime.fromtimestamp(log_time, tz=timezone.utc).second) // self.config['log_interval']
 
                     message = datetime.fromtimestamp(log_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " [%d]  " % current_index+ " Audio Sync: {:.3f}s".format(audio_drift) + "  Correction: %d samples  " % -self.audio_drift_correction
                     for station, strength in zip(self.config.stations,

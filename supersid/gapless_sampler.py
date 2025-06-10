@@ -209,7 +209,7 @@ try:
                     raw_data))
             elif self.format == S24_3LE:
                 unpacked_data = []
-                for i in range(int(len(raw_data)/2)):
+                for i in range(len(raw_data)//3):
                     chunk = raw_data[i*3:i*3+3]
                     unpacked_data.append(int.from_bytes(chunk, byteorder='little', signed=True))
             elif self.format == S32_LE:
@@ -217,9 +217,9 @@ try:
                     "<%ii" % (len(raw_data)/4),
                     raw_data))
                 
-            self.audio_time += int(len(unpacked_data / self.channels))
+            self.audio_time += len(unpacked_data) // self.channels
             unpacked_data = array(unpacked_data)
-            return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audio_time)
+            return (unpacked_data.reshape(len(unpacked_data) // self.channels, self.channels), self.audio_time)
             
         def close(self):
             self.stop = True
@@ -539,7 +539,7 @@ try:
                 channels=self.channels,
                 rate=self.audio_sampling_rate,
                 input=True,
-                frames_per_buffer=int(audio_sampling_rate / 5),
+                frames_per_buffer=audio_sampling_rate // 2,
                 input_device_index=self.input_device_index,
                 stream_callback=self.callback_fun)
             self.pa_stream.start_stream()
@@ -554,7 +554,7 @@ try:
                     in_data))
             elif self.format == S24_3LE:
                 unpacked_data = []
-                for i in range(int(frame_count * self.channels)):
+                for i in range(frame_count * self.channels):
                     chunk = in_data[i*3:i*3+3]
                     unpacked_data.append(int.from_bytes(chunk, byteorder='little', signed=True))
                 unpacked_data = array(unpacked_data)
