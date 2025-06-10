@@ -24,7 +24,7 @@ import numpy
 import time
 import math
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time as ti
 
 # SuperSID Package classes
 from sidtimer import SidTimer
@@ -237,29 +237,23 @@ class SuperSID():
                 self.audio_clock_drift_pid_sum_error = self.audio_clock_drift_pid_sum_error + self.audio_clock_drift_pid_error_ema * data_sec
 
                 skip_samples = int(self.audio_clock_drift_pid_error_ema * self.sampler.audio_sampling_rate * 0.01
-                                +  self.audio_clock_drift_pid_sum_error * self.sampler.audio_sampling_rate * 0.00001)
+                                +  self.audio_clock_drift_pid_sum_error * self.sampler.audio_sampling_rate * 0.0001)
                 
-                # Scale the number of skipped samples with the audio sampling rate to make the correction consistent.
-                skip_samples = int(skip_samples * self.sampler.audio_sampling_rate / 96000)
+                # Scale the number of skipped samples with the log interval to make the correction consistent.
+                skip_samples = int(skip_samples * self.config['log_interval'] / 5)
                 
-                # print("Audio Drift: %f Drift Correction: %d Skip Samples: %d Error EMA: %f Error Sum: %f" % (audioDrift, self.audioDriftCorrection, skip_samples, self.audio_clock_drift_pid_error_ema, self.audio_clock_drift_pid_sum_error))
-
+                #print("Audio Drift: %f Drift Correction: %d Skip Samples: %d Error EMA: %f Error Sum: %f" % (audio_drift, self.audio_drift_correction, skip_samples, self.audio_clock_drift_pid_error_ema, self.audio_clock_drift_pid_sum_error))
+                
                 # Assume the audio time is the correct time for the last sample recieved
                 # determine what the sample for the next log interval is.
-                end_sample_second = (datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).hour * 60 * 60
-                                   + datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).minute * 60
-                                   + datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).second
-                                   + datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).microsecond / 1000000)
-                
-                end_sample = int(end_sample_second * self.sampler.audio_sampling_rate)
+                day_start_samples = int(datetime.combine(datetime.fromtimestamp(audio_time_seconds, tz=timezone.utc).date(), ti.min, tzinfo=timezone.utc).timestamp() * self.sampler.audio_sampling_rate)
+                end_sample = audio_time - day_start_samples
                 start_sample = end_sample - len(self.sample_buffer)
                 samples_per_log = self.config['log_interval'] * self.sampler.audio_sampling_rate
-
                 samples_past_last_log = start_sample % samples_per_log
-
                 samples_to_next_log = int(samples_per_log - samples_past_last_log)
 
-                # If the audio drift correction changes, then the boundry between the samples and the next log will change.
+                # If the audio drift correction changed, then the boundry between the samples and the previous log will change.
                 # Small samples_to_next_log values will often be values of 1 or 2, but at the start of the recording could
                 # be any value. At 192000 hz recording, 4096 samples are needed to do an FFT without error. In very rare cases
                 # the first log may include up to 22ms of the previous log interval in order to avoid any chance of trying
@@ -267,12 +261,15 @@ class SuperSID():
                 if(samples_to_next_log < self.sampler.NFFT):
                     samples_to_next_log += samples_per_log
                 
-                samples_needed = int(samples_to_next_log - len(self.sample_buffer) - skip_samples)
+                samples_needed = int(samples_to_next_log - len(self.sample_buffer))
+
+                # Calculate the timestamp the current log interval started at.
+                log_time = round((audio_time - samples_needed - samples_per_log) / self.sampler.audio_sampling_rate)
+                
+                # Reduce samples needed by the audio correction.
+                samples_needed -= skip_samples
 
                 if samples_needed <= 0:
-                    # Calculate the timestamp the current log interval started at.
-                    log_time = round((audio_time - end_sample % samples_per_log - samples_per_log) / self.sampler.audio_sampling_rate)
-
                     log_samples = self.sample_buffer[:samples_to_next_log]
                     self.sample_buffer = self.sample_buffer[samples_to_next_log:]
 
@@ -314,7 +311,7 @@ class SuperSID():
                                         + datetime.fromtimestamp(log_time, tz=timezone.utc).minute
                                         * 60 + datetime.fromtimestamp(log_time, tz=timezone.utc).second) / self.config['log_interval'])
 
-                    message = datetime.fromtimestamp(log_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " Drift: " + "{:.3f}".format(audio_drift) + "(%d)" % self.audio_drift_correction + "  [%d]  " % current_index
+                    message = datetime.fromtimestamp(log_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " [%d]  " % current_index+ " Audio Sync: {:.3f}s".format(audio_drift) + "  Correction: %d samples  " % -self.audio_drift_correction
                     for station, strength in zip(self.config.stations,
                                                 signal_strengths):
                         station['raw_buffer'][current_index] = strength
