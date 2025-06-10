@@ -234,7 +234,7 @@ class SuperSID():
                 # Calculate the ema decay for 1% per second.
                 exp = pow(0.99, data_sec)
                 
-                # Unless you have some really incredibe hardware, audio samples can never have been recorded in the future. They can have been
+                # Unless you have some really incredible hardware, audio samples can never have been recorded in the future. They can have been
                 # recorded in the past. A smaller audio drift will always be more correct than a larger one. The estimate of the drift increases
                 # by 1% per second towards the current caculated drift, mostly ignoring any high latency spikes, while closely folllowing the
                 # lowest measured latency.
