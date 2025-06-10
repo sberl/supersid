@@ -94,7 +94,7 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
   * overlap: one of **True** or **False** (default) . When set to False, the FFT is done without any overlap between
     slices. This is the same behavior as versions before this option was available. When set to True, the FFT slices
     are given a 50% overlap. The matplotlib's default FFT window is the Hann window, and the 50% overllap is
-    recommended to give all sampeles equal weight in the PSD.
+    recommended to get a more accurate PSD.
 
 <div id='id-section2'/>
 

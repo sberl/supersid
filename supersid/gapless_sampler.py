@@ -2,9 +2,6 @@
 """
 GaplessSampler is a more noise resistant audio sampler.
 
-Also handles calculating PSD, extracting signal strengths at monitored
-frequencies, saving spectrum and spectrogram (image) to png file
-
 The GaplessSampler class will use an audio 'device' to continuously capture
 sound and return 1 second slices.
 This 'device' can be a local sound card:
@@ -15,18 +12,22 @@ This 'device' can be a local sound card:
 
     All these 'devices' must implement:
      - __init__: open the 'device' for future capture
-     - update: When called the sampler must read the audio buffers and
-        accumulate them in a local array. If there are more than 1 second
-        of samples, it should return a tuple containing the data as an
-        array of 'audio_sampling rate' integers and the current audio time.
+     - support for a callback function with the form (data, audio_time)
+       data: a numpy array with the subsequent audio data
+       audio_time: an integer utc timestamp in units of audio samples instead
+          of seconds. It can be started with time.time() * audio_sample_rate
+          then each time samples arrive from the sound card, the count are
+          added to the timestamp.
      - close: close the 'device'
 """
 import sys
 import time
+import time as ti
 import argparse
 import traceback
 import numpy
 import datetime
+import threading
 from struct import unpack as st_unpack
 from numpy import array
 from matplotlib.mlab import psd as mlab_psd
@@ -69,7 +70,8 @@ try:
                 sampling_rate,
                 format,
                 channels,
-                periodsize)
+                periodsize,
+                None)
             sc.info()
             return True
         except alsaaudio.ALSAAudioError as err:
@@ -104,7 +106,8 @@ try:
                 audio_sampling_rate,
                 format,
                 channels,
-                periodsize):
+                periodsize,
+                upstream_callback):
             """
             Initialize the ALSA audio sampler.
             card is deprecated but still present for backward compatibility
@@ -114,9 +117,14 @@ try:
             # time to capture 1 sec of data excluding the format conversion
             self.duration = None
 
+            self.upsream_callback = upstream_callback
+
             self.format = format
             self.channels = channels
             self.audio_sampling_rate = audio_sampling_rate
+            self.card = card
+            self.device = device
+            self.periodsize = periodsize
             if card != '':
                 # deprecated configuration keyword Card, use Device instead
                 # alsaaudio.PCM(card=card) deprecated since pyalsaaudio 0.8.0
@@ -174,7 +182,19 @@ try:
             
             
             self.audioTime = int(time.time() * audio_sampling_rate)
+            self.stop = False
+            if self.upsream_callback is not None:
+                self.monitor_thread = threading.Thread(target=self.monitor_loop)
+            self.monitor_thread.start()
                 
+
+        def monitor_loop(self):
+            while not self.stop:
+                (data, audio_time) = self.update()
+                if data is not None:
+                    self.upsream_callback(data, audio_time)
+                time.sleep(0.05)
+
         def update(self):
             #print("here")
             if self.inp.avail() == 0:
@@ -202,23 +222,30 @@ try:
             return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audioTime)
             
         def close(self):
+            self.stop = True
             self.inp.close()
 
+        def test_cb(self, data, at):
+            self.test_data = numpy.append(self.test_data, data)
+
         def info(self):
+            self.test_data = array([])
+
+            # Close the stream and reinitialize with the test callback.
+            self.close()
+            self.__init__(self.card, self.device, self.audio_sampling_rate, self.format, self.channels, self.periodsize, self.test_cb)
+
             print(self.name, "at", self.audio_sampling_rate, "Hz")
             try:
-                one_sec = array([])
                 tries = 0
-                while tries < 20 and len(one_sec) < self.audio_sampling_rate:
-                    (data, audio_time) = self.update()
-                    if data is not None:
-                        one_sec = numpy.append(one_sec, data)
+                while tries < 20 and len(self.test_data) < self.audio_sampling_rate:
                     tries += 1
                     time.sleep(0.1)
-                if len(one_sec) < self.audio_sampling_rate:
-                    print("The audio device produced no audio.")
-                one_sec = one_sec[:self.audio_sampling_rate]
-                one_sec = one_sec.reshape(self.audio_sampling_rate, self.channels)
+                if len(self.test_data) < self.audio_sampling_rate:
+                    print("The device generated no audio.")
+                    return
+                one_sec = self.test_data[:self.audio_sampling_rate]
+                one_sec = one_sec.reshape(self.audio_sampling_rate, 1)
                 text_data = ""
                 text_vector_sum = "Vector sum"
                 peak_freq = []
@@ -268,7 +295,7 @@ try:
                 "Accessing '{}' at {} Hz via sounddevice "
                 "format {}, channels {}..."
                 .format(device, sampling_rate, format, channels))
-            sc = sounddevice_soundcard(device, sampling_rate, format, channels)
+            sc = sounddevice_soundcard(device, sampling_rate, format, channels, None)
             sc.info()
             return True
         except Exception as err:
@@ -293,7 +320,8 @@ try:
                 device_name,
                 audio_sampling_rate,
                 format,
-                channels):
+                channels,
+                upstream_callback):
             print(
                 "sounddevice device '{}', "
                 "sampling rate {}, "
@@ -307,10 +335,13 @@ try:
 
             # time to capture 1 sec of data excluding the format conversion
             self.duration = None
+            self.upstream_callback = upstream_callback
 
             self.audio_sampling_rate = audio_sampling_rate
             self.device_name = device_name
             self.format = format
+            if self.format == 'S24_3LE':
+                raise ValueError("sounddevice cannot use S24_3LE format")
             self.channels = channels
             sounddevice.default.samplerate = audio_sampling_rate
             sounddevice.default.device = self.get_device_by_name(
@@ -319,9 +350,11 @@ try:
             sounddevice.default.latency = 'high'
             sounddevice.default.dtype = self.FORMAT_MAP[format]
             self.name = "sounddevice '{}'".format(self.device_name)
-            self.stream = sounddevice.InputStream()
+            self.local_buffer = array([])
+            self.stream = sounddevice.InputStream(callback=self.callback_fun)
             self.stream.start()
             self.audioTime = int(time.time() * audio_sampling_rate)
+            
 
 
             
@@ -366,49 +399,34 @@ try:
                 .format(hostapi_name))
             return None
 
-        def update(self):
-            #print("here")
-            try:
-                if self.stream.read_available == 0:
-                    return (None, None)
-                if self.format in [S16_LE, S32_LE]:
-                    (data, overflow) = self.stream.read(self.stream.read_available)
-                    if overflow:
-                        print("Buffer overflowed")
-                    self.audioTime += int(len(data) / self.channels)
-                    return (data.reshape(int(len(data) / self.channels), self.channels), self.audioTime)
-                else:
-                    raise ValueError("sounddevice can only use formats S16_LE or S32_LE")
-            except sounddevice.PortAudioError as err:
-                print("Error reading device", self.name)
-                print(err)
-                return(None, None)
+        def callback_fun(self, indata, frames, time, status):
+            self.audioTime += frames
+            self.upstream_callback(indata.reshape(frames, self.channels), self.audioTime)
 
         def close(self):
             self.stream.close()
 
+
+        def test_cb(self, data, at):
+            self.test_data = numpy.append(self.test_data, data)
+
         def info(self):
+            self.test_data = array([])
+
+            # Close the stream and reinitialize with the test callback.
+            self.close()
+            self.__init__(self.device_name, self.audio_sampling_rate, self.format, self.channels, self.test_cb)
+            
             print(self.name, "at", self.audio_sampling_rate, "Hz")
-
-            # index 0 of sounddevice.default.device is the input device
-            assert (sounddevice.default.device[0] ==
-                    self.get_device_by_name(self.device_name)), \
-                "get_device_by_name() delivered an unexpected device"
-
             try:
-                one_sec = array([])
                 tries = 0
-                while tries < 20 and len(one_sec) < self.audio_sampling_rate:
-                    (data, audio_time) = self.update()
-                    if data is not None:
-                        one_sec = numpy.append(one_sec, data)
+                while tries < 20 and len(self.test_data) < self.audio_sampling_rate:
                     tries += 1
                     time.sleep(0.1)
-                if len(one_sec) < self.audio_sampling_rate:
-                    print("The audio device generated no audio")
+                if len(self.test_data) < self.audio_sampling_rate:
+                    print("The device generated no audio.")
                     return
-                self.stream.close()
-                one_sec = one_sec[:self.audio_sampling_rate]
+                one_sec = self.test_data[:self.audio_sampling_rate]
                 one_sec = one_sec.reshape(self.audio_sampling_rate, 1)
                 text_data = ""
                 text_vector_sum = "Vector sum"
@@ -443,6 +461,7 @@ try:
                 print("Exception", type(err), err)
                 tb = traceback.extract_tb(err.__traceback__)
                 print(tb)
+            self.stream.close()
 
 except ImportError:
     pass
@@ -459,7 +478,7 @@ try:
                 "Accessing '{}' at {} Hz via pyaudio "
                 "format {}, channels {}, ..."
                 .format(device, sampling_rate, format, channels))
-            sc = pyaudio_soundcard(device, sampling_rate, format, channels)
+            sc = pyaudio_soundcard(device, sampling_rate, format, channels, None)
             sc.info()
             return True
         except Exception as err:
@@ -491,7 +510,8 @@ try:
                 device_name,
                 audio_sampling_rate,
                 format,
-                channels):
+                channels,
+                upstream_callback):
             print(
                 "pyaudio device '{}', "
                 "sampling rate {}, "
@@ -503,8 +523,7 @@ try:
                     format,
                     channels))
 
-            # time to capture 1 sec of data excluding the format conversion
-            self.duration = None
+            self.upstream_callback = upstream_callback
 
             self.format = format
             self.channels = channels
@@ -520,41 +539,33 @@ try:
                 channels=self.channels,
                 rate=self.audio_sampling_rate,
                 input=True,
-                frames_per_buffer=audio_sampling_rate * 10,
-                input_device_index=self.input_device_index)
+                frames_per_buffer=int(audio_sampling_rate / 5),
+                input_device_index=self.input_device_index,
+                stream_callback=self.callback_fun)
             self.pa_stream.start_stream()
             self.audioTime = int(time.time() * audio_sampling_rate)
-            
-        def update(self):
-            #print("here")
-            try:
-                if self.pa_stream.get_read_available() == 0:
-                    return (None, None)
-                raw_data = self.pa_stream.read(self.pa_stream.get_read_available())
-                unpacked_data = None
-                if self.format == S16_LE:
-                    unpacked_data = array(st_unpack(
-                        "<%ih" % (len(raw_data)/2),
-                        raw_data))
-                elif self.format == S24_3LE:
-                    unpacked_data = []
-                    for i in range(int(len(raw_data)/3)):
-                        chunk = raw_data[i*3:i*3+3]
-                        unpacked_data.append(int.from_bytes(chunk, byteorder='little', signed=True))
-                elif self.format == S32_LE:
-                    unpacked_data = array(st_unpack(
-                        "<%ii" % (len(raw_data)/4),
-                        raw_data))
-                
-                self.audioTime += int(len(unpacked_data) / self.channels)
+
+        def callback_fun(self, in_data, frame_count, time_info, status_flags):
+            unpacked_data = None
+
+            if self.format == S16_LE:
+                unpacked_data = array(st_unpack(
+                    "<%ih" % (frame_count * self.channels),
+                    in_data))
+            elif self.format == S24_3LE:
+                unpacked_data = []
+                for i in range(int(frame_count * self.channels)):
+                    chunk = in_data[i*3:i*3+3]
+                    unpacked_data.append(int.from_bytes(chunk, byteorder='little', signed=True))
                 unpacked_data = array(unpacked_data)
-                return (unpacked_data.reshape(int(len(unpacked_data) / self.channels), self.channels), self.audioTime)
-            except Exception as err:
-                print("Error reading device", self.name)
-                print(err)
-                tb = traceback.extract_tb(err.__traceback__)
-                print(tb)
-                return(None, None)
+            elif self.format == S32_LE:
+                unpacked_data = array(st_unpack(
+                    "<%ii" % (frame_count * self.channels),
+                    in_data))
+                
+            self.audioTime += frame_count
+            self.upstream_callback(unpacked_data.reshape(frame_count, self.channels), self.audioTime)
+            return (None, pyaudio.paContinue)
 
         @staticmethod
         def query_input_devices():
@@ -604,22 +615,29 @@ try:
             self.pa_stream.close()
             self.pa_lib.terminate()
 
+
+
+        def test_cb(self, data, at):
+            self.test_data = numpy.append(self.test_data, data)
+
         def info(self):
+            self.test_data = array([])
+
+            # Close the stream and reinitialize with the test callback.
+            self.close()
+            self.__init__(self.device_name, self.audio_sampling_rate, self.format, self.channels, self.test_cb)
+
             print(self.name, "at", self.audio_sampling_rate, "Hz")
             try:
-                one_sec = array([])
                 tries = 0
-                while tries < 20 and len(one_sec) < self.audio_sampling_rate:
-                    (data, audio_time) = self.update()
-                    if data is not None:
-                        one_sec = numpy.append(one_sec, data)
+                while tries < 20 and len(self.test_data) < self.audio_sampling_rate:
                     tries += 1
                     time.sleep(0.1)
-                if len(one_sec) < self.audio_sampling_rate:
+                if len(self.test_data) < self.audio_sampling_rate:
                     print("The device generated no audio.")
                     return
-                one_sec = one_sec[:self.audio_sampling_rate]
-                one_sec = one_sec.reshape(self.audio_sampling_rate, self.channels)
+                one_sec = self.test_data[:self.audio_sampling_rate]
+                one_sec = one_sec.reshape(self.audio_sampling_rate, 1)
                 text_data = ""
                 text_vector_sum = "Vector sum"
                 peak_freq = []
@@ -650,6 +668,7 @@ try:
                         peak_freq))
                 print(text_data)
                 print(text_vector_sum)
+                self.close()
             except Exception as err:
                 print("Exception", type(err), err)
                 tb = traceback.extract_tb(err.__traceback__)
@@ -686,19 +705,22 @@ class GaplessSampler():
                     audio_sampling_rate,
                     controller.config['Format'],
                     controller.config['Channels'],
-                    controller.config['PeriodSize'])
+                    controller.config['PeriodSize'],
+                    controller.gapless_callback)
             elif controller.config['Audio'] == 'sounddevice':
                 self.capture_device = sounddevice_soundcard(
                     controller.config['Device'],
                     audio_sampling_rate,
                     controller.config['Format'],
-                    controller.config['Channels'])
+                    controller.config['Channels'],
+                    controller.gapless_callback)
             elif controller.config['Audio'] == 'pyaudio':
                 self.capture_device = pyaudio_soundcard(
                     controller.config['Device'],
                     audio_sampling_rate,
                     controller.config['Format'],
-                    controller.config['Channels'])
+                    controller.config['Channels'],
+                    controller.gapless_callback)
             else:
                 self.display_error_message(
                     "Unknown audio module:" + controller.config['Audio'])
@@ -725,17 +747,6 @@ class GaplessSampler():
             self.monitored_bins.append(binSample)
             # print ("monitored freq =", station[FREQUENCY],
             # " => bin = ", binSample)
-
-    def update(self):
-        try:
-            return self.capture_device.update()
-        except Exception as err:
-            self.sampler_ok = False
-            print(
-                "Fail to read data from audio using "
-                + self.capture_device.name)
-            
-            print(err)
 
     def close(self):
         if "capture_device" in dir(self):

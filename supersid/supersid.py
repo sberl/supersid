@@ -143,10 +143,8 @@ class SuperSID():
         self.viewer.status_display("Waiting for Timer ... ")
         self.stop_timer = False
         # Create Timer
-        if self.config['sampler'] == 'gapless':
-            self.timer = threading.Timer(0.1, self.gapless_timer)
-            self.timer.start()
-        elif self.config['sampler'] == 'normal':
+
+        if self.config['sampler'] == 'normal':
             self.timer = SidTimer(self.config['log_interval'], self.on_timer)
 
     def clear_all_data_buffers(self):
@@ -186,15 +184,14 @@ class SuperSID():
             '-c',
             script_relative_to_cwd_relative(self.config.filenames[0])])
 
-    def gapless_timer(self):
+    def gapless_callback(self, data, audioTime):
         signal_strengths = []
-        audioTime = None
         systemTime = None
         try:
             # If update has at least 1 second of data it returns list of signal strengths,
             # and the current time according to the audio clock.
             # may set sampler_ok = False
-            (data, audioTime) = self.sampler.update()
+            #(data, audioTime) = self.sampler.update()
 
             if self.sampler.sampler_ok and data is not None:
 
@@ -254,7 +251,7 @@ class SuperSID():
                 # Scale the number of skipped samples with the audio sampling rate to make the correction consistent.
                 skip_samples = int(skip_samples * self.sampler.audio_sampling_rate / 96000)
                 
-                #print("Audio Drift: %f Drift Correction: %d Skip Samples: %d Error EMA: %f Error Sum: %f Delta EMA: %f" % (audioDrift, self.audioDriftCorrection, skip_samples, self.audio_clock_drift_pid_error_ema, self.audio_clock_drift_pid_sum_error, self.audio_clock_drift_pid_delta_ema))
+                # print("Audio Drift: %f Drift Correction: %d Skip Samples: %d Error EMA: %f Error Sum: %f" % (audioDrift, self.audioDriftCorrection, skip_samples, self.audio_clock_drift_pid_error_ema, self.audio_clock_drift_pid_sum_error))
 
                 # Assume the audio time is the correct time for the last sample recieved
                 # determine what the sample for the next log interval is.
@@ -274,9 +271,9 @@ class SuperSID():
                 # If the audio drift correction changes, then the boundry between the samples and the next log will change.
                 # Small samples_to_next_log values will often be values of 1 or 2, but at the start of the recording could
                 # be any value. At 192000 hz recording, 4096 samples are needed to do an FFT without error. In very rare cases
-                # the first log may include up to 86ms of the previous log interval in order to avoid any chance of trying
+                # the first log may include up to 22ms of the previous log interval in order to avoid any chance of trying
                 # to compute an FFT with too little data.
-                if(samples_to_next_log < 4096):
+                if(samples_to_next_log < self.sampler.NFFT):
                     samples_to_next_log += samples_per_log
                 
                 samples_needed = int(samples_to_next_log - len(self.sample_buffer) - skip_samples)
@@ -344,11 +341,11 @@ class SuperSID():
             print(tb)
         except TypeError as err_te:
             print("Warning:", err_te)
-
-
-        if not self.stop_timer:
-            self.timer = threading.Timer(0.1, self.gapless_timer)
-            self.timer.start()
+            tb = traceback.extract_tb(err_te.__traceback__)
+            print(tb)
+        except Exception as err:
+            tb = traceback.extract_tb(err.__traceback__)
+            print(tb)
 
     def on_timer(self):
         """Call when timer expires.

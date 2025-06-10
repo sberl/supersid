@@ -2,9 +2,6 @@
 """
 Sampler handles audio data capture.
 
-Also handles calculating PSD, extracting signal strengths at monitored
-frequencies, saving spectrum and spectrogram (image) to png file
-
 The Sampler class will use an audio 'device' to capture 1 second of sound.
 This 'device' can be a local sound card:
      - controlled by sounddevice or pyaudio on Windows or other system
@@ -219,7 +216,7 @@ try:
                     .format(self.format))
 
         def close(self):
-            pass  # to check later if there is something to do
+            self.inp.close()
 
         def info(self):
             print(self.name, "at", self.audio_sampling_rate, "Hz")
