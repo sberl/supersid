@@ -28,7 +28,7 @@ from noaa_flares import NOAA_flares
 from supersid_common import exist_file
 
 
-def m2hm(x, i):
+def m2hm(x, _):
     """Small function to format the time on horizontal axis - minor ticks."""
     t = matplotlib.dates.num2date(x)
     h = t.hour
@@ -37,7 +37,7 @@ def m2hm(x, i):
     return '%(h)02d:%(m)02d' % {'h': h, 'm': m} if h % 2 == 1 else ''
 
 
-def m2yyyymmdd(x, i):
+def m2yyyymmdd(x, _):
     """Small function to format the date on horizontal axis - major ticks."""
     t = matplotlib.dates.num2date(x)
     y = t.year
@@ -60,6 +60,7 @@ class Plot_Gui(ttk.Frame):
         self.hidden_stations = set()  # hide the graph if the station in set
         self.colorStation = {}        # the color assigned to a station
         self.sid_files = []           # ordered list of sid files read
+        self.graph = None
         self.init_gui(file_list)
 
     def init_gui(self, file_list):
@@ -197,19 +198,21 @@ class Plot_Gui(ttk.Frame):
                         'facecolor': 'w',
                         'alpha': 0.5,
                         'fill': True})
-            # draw the rectangles for rising and setting of the sun.
-            # Use astronomical twilight
-            if sid_file.rising < sid_file.setting:
-                self.graph.axvspan(sid_file.startTime,
-                                   sid_file.rising.datetime(),
-                                   facecolor='blue', alpha=0.1)
-                self.graph.axvspan(sid_file.setting.datetime(),
-                                   max(sid_file.timestamp),
-                                   facecolor='blue', alpha=0.1)
-            else:
-                self.graph.axvspan(sid_file.setting.datetime(),
-                                   sid_file.rising.datetime(),
-                                   facecolor='blue', alpha=0.1)
+            if (sid_file.rising is not None) \
+            and (sid_file.setting is not None):
+                # draw the rectangles for rising and setting of the sun.
+                # Use astronomical twilight
+                if sid_file.rising < sid_file.setting:
+                    self.graph.axvspan(sid_file.startTime,
+                                       sid_file.rising.datetime(),
+                                       facecolor='blue', alpha=0.1)
+                    self.graph.axvspan(sid_file.setting.datetime(),
+                                       max(sid_file.timestamp),
+                                       facecolor='blue', alpha=0.1)
+                else:
+                    self.graph.axvspan(sid_file.setting.datetime(),
+                                       sid_file.rising.datetime(),
+                                       facecolor='blue', alpha=0.1)
 
         self.canvas.draw()
 
@@ -234,17 +237,24 @@ class Plot_Gui(ttk.Frame):
             sid_loc.lat = sid_file.sid_params['latitude']
             sid_loc.date = sid_file.startTime
             sid_loc.horizon = '-18'  # astronomical twilight
-            sid_file.rising = \
-                sid_loc.next_rising(ephem.Sun(), use_center=True)
-            sid_file.setting = \
-                sid_loc.next_setting(ephem.Sun(), use_center=True)
+            sid_file.rising = None
+            sid_file.setting = None
+            try:
+                sid_file.rising = \
+                    sid_loc.next_rising(ephem.Sun(), use_center=True)
+            except Exception as e:
+                print(e)
+            try:
+                sid_file.setting = \
+                    sid_loc.next_setting(ephem.Sun(), use_center=True)
+            except Exception as e:
+                print(e)
             # print(sid_file.filename, sid_file.startTime)
             # print(rising, ephem.localtime(rising))
             # print(setting, ephem.localtime(setting))
 
 
 if __name__ == '__main__':
-    filenames = ""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'file_list',
