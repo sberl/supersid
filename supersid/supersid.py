@@ -20,6 +20,7 @@ import os.path
 import argparse
 import subprocess
 from datetime import datetime, timezone
+from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
 from sidtimer import SidTimer
@@ -86,18 +87,6 @@ class SuperSID:
         else:
             print("ERROR: Unknown viewer", self.config['viewer'])
             sys.exit(2)
-
-        # Assign desired PSD function for calculation after capture
-        # currently: using matplotlib's psd
-        if self.config['viewer'] == 'tk':
-            # calculate psd and draw result in one call
-            self.psd = self.viewer.get_psd
-        elif self.config['viewer'] == 'text':
-            # calculate psd only
-            self.psd = self.viewer.get_psd
-        else:
-            # just a precaution in case another viewer will be added in future
-            raise NotImplementedError
 
         # calculate Stations' buffer_size
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
@@ -169,7 +158,7 @@ class SuperSID:
 
         # Get new data and pass them to the View
         message = f"{self.timer.get_utc_now()}  [{current_index}]  Capturing data..."
-        self.viewer.status_display(message, level=1)
+        self.viewer.status_display(message)
         signal_strengths = []
         try:
             # capture_1sec() returns list of signal strength,
@@ -177,16 +166,14 @@ class SuperSID:
             data = self.sampler.capture_1sec()
 
             if self.sampler.sampler_ok:
-                # I know that freqs is an unused variable here,
-                # but it is returned by the psd function
-                # pylint: disable=unused-variable
-                power, freqs = self.psd(data, self.sampler.NFFT,
+                Pxx, freqs = self.get_psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
-                if power is not None:
-                    for channel, bin_sample in zip(
+                if Pxx is not None:
+                    self.viewer.update_psd(Pxx, freqs)
+                    for channel, binSample in zip(
                             self.sampler.monitored_channels,
                             self.sampler.monitored_bins):
-                        signal_strengths.append(power[channel][bin_sample])
+                        signal_strengths.append(Pxx[channel][binSample])
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
@@ -227,7 +214,19 @@ class SuperSID:
 
         # end of this thread/need to handle to View to display
         # captured data & message
-        self.viewer.status_display(message, level=2)
+        self.viewer.status_display(message)
+
+    def get_psd(self, data, NFFT, FS):
+        """Call 'psd', calculates the spectrum."""
+        try:
+            Pxx = {}
+            for channel in range(self.config['Channels']):
+                Pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
+        except RuntimeError as err_re:
+            print("Warning:", err_re)
+            Pxx, freqs = None, None
+        return Pxx, freqs
 
     def save_current_buffers(self, filename='', log_type='raw',
                              log_format='both'):

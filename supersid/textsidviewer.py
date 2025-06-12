@@ -12,7 +12,6 @@ import sys
 import readchar
 from threading import Timer
 from time import sleep
-from matplotlib.mlab import psd as mlab_psd
 
 from config import FILTERED, RAW, print_config
 
@@ -38,21 +37,12 @@ class textSidViewer:
         except (KeyboardInterrupt, SystemExit):
             pass
 
-    def status_display(self, msg, level=0):
+    def status_display(self, msg):
         print(("\r" + msg + " "*self.MAXLINE)[:self.MAXLINE],  end='')
         sys.stdout.flush()
 
-    def get_psd(self, data, NFFT, FS):
-        """Call 'psd', calculates the spectrum."""
-        try:
-            Pxx = {}
-            for channel in range(self.controller.config['Channels']):
-                Pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
-        except RuntimeError as err_re:
-            print("Warning:", err_re)
-            Pxx, freqs = None, None
-        return Pxx, freqs
+    def update_psd(self, Pxx, freqs):
+        pass
 
     def close(self):
         self.timer.cancel()
