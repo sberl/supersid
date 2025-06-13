@@ -185,7 +185,7 @@ class SuperSID():
                 # skip the entire missing log intervals until the audio clock is within
                 # 5 seconds of the system clock.
                 if audio_drift >= self.config['log_interval'] or audio_drift <= -self.config['log_interval']:
-                    drift_log_intervals = audio_drift // self.config['log_interval']
+                    drift_log_intervals = int(audio_drift / self.config['log_interval'])
                     self.audio_drift_correction += drift_log_intervals * samples_per_log
                     audio_time += drift_log_intervals * samples_per_log
                     audio_drift -= drift_log_intervals * self.config['log_interval']
