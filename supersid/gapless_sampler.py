@@ -677,9 +677,8 @@ class GaplessSampler():
     """Sampler will gather sound capture from various devices."""
 
     def __init__(self, controller, audio_sampling_rate=96000, NFFT=None):
-        self.version = "1.4 20160207"
+        self.version = "2.0 Gapless 20250610"
         self.controller = controller
-        self.scaling_factor = controller.config['scaling_factor']
 
         self.audio_sampling_rate = audio_sampling_rate
         if NFFT is not None:

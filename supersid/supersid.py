@@ -120,8 +120,6 @@ class SuperSID():
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
 
         # Create Sampler to collect audio buffer (sound card or other server)
-
-        self.sampler = None
         if self.config['sampler'] == 'gapless':
             self.sampler = GaplessSampler(
                 self,
@@ -199,19 +197,11 @@ class SuperSID():
                 # If the audio drift is more than 5 seconds, there was a big interrupt
                 # skip the entire missing log intervals until the audio clock is within
                 # 5 seconds of the system clock.
-                while audio_drift >= self.config['log_interval']:
-                    self.audio_drift_correction += samples_per_log
-                    audio_time += samples_per_log
-                    audio_drift -= self.config['log_interval']
-
-                    # Also clear the pid after a large jump in clock drift.
-                    self.audio_clock_drift_pid_error_ema = 0
-                    self.audio_clock_drift_pid_sum_error = 0
-                    
-                while audio_drift <= -self.config['log_interval']:
-                    self.audio_drift_correction -= samples_per_log
-                    audio_time -= samples_per_log
-                    audio_drift += self.config['log_interval']
+                if audio_drift >= self.config['log_interval'] or audio_drift <= -self.config['log_interval']:
+                    drift_log_intervals = audio_drift // self.config['log_interval']
+                    self.audio_drift_correction += drift_log_intervals * samples_per_log
+                    audio_time += drift_log_intervals * samples_per_log
+                    audio_drift -= drift_log_intervals * self.config['log_interval']
 
                     # Also clear the pid after a large jump in clock drift.
                     self.audio_clock_drift_pid_error_ema = 0

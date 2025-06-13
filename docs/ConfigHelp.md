@@ -73,6 +73,7 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
 ### Extra
 
   * scaling_factor: float, set it to **1.0**. The data captured from the sound card is multiplied with this value.
+    Not supported by the gapless sampler.
   * mode: [ignored] **Server**, **Client**, **Standalone** (default) . Reserved for future client/server dev.
   * viewer: **text** for text mode light interface or **tk** for TkInter GUI (default).
   * psd_min: float, min value for the y axis of the psd graph, **NaN** (default) means automatic scaling
