@@ -74,7 +74,7 @@ if __name__ == '__main__':
         yesterday = datetime.utcnow() - timedelta(days=1)
         args.file_list.append(
             path.normpath(f"{cfg['data_path']}{path.sep}{cfg['site_name']}_{yesterday.year}-"
-            f"{yesterday.month:02d}-{yesterday.day:02d}.csv"))
+                          f"{yesterday.month:02d}-{yesterday.day:02d}.csv"))
         print(f"Yesterday file: {args.file_list[-1]}")
 
     # generate all the SID files ready to send in the local_tmp file
