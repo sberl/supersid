@@ -228,9 +228,12 @@ class PlotGui(ttk.Frame):
                                        max(sid_file.timestamp),
                                        facecolor='blue', alpha=0.1)
                 else:
-                    self.graph.axvspan(sid_file.setting.datetime(),
-                                       sid_file.rising.datetime(),
-                                       facecolor='blue', alpha=0.1)
+                    self.graph.axvspan(
+                        max(sid_file.startTime,
+                            sid_file.setting.datetime()),
+                        min(sid_file.rising.datetime(),
+                            max(sid_file.timestamp)),
+                        facecolor='blue', alpha=0.1)
 
         self.canvas.draw()
 
