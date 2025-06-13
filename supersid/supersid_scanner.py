@@ -13,6 +13,7 @@ Can help to orientate the antenna.
 Works with pyaudio only.
 """
 
+import sys
 from time import sleep
 import argparse
 
@@ -80,7 +81,7 @@ class SuperSID_scanner():
             audio_sampling_rate=self.config['audio_sampling_rate'])
         if not self.sampler.sampler_ok:
             self.close()
-            exit(3)
+            sys.exit(3)
         else:
             self.sampler.set_monitored_frequencies(self.config.stations)
 
@@ -148,7 +149,7 @@ class SuperSID_scanner():
                 log_format='supersid_extended')
             print(fsaved, "saved.")
             self.close()
-            exit(0)
+            sys.exit(0)
 
         # end of this thread/need to handle to View to
         # display captured data & message
