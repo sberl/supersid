@@ -234,16 +234,15 @@ class SuperSID():
                 # be any value. At 192000 hz recording, 4096 samples are needed to do an FFT without error. In very rare cases
                 # the first log may include up to 22ms of the previous log interval in order to avoid any chance of trying
                 # to compute an FFT with too little data.
-                if(samples_to_next_log < self.sampler.NFFT):
+                if(samples_to_next_log < self.sampler.NFFT + skip_samples):
                     samples_to_next_log += samples_per_log
-                
-                samples_needed = samples_to_next_log - len(self.sample_buffer)
 
                 # Calculate the timestamp the current log interval started at.
                 log_time = round((audio_time - len(self.sample_buffer) + samples_to_next_log - samples_per_log) / self.sampler.audio_sampling_rate)
                 
-                # Reduce samples needed by the audio correction.
-                samples_needed -= skip_samples
+                # Reduce samples to next log by audio correction
+                samples_to_next_log -= skip_samples
+                samples_needed = samples_to_next_log - len(self.sample_buffer)
 
                 if samples_needed <= 0:
                     log_samples = self.sample_buffer[:samples_to_next_log]
