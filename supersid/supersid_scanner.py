@@ -12,7 +12,7 @@ Can help to orientate the antenna.
 
 Works with pyaudio only.
 """
-import os.path
+
 from time import sleep
 import argparse
 

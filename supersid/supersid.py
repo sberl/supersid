@@ -160,20 +160,21 @@ class SuperSID:
         message = f"{self.timer.get_utc_now()}  [{current_index}]  Capturing data..."
         self.viewer.status_display(message)
         signal_strengths = []
+        data = []
         try:
             # capture_1sec() returns list of signal strength,
             # may set sampler_ok = False
             data = self.sampler.capture_1sec()
 
             if self.sampler.sampler_ok:
-                Pxx, freqs = self.get_psd(data, self.sampler.NFFT,
+                pxx, freqs = self.get_psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
-                if Pxx is not None:
-                    self.viewer.update_psd(Pxx, freqs)
+                if pxx is not None:
+                    self.viewer.update_psd(pxx, freqs)
                     for channel, binSample in zip(
                             self.sampler.monitored_channels,
                             self.sampler.monitored_bins):
-                        signal_strengths.append(Pxx[channel][binSample])
+                        signal_strengths.append(pxx[channel][binSample])
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
@@ -216,17 +217,18 @@ class SuperSID:
         # captured data & message
         self.viewer.status_display(message)
 
-    def get_psd(self, data, NFFT, FS):
+    def get_psd(self, data, nfft, fs):
         """Call 'psd', calculates the spectrum."""
         try:
-            Pxx = {}
+            pxx = {}
+            freqs = []
             for channel in range(self.config['Channels']):
-                Pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
+                pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=nfft, Fs=fs)
         except RuntimeError as err_re:
             print("Warning:", err_re)
-            Pxx, freqs = None, None
-        return Pxx, freqs
+            pxx, freqs = None, None
+        return pxx, freqs
 
     def save_current_buffers(self, filename='', log_type='raw',
                              log_format='both'):
