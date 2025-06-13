@@ -19,7 +19,7 @@ import sys
 import os.path
 import argparse
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
@@ -30,7 +30,7 @@ from logger import Logger
 from supersid_common import exist_file, script_relative_to_cwd_relative
 
 
-class SuperSID():
+class SuperSID:
     """Main class which creates all other objects.
 
     In CMV pattern, this is the Controller.
@@ -55,16 +55,14 @@ class SuperSID():
             # if there are hourly saves ...
             if self.config['hourly_save'] == 'YES':
                 # ... figure out the file name ...
-                utcnow = datetime.utcnow()
-                utc_starttime = "%d-%02d-%02d 00:00:00" \
-                    % (utcnow.year, utcnow.month, utcnow.day)
-                fileName = self.config['data_path'] + \
-                    "hourly_current_buffers.raw.ext.%s.csv" % (
-                        utc_starttime[:10])
+                utcnow = datetime.now(timezone.utc)
+                utc_starttime = f"{utcnow.year}-{utcnow.month:02d}-{utcnow.day:02d} 00:00:00"
+                file_name = (f"{self.config['data_path']}"
+                             f"hourly_current_buffers.raw.ext.{utc_starttime[:10]}.csv")
                 # ... check the existence ...
-                if os.path.isfile(fileName):
+                if os.path.isfile(file_name):
                     # ... and force reading
-                    read_file = fileName
+                    read_file = file_name
 
         # Create Logger -
         # Logger will read an existing file if specified
@@ -80,14 +78,14 @@ class SuperSID():
         if self.config['viewer'] == 'tk':
             # GUI Frame to display real-time VLF Spectrum based on
             # tkinter
-            from tksidviewer import tkSidViewer
+            from tksidviewer import tkSidViewer # pylint: disable=import-outside-toplevel
             self.viewer = tkSidViewer(self)
         elif self.config['viewer'] == 'text':
             # Lighter text version a.k.a. "console mode"
-            from textsidviewer import textSidViewer
+            from textsidviewer import textSidViewer # pylint: disable=import-outside-toplevel
             self.viewer = textSidViewer(self)
         else:
-            print("ERROR: Unknown viewer", sid.config['viewer'])
+            print("ERROR: Unknown viewer", self.config['viewer'])
             sys.exit(2)
 
         # calculate Stations' buffer_size
@@ -135,7 +133,7 @@ class SuperSID():
             log_format = sid_extended
 
         The files for the upload are generated into the 'local_tmp' folder
-        of the [FTP] section. By default this is the directory '../outgoing'.
+        of the [FTP] section. By default, this is the directory '../outgoing'.
 
         Automatic ftp upload is performed only if 'automatic_upload = yes'
         is set.
@@ -159,24 +157,24 @@ class SuperSID():
         utc_now = self.timer.utc_now
 
         # Get new data and pass them to the View
-        message = "%s  [%d]  Capturing data..." % (self.timer.get_utc_now(),
-                                                   current_index)
+        message = f"{self.timer.get_utc_now()}  [{current_index}]  Capturing data..."
         self.viewer.status_display(message)
         signal_strengths = []
+        data = []
         try:
             # capture_1sec() returns list of signal strength,
             # may set sampler_ok = False
             data = self.sampler.capture_1sec()
 
             if self.sampler.sampler_ok:
-                Pxx, freqs = self.get_psd(data, self.sampler.NFFT,
+                pxx, freqs = self.get_psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
-                if Pxx is not None:
-                    self.viewer.update_psd(Pxx, freqs)
+                if pxx is not None:
+                    self.viewer.update_psd(pxx, freqs)
                     for channel, binSample in zip(
                             self.sampler.monitored_channels,
                             self.sampler.monitored_bins):
-                        signal_strengths.append(Pxx[channel][binSample])
+                        signal_strengths.append(pxx[channel][binSample])
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
@@ -192,9 +190,10 @@ class SuperSID():
         if ((self.timer.utc_now.minute == 0) and
                 (self.timer.utc_now.second < self.config['log_interval'])):
             if self.config['hourly_save'] == 'YES':
-                fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
-                    self.logger.sid_file.sid_params['utc_starttime'][:10])
-                self.save_current_buffers(filename=fileName,
+                file_name = (f"hourly_current_buffers.raw.ext."
+                             f"{self.logger.sid_file.sid_params['utc_starttime'][:10]}.csv")
+                print("Saving hourly buffers to", file_name)
+                self.save_current_buffers(filename=file_name,
                                           log_type='raw',
                                           log_format='supersid_extended')
             # a new day!
@@ -207,28 +206,29 @@ class SuperSID():
                 self.ftp_to_stanford()
         # Save signal strengths into memory buffers
         # prepare message for status bar
-        message = self.timer.get_utc_now() + "  [%d]  " % current_index
+        message = f"{self.timer.get_utc_now()}  [{current_index}]  "
         for station, strength in zip(self.config.stations,
                                      signal_strengths):
             station['raw_buffer'][current_index] = strength
-            message += station['call_sign'] + "=%f " % strength
+            message += f"{station['call_sign']}={strength:.4f} "
         self.logger.sid_file.timestamp[current_index] = utc_now
 
         # end of this thread/need to handle to View to display
         # captured data & message
         self.viewer.status_display(message)
 
-    def get_psd(self, data, NFFT, FS):
+    def get_psd(self, data, nfft, fs):
         """Call 'psd', calculates the spectrum."""
         try:
-            Pxx = {}
+            pxx = {}
+            freqs = []
             for channel in range(self.config['Channels']):
-                Pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
+                pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=nfft, Fs=fs)
         except RuntimeError as err_re:
             print("Warning:", err_re)
-            Pxx, freqs = None, None
-        return Pxx, freqs
+            pxx, freqs = None, None
+        return pxx, freqs
 
     def save_current_buffers(self, filename='', log_type='raw',
                              log_format='both'):
@@ -259,6 +259,7 @@ class SuperSID():
         return filenames
 
     def on_close(self):
+        """Handle the close event of the application."""
         self.close()
 
     def run(self):
@@ -270,9 +271,9 @@ class SuperSID():
         """Call all necessary stop/close functions of children objects."""
         self.__class__.running = False
         if self.config['hourly_save'] == 'YES':
-            fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
-                    self.logger.sid_file.sid_params['utc_starttime'][:10])
-            self.save_current_buffers(filename=fileName,
+            file_name = (f"hourly_current_buffers.raw.ext."
+                        f"{self.logger.sid_file.sid_params['utc_starttime'][:10]}.csv")
+            self.save_current_buffers(filename=file_name,
                                       log_type='raw',
                                       log_format='supersid_extended')
         if self.sampler:
@@ -296,7 +297,7 @@ class SuperSID():
                "Viewer: " + self.viewer.version + "\n"
                "\n\nOriginal Author: Eric Gibert  ericgibert@yahoo.fr"
                "\nAdditions by: Steve Berl <steveberl@gmail.com>"
-               "\n\nVisit http://solar-center.stanford.edu/SID/sidmonitor/ "
+               "\n\nVisit https://solar-center.stanford.edu/SID/sidmonitor/ "
                "for more information.")
 
         return msg

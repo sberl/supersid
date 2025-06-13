@@ -2,42 +2,55 @@
 """
 Retrieve data from NOAA regarding X-ray solar flares (GOES).
 
-Parameters
-----------
+Input Parameter is date of solar observation
+    Date can be specified as either a datetime object, a date object,
+    or a string of the form YYYYMMDD
+
+Output:
     - datetime of start, high, end
     - classification (A, B, C, M, X...)
 
-    This data can be used by the supersid_plot to enrich the graph
+    This data can be used by the supersid_plot script to enrich the graph
     with the X-ray flares
 
     If the date is in the current year then FTP for the day's file is done,
     else the complete past year file is downloaded (and kept) then data is read
 
+ftp://ftp.swpc.noaa.gov/pub/indices/events/20150629events.txt
+https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/solar-flares/x-rays/goes/xrs/goes-xrs-report_2014.txt
 """
 
 import urllib.request
 import urllib.error
 import os
 from os import path
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from supersid_common import script_relative_to_cwd_relative
 
 
-class NOAA_flares(object):
+class NOAA_flares:
     """This object carries a list of all events of a given day."""
 
-    ngdc_URL = ("https://www.ngdc.noaa.gov/stp/space-weather/"
+    ngdc_url = ("https://www.ngdc.noaa.gov/stp/space-weather/"
                 "solar-data/solar-features/solar-flares/x-rays/goes/xrs/")
 
     def __init__(self, day):
         if isinstance(day, str):
+            print("NOAA_flares: Initialize from string:", day)
             self.day = day[:8]  # limit to YYYYMMDD
-        elif isinstance(day, datetime) or isinstance(day, date):
+        elif isinstance(day, (datetime, date)):
+            print(f"NOAA_flares: Initialize from {type(day)} [{day}]")
             self.day = day.strftime('%Y%m%d')
         else:
             raise TypeError(
                 "Unknown date format - expecting str 'YYYYMMDD' or "
                 "datetime/date")
+
+        # Code beyond this point assumes self.day is a string in 'YYYYMMDD' format
+        if len(self.day) != 8 or not self.day.isdigit():
+            raise ValueError("day must be a string in 'YYYYMMDD' format")
+
+        print("NOAA_flares: day =", self.day)
 
         self.XRAlist = []
 
@@ -46,7 +59,7 @@ class NOAA_flares(object):
         # So need to decide how to fetch the data based on the date.
         if int(self.day[:4]) >= 2017:
             # given day is 2017 or later --> fetch data by FTP
-            self.ftp_NOAA()
+            self.ftp_noaa()
         else:
             # Given day is 2016 or earlier --> fetch data by https
             # If the file is NOT in the ../PRIVATE/ directory then we need to
@@ -64,22 +77,23 @@ class NOAA_flares(object):
                         if len(fields) == 11:
                             self.XRAlist.append((
                                 fields[4],
-                                self.Tstamp(fields[1]),  # beg time
-                                self.Tstamp(fields[2]),  # highest time,
-                                self.Tstamp(fields[3]),  # end time,
+                                self.t_stamp(fields[1]),  # beg time
+                                self.t_stamp(fields[2]),  # highest time,
+                                self.t_stamp(fields[3]),  # end time,
                                 fields[5]+fields[6][0]+'.'+fields[6][1]))
                         elif len(fields) == 8:
                             self.XRAlist.append((
                                 "None",
-                                self.Tstamp(fields[1]),  # beg time
-                                self.Tstamp(fields[2]),  # highest time,
-                                self.Tstamp(fields[3]),  # end time,
+                                self.t_stamp(fields[1]),  # beg time
+                                self.t_stamp(fields[2]),  # highest time,
+                                self.t_stamp(fields[3]),  # end time,
                                 fields[4]+fields[5][0]+'.'+fields[5][1]))
                         else:
                             print("Please check this line format:")
                             print(line)
 
-    def Tstamp(self, HHMM):
+    def t_stamp(self, HHMM):
+        """ Convert HHMM string to datetime object."""
         # "201501311702" -> datetime(2015, 1, 31, 17, 2)
         return datetime.strptime(self.day + HHMM, "%Y%m%d%H%M")
 
@@ -101,20 +115,19 @@ class NOAA_flares(object):
             os.mkdir(folder)
 
         file_path = path.join(folder, file_name)
+        url = path.join(self.ngdc_url, file_name)
         if not path.isfile(file_path):
             try:
-                url = path.join(self.ngdc_URL, file_name)
                 txt = urllib.request.urlopen(url).read().decode()
             except (urllib.error.HTTPError, urllib.error.URLError) as err:
-                print("Cannot retrieve the file", file_name)
-                print("from URL:", url)
-                print(err, "\n")
+                print(f"Cannot retrieve the file {file_name} from URL: {url}")
+                print(f"Error: {err}\n")
             else:
                 with open(file_path, "wt", encoding="utf-8") as fout:
                     fout.write(txt)
         return file_path
 
-    def ftp_NOAA(self):
+    def ftp_noaa(self):
         """
         Get the XRA data from NOAA website.
 
@@ -125,14 +138,14 @@ class NOAA_flares(object):
           1000 +   1748 1752 1755  G15 5 XRA  1-8A M1.0 2.1E-03 2443
         """
         # ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
-        NOAA_URL = 'ftp://ftp.swpc.noaa.gov/pub/indices/events/%sevents.txt' \
-            % (self.day)
+        noaa_url = f"ftp://ftp.swpc.noaa.gov/pub/indices/events/{self.day}events.txt"
+
         response, self.XRAlist = None, []
         try:
-            response = urllib.request.urlopen(NOAA_URL)
+            response = urllib.request.urlopen(noaa_url)
         except (urllib.error.HTTPError, urllib.error.URLError) as err:
-            print("Cannot retrieve the file", '%sevents.txt' % (self.day))
-            print("from URL:", NOAA_URL)
+            print(f"Cannot retrieve the file: '{self.day}events.txt'")
+            print("from URL:", noaa_url)
             print(err, "\n")
         else:
             for webline in response.read().splitlines():
@@ -154,21 +167,22 @@ class NOAA_flares(object):
                         try:
                             # 'try' necessary as few occurences of
                             # --:-- instead of HH:MM exist
-                            btime = self.Tstamp(fields[1])
+                            btime = self.t_stamp(fields[1])
                         except Exception:
                             pass
                         try:
-                            mtime = self.Tstamp(fields[2])
+                            mtime = self.t_stamp(fields[2])
                         except Exception:
                             mtime = btime
                         try:
-                            etime = self.Tstamp(fields[3])
+                            etime = self.t_stamp(fields[3])
                         except Exception:
                             etime = mtime
                         self.XRAlist.append((fields[0], btime, mtime, etime,
                                              fields[8]))  # as a tuple
 
     def print_XRAlist(self):
+        """Print the XRA list in a readable format."""
         for eventName, BeginTime, MaxTime, EndTime, Particulars \
                 in self.XRAlist:
             print(eventName, BeginTime, MaxTime, EndTime, Particulars)
@@ -176,12 +190,24 @@ class NOAA_flares(object):
 
 # Run some test cases
 if __name__ == '__main__':
+
+    test_list = ["20140104",
+                 "20170104",
+                 "20201211",
+                 "20250529",
+                 datetime(2023, 10, 1, 12, 0),
+                 datetime(2023, 10, 1, 12, 0, tzinfo=timezone.utc),
+                 date(2023, 10, 1),
+                 "2023123a"]  # this one should throw an exception
+
+
+    print("NOAA_flares test cases")
     print("eventName, BeginTime, MaxTime, EndTime, Particulars")
-    flare = NOAA_flares("20140104")
-    print(flare.day, "\n", flare.print_XRAlist(), "\n")
-    flare = NOAA_flares("20170104")
-    print(flare.day, "\n", flare.print_XRAlist(), "\n")
-    flare = NOAA_flares("20201211")
-    print(flare.day, "\n", flare.print_XRAlist(), "\n")
-    flare = NOAA_flares("20250529")
-    print(flare.day, "\n", flare.print_XRAlist(), "\n")
+    for test in test_list:
+        try:
+            flare = NOAA_flares(test)
+            print(flare.day, "\n", flare.print_XRAlist(), "\n")
+        except Exception as e:
+            print(f"Error processing {test}: {e}\n")
+
+    print("End of NOAA_flares test cases\n")
