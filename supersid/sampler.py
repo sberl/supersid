@@ -880,7 +880,7 @@ select smaller numbers like 128, 256, 512, ...""",
                                 args.channels,
                                 args.periodsize)
         else:
-            print("not installed.")
+            print("alsaaudio not installed.")
 
     if (args.module is None) or (args.module == 'sounddevice'):
         if 'sounddevice' in audioModule:
@@ -895,7 +895,7 @@ select smaller numbers like 128, 256, 512, ...""",
                                 format,
                                 args.channels)
         else:
-            print("not installed.")
+            print("sounddevice not installed.")
 
     if (args.module is None) or (args.module == 'pyaudio'):
         if 'pyaudio' in audioModule:
@@ -910,4 +910,4 @@ select smaller numbers like 128, 256, 512, ...""",
                                 format,
                                 args.channels)
         else:
-            print("not installed.")
+            print("pyaudio not installed.")
