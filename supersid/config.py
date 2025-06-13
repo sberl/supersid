@@ -244,7 +244,8 @@ class Config(dict):
                 except ValueError:
                     self.config_ok = False
                     self.config_err = (f"{pkey} is not of the type {pcast} in "
-                                      f"{self.filenames}. Please check.")
+                                       f"{self.filenames}. Please check.")
+                    return
                 except configparser.NoSectionError:
                     # it's ok: some sections are optional
                     pass
@@ -283,9 +284,9 @@ class Config(dict):
                         self.stations.append(tmp_dict)
                     else:
                         self.config_ok = False
-                        self.config_err = section + \
-                            " does not have the 3 mandatory parameters in the " \
-                            "config file. Please check."
+                        self.config_err = (f"{section} does not have the 3 mandatory parameters "
+                                           f"[{CALL_SIGN}, {FREQUENCY}, {COLOR}] in the config "
+                                           f"file. '{parameter}' is missing, please check.")
                         return
                 else:
                     self.sectionfound.add(section)
@@ -417,8 +418,8 @@ class Config(dict):
                 (self['log_format'] not in log_formats_for_automatic_upload)):
             self.config_ok = False
             self.config_err = (f"'log_format' must be either one of "
-                                f"{log_formats_for_automatic_upload} for "
-                                f"'automatic_upload = yes'.")
+                               f"{log_formats_for_automatic_upload} for "
+                               f"'automatic_upload = yes'.")
             return
 
         # check viewer
@@ -449,7 +450,6 @@ class Config(dict):
         if 'local_tmp' in self:
             self['local_tmp'] = script_relative_to_cwd_relative(
                 self['local_tmp']) + os.sep
-            #self.local_tmp = self['local_tmp']
             if not os.path.isdir(self['local_tmp']):
                 self.config_ok = False
                 self.config_err = "'local_tmp' does not point to a valid " \
@@ -512,9 +512,10 @@ def print_config(config):
     print("--- Stations " + "-"*29)
     for station in config.stations:
         print(f"\t{CALL_SIGN} = {station[CALL_SIGN]} "
-          f"{FREQUENCY} = {station[FREQUENCY]}, "
-          f"{COLOR} = {station[COLOR]}, "
-          f"{CHANNEL} = {station[CHANNEL]}")
+              f"{FREQUENCY} = {station[FREQUENCY]}, "
+              f"{COLOR} = {station[COLOR]}, "
+              f"{CHANNEL} = {station[CHANNEL]}")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
