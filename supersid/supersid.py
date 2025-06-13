@@ -210,7 +210,7 @@ class SuperSID:
         for station, strength in zip(self.config.stations,
                                      signal_strengths):
             station['raw_buffer'][current_index] = strength
-            message += f"{station['call_sign']}={strength}"
+            message += f"{station['call_sign']}={strength:.4f} "
         self.logger.sid_file.timestamp[current_index] = utc_now
 
         # end of this thread/need to handle to View to display
