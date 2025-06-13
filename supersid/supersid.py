@@ -252,9 +252,10 @@ class SuperSID():
                     # Correct the audio time to include the skipped samples.
                     self.audio_drift_correction += skip_samples
 
-                    Pxx, freqs = self.psd(log_samples.reshape(len(log_samples), data.shape[1]), self.sampler.NFFT,
+                    Pxx, freqs = self.get_psd(log_samples.reshape(len(log_samples), data.shape[1]), self.sampler.NFFT,
                                         self.sampler.audio_sampling_rate)
                     if Pxx is not None:
+                        self.viewer.update_psd(Pxx, freqs)
                         for channel, binSample in zip(
                                 self.sampler.monitored_channels,
                                 self.sampler.monitored_bins):
@@ -295,7 +296,7 @@ class SuperSID():
 
                     # end of this thread/need to handle to View to display
                     # captured data & message
-                    self.viewer.status_display(message, level=2)
+                    self.viewer.status_display(message)
 
 
         except IndexError as idxerr:
@@ -386,9 +387,13 @@ class SuperSID():
         """Call 'psd', calculates the spectrum."""
         try:
             Pxx = {}
+            overlap = 0
+            if self.config['overlap']:
+                overlap = NFFT // 2
+
             for channel in range(self.config['Channels']):
                 Pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
+                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS, noverlap=overlap)
         except RuntimeError as err_re:
             print("Warning:", err_re)
             Pxx, freqs = None, None
