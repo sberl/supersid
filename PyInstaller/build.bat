@@ -1,6 +1,5 @@
 REM preconditions:
 REM pip install --upgrade pyinstaller
-REM pip install uncompyle6
 
 rmdir /S /Q ..\Program
 python -m PyInstaller --specpath specs --noconfirm ..\supersid\config.py
