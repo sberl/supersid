@@ -88,7 +88,6 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
     The waterfall diagrams are expensive in terms of RAM and CPU usage. May work with Raspberry Pi 400 with 4GB RAM.
   * bema_wing: beta_wing parameter for sidfile.filter_buffer() calculation. Default is '**6**'.
   * paper_size: one of **A3**, **A4**, **A5**, **Legal**, **Letter**
-  * number_of_stations: specify the number of stations to monitor. Each station is described within its own section.
   * sampler: one of **normal** (default) or **gapless** . In normal mode only 1 second of audio data in each log
     interval is processes to calcualte the signal estimates. In gapless mode audio is continuously recorded, and
     all samples across the log interval are processed.

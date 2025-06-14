@@ -22,7 +22,9 @@ import subprocess
 import numpy
 import time
 import traceback
-from datetime import datetime, timezone, time as ti
+from numpy import array
+from datetime import datetime, timezone
+from datetime import time as ti
 from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
@@ -31,7 +33,6 @@ from sampler import Sampler
 from gapless_sampler import GaplessSampler
 from config import read_config, CONFIG_FILE_NAME
 from logger import Logger
-from numpy import array
 from supersid_common import exist_file, script_relative_to_cwd_relative
 
 
@@ -245,6 +246,7 @@ class SuperSID():
                 samples_needed = samples_to_next_log - len(self.sample_buffer)
 
                 if samples_needed <= 0:
+                    log_datetime = datetime.fromtimestamp(log_time, tz=timezone.utc)
                     log_samples = self.sample_buffer[:samples_to_next_log]
                     self.sample_buffer = self.sample_buffer[samples_to_next_log:]
 
@@ -263,35 +265,39 @@ class SuperSID():
                         # signal_strengths may not have the expected length
                     while len(signal_strengths) < len(self.sampler.monitored_bins):
                         signal_strengths.append(0.0)
+                        
                     # do we need to save some files (hourly) or switch to a new day?
-                    if ((datetime.fromtimestamp(log_time).minute == 0) and
-                            (datetime.fromtimestamp(log_time).second < self.config['log_interval'])):
+                    if ((log_datetime.minute == 0) and
+                            (log_datetime.second < self.config['log_interval'])):
                         if self.config['hourly_save'] == 'YES':
                             fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
                                 self.logger.sid_file.sid_params['utc_starttime'][:10])
                             self.save_current_buffers(filename=fileName,
                                             log_type='raw',
                                             log_format='supersid_extended')
-                        # a new day!
-                        if datetime.fromtimestamp(log_time).hour == 0:
+                        # a new day! 
+                        if log_datetime.hour == 0:
                             # use log_type and log_format requested by the user
                             # in the .cfg
                             self.save_current_buffers(log_type=self.config['log_type'],
                                                     log_format=self.config['log_format'])
                             self.clear_all_data_buffers()
                             self.ftp_to_stanford()
+
+
+
                     # Save signal strengths into memory buffers
                     # prepare message for status bar
-                    current_index = (datetime.fromtimestamp(log_time, tz=timezone.utc).hour * 3600
-                                   + datetime.fromtimestamp(log_time, tz=timezone.utc).minute * 60
-                                   + datetime.fromtimestamp(log_time, tz=timezone.utc).second) // self.config['log_interval']
+                    current_index = (log_datetime.hour * 3600
+                                   + log_datetime.minute * 60
+                                   + log_datetime.second) // self.config['log_interval']
 
-                    message = datetime.fromtimestamp(log_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " [%d]  " % current_index+ " Audio Sync: {:.3f}s".format(audio_drift) + "  Correction: %d samples  " % -self.audio_drift_correction
+                    message = log_datetime.strftime("%Y-%m-%d %H:%M:%S") + " [%d]  " % current_index+ " Audio Sync: {:.3f}s".format(audio_drift) + "  Correction: %d samples  " % -self.audio_drift_correction
                     for station, strength in zip(self.config.stations,
                                                 signal_strengths):
                         station['raw_buffer'][current_index] = strength
                         message += station['call_sign'] + "=%f " % strength
-                    self.logger.sid_file.timestamp[current_index] = datetime.fromtimestamp(log_time, tz=timezone.utc)
+                    self.logger.sid_file.timestamp[current_index] = log_datetime
 
                     # end of this thread/need to handle to View to display
                     # captured data & message
