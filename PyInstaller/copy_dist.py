@@ -1,16 +1,21 @@
+"""
+dedicated distribution builder for SuperSID
+"""
+
 import os
-import sys
+# import sys
 import glob
 import shutil
 import filecmp
-import tempfile
-import subprocess
 from zipfile import ZipFile
 
-
 def get_src_files():
+    """
+    collect the files that are the source
+    for the copy to the Program folder
+    """
     src_files = []
-    for root, dirnames, filenames in os.walk('dist'):
+    for root, _, filenames in os.walk('dist'):
         for filename in filenames:
             src_files.append((root, filename))
             assert os.path.isfile(os.path.join(root, filename))
@@ -18,9 +23,13 @@ def get_src_files():
 
 
 def create_dst_folders(src_files):
+    """
+    create the destination folders `Program` and below
+    """
     dst_folders = set()
     for src in src_files:
-        dst_folders.add(os.path.join(r"..", "Program", f"{os.sep}".join(x for x in src[0].split(os.sep)[2:])))
+        dst_folders.add(os.path.join(r"..", "Program",
+            f"{os.sep}".join(x for x in src[0].split(os.sep)[2:])))
     dst_folders = sorted(dst_folders)
     for dst in dst_folders:
         if not os.path.isdir(dst):
@@ -48,12 +57,15 @@ def compare_zip_files(filepath_a, filepath_b):
                         content_a = file_a.read()
                         content_b = file_b.read()
                         if content_a != content_b:
-                            print(f"file content mismatch '{filepath_a}{os.sep}{ziped_filename}' '{filepath_b}{os.sep}{ziped_filename}'")
+                            print(f"file content mismatch "
+                                  f"'{filepath_a}{os.sep}{ziped_filename}' "
+                                  f"'{filepath_b}{os.sep}{ziped_filename}'")
                             # with open("a.pyc", "wb") as f:
                                 # print(f.name, len(content_a), type(content_a))
                                 # f.write(content_a)
                                 # f.flush()
-                                # result = subprocess.run(["uncompyle6", f.name], capture_output=True, text=True)
+                                # result = subprocess.run(["uncompyle6", f.name],
+                                    # capture_output=True, text=True)
                                 # print("stdout", result.stdout)
                                 # print("stderr", result.stderr)
 
@@ -61,17 +73,22 @@ def compare_zip_files(filepath_a, filepath_b):
                                 # print(f.name, len(content_b), type(content_b))
                                 # f.write(content_b)
                                 # f.flush()
-                                # result = subprocess.run(["uncompyle6", f.name], capture_output=True, text=True)
+                                # result = subprocess.run(["uncompyle6", f.name],
+                                    # capture_output=True, text=True)
                                 # print("stdout", result.stdout)
                                 # print("stderr", result.stderr)
                             result = False
-    return True
+    return result
 
 
 def copy_to_dst(src):
+    """
+    copy the files from the`'PyInstaller' to the 'Program' folder
+    """
     src_file = os.path.join(src[0], src[1])
-    dst_file = os.path.join(r"..", "Program", f"{os.sep}".join(x for x in src[0].split(os.sep)[2:]), src[1])
-    if (not os.path.isfile(dst_file)):
+    dst_file = os.path.join(r"..", "Program",
+        f"{os.sep}".join(x for x in src[0].split(os.sep)[2:]), src[1])
+    if not os.path.isfile(dst_file):
         # print(f"copy '{src_file}' to '{dst_file}'")
         shutil.copy2(src_file, dst_file)
     else:
@@ -86,6 +103,9 @@ def copy_to_dst(src):
 
 
 def create_zip():
+    """
+    create the final distributabl file SuperSID.zip
+    """
     cwd = os.getcwd()
     os.chdir(r"..")
     content = {
@@ -99,12 +119,12 @@ def create_zip():
         "supersid": ["*.*"],
     }
     with ZipFile('SuperSID.zip', 'w') as myzip:
-        for folder in content:
+        for folder, patterns in content.items():
             if folder not in [".", ".."]:
                 myzip.write(folder)
-            for pattern in content[folder]:
+            for pattern in patterns:
                 if "*" == pattern:
-                    for root, dirnames, filenames in os.walk(folder):
+                    for root, _, filenames in os.walk(folder):
                         for filename in filenames:
                             file = os.path.join(root, filename)
                             assert os.path.isfile(file)
@@ -120,6 +140,9 @@ def create_zip():
 
 
 def main():
+    """
+    the main function
+    """
     src_files = get_src_files()
     create_dst_folders(src_files)
     for src in src_files:
