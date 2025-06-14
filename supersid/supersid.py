@@ -27,7 +27,7 @@ from sidtimer import SidTimer
 from sampler import Sampler
 from config import read_config, CONFIG_FILE_NAME
 from logger import Logger
-from supersid_common import exist_file, script_relative_to_cwd_relative
+from supersid_common import exist_file, script_relative_to_cwd_relative, is_script
 
 
 class SuperSID:
@@ -139,9 +139,12 @@ class SuperSID:
         is set.
 
         """
-        subprocess.Popen([
-            sys.executable,
-            script_relative_to_cwd_relative('ftp_to_stanford.py'),
+        if is_script():
+            cmd += [sys.executable,
+                    script_relative_to_cwd_relative('ftp_to_stanford.py')]
+        else:
+            cmd = [script_relative_to_cwd_relative('ftp_to_stanford.exe')]
+        subprocess.Popen(cmd + [
             '-y',
             '-c',
             script_relative_to_cwd_relative(self.config.filenames[0])])
