@@ -123,9 +123,10 @@ If your proprietary sound card software has configuration options to select micr
 If your proprietary sound card software has configuration options, deselect all sound effects, set 16 bit and the desired sample rate (48000, 96000 or 192000).<br/>
 If your sound card does not come with a proprietary configuration software, you may want to follow the guide [How do I Change the Sample Rate and Bit Depth on a USB Microphone?](https://www.audio-technica.com/en-us/support/audio-solutions-question-of-the-week-how-do-i-change-the-sample-rate-and-bit-depth-on-a-usb-microphone/).
 
-- use `sampler.py` in order to get a complete list including the errors
-- use `sampler.py | grep -v "peak freq \[0\] Hz" | grep "duration 1\.[012]"` in order to get a compact list of the acceptable candidates. This command will take a while before it outputs anything.
-- use `sampler.py | grep -v "peak freq \[0\] Hz" | grep "duration 1\.[012]" -B2 -A2` in order to get a verbose list of the acceptable candidates. This command will take a while before it outputs anything.
+- use `python sampler.py` in order to get a complete list including the errors
+- use `python sampler.py | grep -v "peak freq \[0\] Hz" | grep "duration 1\.[012]"` in order to get a compact list of the acceptable candidates. This command will take a while before it outputs anything.
+- use `python sampler.py | grep -v "peak freq \[0\] Hz" | grep "duration 1\.[012]" -B2 -A2` in order to get a verbose list of the acceptable one channel candidates. This command will take a while before it outputs anything.
+- use `python sampler.py -n2 | grep -v "peak freq \[0, 0\] Hz" | grep "duration 1\.[012]" -B2 -A2` in order to get a verbose list of the acceptable two channel candidates. This command will take a while before it outputs anything.
 
 ```console
     > cd <path to your supersid installation>\supersid\supersid
