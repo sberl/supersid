@@ -73,6 +73,7 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
 ### Extra
 
   * scaling_factor: float, set it to **1.0**. The data captured from the sound card is multiplied with this value.
+    Not supported by the gapless sampler.
   * mode: [ignored] **Server**, **Client**, **Standalone** (default) . Reserved for future client/server dev.
   * viewer: **text** for text mode light interface or **tk** for TkInter GUI (default).
   * psd_min: float, min value for the y axis of the psd graph, **NaN** (default) means automatic scaling
@@ -87,6 +88,13 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
     The waterfall diagrams are expensive in terms of RAM and CPU usage. May work with Raspberry Pi 400 with 4GB RAM.
   * bema_wing: beta_wing parameter for sidfile.filter_buffer() calculation. Default is '**6**'.
   * paper_size: one of **A3**, **A4**, **A5**, **Legal**, **Letter**
+  * sampler: one of **normal** (default) or **gapless** . In normal mode only 1 second of audio data in each log
+    interval is processes to calcualte the signal estimates. In gapless mode audio is continuously recorded, and
+    all samples across the log interval are processed.
+  * overlap: one of **True** or **False** (default) . When set to False, the FFT is done without any overlap between
+    slices. This is the same behavior as versions before this option was available. When set to True, the FFT slices
+    are given a 50% overlap. The matplotlib's default FFT window is the Hann window, and the 50% overllap is
+    recommended to get a more accurate PSD.
 
 <div id='id-section2'/>
 
