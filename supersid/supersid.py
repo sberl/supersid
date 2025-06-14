@@ -19,16 +19,12 @@ import sys
 import os.path
 import argparse
 import subprocess
-<<<<<<< main
 import numpy
 import time
 import traceback
 from numpy import array
 from datetime import datetime, timezone
 from datetime import time as ti
-=======
-from datetime import datetime, timezone
->>>>>>> master
 from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
@@ -394,22 +390,16 @@ class SuperSID:
     def get_psd(self, data, nfft, fs):
         """Call 'psd', calculates the spectrum."""
         try:
-<<<<<<< main
-            Pxx = {}
             overlap = 0
             if self.config['overlap']:
-                overlap = NFFT // 2
+                overlap = nfft // 2
 
-            for channel in range(self.config['Channels']):
-                Pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS, noverlap=overlap)
-=======
             pxx = {}
             freqs = []
+
             for channel in range(self.config['Channels']):
                 pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=nfft, Fs=fs)
->>>>>>> master
+                    mlab_psd(data[:, channel], NFFT=nfft, Fs=fs, noverlap=overlap)
         except RuntimeError as err_re:
             print("Warning:", err_re)
             pxx, freqs = None, None
