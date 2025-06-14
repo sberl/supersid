@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Config parses a supersid's .cfg file.
+"""Config parses a supersid .cfg file.
 
 Parameter access: all keys are forced to lowercase
   - for parameters: config['site_name'], config['longitude'], etc...
@@ -70,7 +70,7 @@ class Config(dict):
     def __init__(self, filename):
         """Read the given .cfg file or tries to find one.
 
-        Config file is formatted as a .ini windows file
+        Config file is formatted as a .ini Windows file
         All its key/values pairs are stored as a dictionary (self)
         :param filename: superSID .cfg file
         :return: nothing
@@ -100,7 +100,7 @@ class Config(dict):
                 # optional entries #
                 ####################
 
-                # yes/no to save every hours
+                # yes/no to save every hour
                 ('hourly_save', str, "no"),
 
                 # data path configuration by the user
@@ -119,15 +119,15 @@ class Config(dict):
                 # paper size of the images, one of A3, A4, A5, Legal, Letter
                 ('paper_size', str, 'A4'),
 
-                # min value for the y axis of the psd graph
+                # min value for the y-axis of the psd graph
                 # 'NaN' means automatic scaling
                 ('psd_min', float, float('NaN')),
 
-                # max value for the y axis of the psd graph
+                # max value for the y-axis of the psd graph
                 # 'NaN' means automatic scaling
                 ('psd_max', float, float('NaN')),
 
-                # number of ticks for the y axis of the psd graph
+                # number of ticks for the y-axis of the psd graph
                 # 0 means automatic ticks
                 ('psd_ticks', int, 0),
 
@@ -244,7 +244,7 @@ class Config(dict):
 
         self.sectionfound = set()
         for section, fields in sections.items():
-            # go thru all the current section's fields
+            # go through all the current section's fields
             for pkey, pcast, pdefault in fields:
                 try:
                     self[pkey] = pcast(config_parser.get(section, pkey))
@@ -475,9 +475,9 @@ class Config(dict):
                     "permission:\n" + self['local_tmp']
                 return
 
-        # default audio to sounddevice if not declared
+        # Default audio to sounddevice if not declared
         # sounddevice is available for Windows and Linux
-        # and it seems to yield better results than pyaudio
+        # It seems to yield better results than pyaudio
         if "Audio" not in self:
             self["Audio"] = "sounddevice"
 

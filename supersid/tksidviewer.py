@@ -372,8 +372,6 @@ class tkSidViewer():
 
     def refresh_psd(self):
         """Redraw the graphic PSD plot if needed.
-
-        i.e.new data have been given to get_psd
         """
         if self.running:
             if self.need_psd_refresh:

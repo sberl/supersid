@@ -16,7 +16,7 @@ Licence:     Open to All
 20150801:
     - truncate ['utc_starttime'] to 19 chars
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import numpy
 
 from config import FILTERED, RAW
@@ -49,7 +49,7 @@ class SidFile():
     def __init__(self, filename="",
                  sid_params=None,
                  force_read_timestamp=False):
-        """Two ways to create a SIDfile.
+        """Two ways to create a SIDfile object.
 
         1) A file already exists and you want to read it: use 'filename'
         2) A new empty file needs to be created: use 'sid_params'
@@ -97,6 +97,7 @@ class SidFile():
             self.data.fill(0.0)
             self.set_all_date_attributes()
         else:
+            # Number of samples in a day is seconds in a day divided by log interval
             nb_data_per_day = int((24 * 3600) / self.LogInterval)
             self.data = numpy.zeros((len(self.stations), nb_data_per_day))
         # create an array containing the timestamps for each data reading
@@ -140,7 +141,7 @@ class SidFile():
 
     def set_all_date_attributes(self, keep_file_date=False):
         if not keep_file_date or "utc_starttime" not in self.sid_params:
-            utcnow = datetime.utcnow()
+            utcnow = datetime.now(timezone.utc)
             self.sid_params["utc_starttime"] = \
                 "%d-%02d-%02d 00:00:00" \
                 % (utcnow.year, utcnow.month, utcnow.day)
@@ -281,11 +282,11 @@ class SidFile():
         by adding LogInterval seconds to UTC_StartTime.
         """
         if 1 == len(self.data.shape):
-            # self.data is one deminsional
+            # self.data is one dimensional
             # if one station is configured
             self.timestamp = numpy.empty(len(self.data), dtype=datetime)
         elif 2 == len(self.data.shape):
-            # self.data is two deminsional
+            # self.data is two dimensional
             # if more than one station is configured
             self.timestamp = numpy.empty(len(self.data[0]), dtype=datetime)
         # add 'interval' seconds to UTC_StartTime for each entries
@@ -332,6 +333,12 @@ class SidFile():
                 # self.data is two deminsional
                 # if more than one station is configured
                 return self.data[idx]
+            else:
+                # Didn't find station data with a 1 or 2 dimensional shape,
+                # but get_station_index() did not throw exception either.
+                # This is an odd case and should never happen?
+                assert (false), "expected 1 or 2 dimensional numpy array"
+                return []
         except ValueError:
             return []
 

@@ -696,10 +696,15 @@ class Sampler():
     """Sampler will gather sound capture from various devices."""
 
     def __init__(self, controller, audio_sampling_rate=96000, NFFT=None):
+        """Initialize the sampler."""
         self.version = "1.4 20160207"
+        self.monitored_channels = []
+        self.monitored_bins = []
+        self.data = []
+
+        # Remember constructor parameters
         self.controller = controller
         self.scaling_factor = controller.config['scaling_factor']
-
         self.audio_sampling_rate = audio_sampling_rate
         if NFFT is not None:
             self.NFFT = NFFT
@@ -872,7 +877,7 @@ select smaller numbers like 128, 256, 512, ...""",
                                 args.channels,
                                 args.periodsize)
         else:
-            print("not installed.")
+            print("alsaaudio not installed.")
 
     if (args.module is None) or (args.module == 'sounddevice'):
         if 'sounddevice' in audioModule:
@@ -887,7 +892,7 @@ select smaller numbers like 128, 256, 512, ...""",
                                 format,
                                 args.channels)
         else:
-            print("not installed.")
+            print("sounddevice not installed.")
 
     if (args.module is None) or (args.module == 'pyaudio'):
         if 'pyaudio' in audioModule:
@@ -902,4 +907,4 @@ select smaller numbers like 128, 256, 512, ...""",
                                 format,
                                 args.channels)
         else:
-            print("not installed.")
+            print("pyaudio not installed.")
