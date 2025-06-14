@@ -1,10 +1,11 @@
 import os
 import sys
+import glob
 import shutil
 import filecmp
-import zipfile
 import tempfile
 import subprocess
+from zipfile import ZipFile
 
 
 def get_src_files():
@@ -33,9 +34,9 @@ def compare_zip_files(filepath_a, filepath_b):
     It compares the content of the zip files and the content of the files in the zip files.
     """
     result = False
-    with zipfile.ZipFile(filepath_a, "r") as zip_a:
+    with ZipFile(filepath_a, "r") as zip_a:
         ziped_files_a = sorted(zip_a.namelist())
-        with zipfile.ZipFile(filepath_b, "r") as zip_b:
+        with ZipFile(filepath_b, "r") as zip_b:
             ziped_files_b = sorted(zip_b.namelist())
             result = True
             if sorted(ziped_files_a) != sorted(ziped_files_b):
@@ -55,7 +56,7 @@ def compare_zip_files(filepath_a, filepath_b):
                                 # result = subprocess.run(["uncompyle6", f.name], capture_output=True, text=True)
                                 # print("stdout", result.stdout)
                                 # print("stderr", result.stderr)
-                            
+
                             # with open("b.pyc", "wb") as f:
                                 # print(f.name, len(content_b), type(content_b))
                                 # f.write(content_b)
@@ -82,13 +83,48 @@ def copy_to_dst(src):
             else:
                 print(f"file content mismatch '{src_file}' '{dst_file}'")
                 # sys.exit(1)
-                
+
+
+def create_zip():
+    cwd = os.getcwd()
+    os.chdir(r"..")
+    content = {
+        ".": ["LICENSE", "README.md", "requirements.txt"],
+        "Config": ["ftp_cmds.TXT", "supersid.cfg"],
+        "Data": [],
+        "docs": ["*.md"],
+        "outgoing": [],
+        "Private": [],
+        "Program": ["*"],
+        "supersid": ["*.*"],
+    }
+    with ZipFile('SuperSID.zip', 'w') as myzip:
+        for folder in content:
+            if folder not in [".", ".."]:
+                myzip.write(folder)
+            for pattern in content[folder]:
+                if "*" == pattern:
+                    for root, dirnames, filenames in os.walk(folder):
+                        for filename in filenames:
+                            file = os.path.join(root, filename)
+                            assert os.path.isfile(file)
+                            # print(file)
+                            myzip.write(file)
+                else:
+                    src_files = glob.glob(os.path.join(folder, pattern))
+                    for file in src_files:
+                        assert os.path.isfile(file)
+                        # print(file)
+                        myzip.write(file)
+    os.chdir(cwd)
+
 
 def main():
     src_files = get_src_files()
     create_dst_folders(src_files)
     for src in src_files:
         copy_to_dst(src)
+    create_zip()
 
 
 if __name__ == '__main__':
