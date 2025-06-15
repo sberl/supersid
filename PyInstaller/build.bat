@@ -8,15 +8,15 @@ rmdir /S /Q ..\Program
 mkdir ..\Program
 del ..\SuperSID.zip
 
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\config.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\ftp_to_stanford.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\sampler.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\sidfile.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\supersid.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm --copy-metadata=readchar ..\supersid\supersid.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\supersid_plot.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\supersid_plot_gui.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\supersid_scanner.py
-python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm --copy-metadata=readchar ..\supersid\supersid_scanner.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\src\config.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\src\ftp_to_stanford.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\src\sampler.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\src\sidfile.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\src\supersid.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm --copy-metadata=readchar ..\src\supersid.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\src\supersid_plot.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\src\supersid_plot_gui.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\src\supersid_scanner.py
+python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm --copy-metadata=readchar ..\src\supersid_scanner.py
 
 python copy_dist.py

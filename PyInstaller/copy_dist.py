@@ -116,7 +116,7 @@ def create_zip():
         "outgoing": [],
         "Private": [],
         "Program": ["*"],
-        "supersid": ["*.*"],
+        "src": ["*.*"],
     }
     with ZipFile('SuperSID.zip', 'w') as myzip:
         for folder, patterns in content.items():
