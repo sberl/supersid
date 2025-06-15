@@ -2,6 +2,7 @@ REM preconditions:
 REM pip install --upgrade pyinstaller
 
 rmdir /S /Q ..\Program
+mkdir ..\Program
 del ..\SuperSID.zip
 python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\config.py
 python -m PyInstaller --icon=..\supersid.ico --specpath specs --noconfirm ..\supersid\ftp_to_stanford.py
