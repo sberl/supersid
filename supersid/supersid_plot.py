@@ -185,6 +185,7 @@ class SUPERSID_PLOT():
         current_axes.xaxis.set_major_locator(matplotlib.dates.DayLocator())
         current_axes.xaxis.set_major_formatter(ff(self.m2yyyymmdd))
         current_axes.xaxis.set_minor_formatter(ff(self.m2hm))
+        current_axes.xaxis.axis_date()
         current_axes.set_xlabel("UTC Time")
         current_axes.set_ylabel("Signal Strength")
 
@@ -220,10 +221,10 @@ class SUPERSID_PLOT():
                             colorList[colorIdx % len(colorList)] + '-'
                         colorIdx += 1
                 # Add points to the plot
-                plt.plot_date(sFile.timestamp,
-                              sFile.get_station_data(station),
-                              colorStation[station],
-                              label=station)
+                plt.plot(sFile.timestamp,
+                         sFile.get_station_data(station),
+                         colorStation[station],
+                         label=station)
                 # Extra housekeeping
 
                 # maxData will be used later to put the XRA labels up
