@@ -91,8 +91,7 @@ class SuperSID_scanner():
 
         # Create Timer
         self.viewer.status_display("Waiting for Timer ... ")
-        self.timer = SidTimer(self.config['log_interval'], self.on_timer,
-                              delay=2)
+        self.timer = SidTimer(self.config['log_interval'], self.on_timer)
         self.scan_end_time = self.timer.start_time + 60 * self.scan_duration
 
     def about_app(self):
