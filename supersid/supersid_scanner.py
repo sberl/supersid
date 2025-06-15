@@ -16,6 +16,7 @@ Works with pyaudio only.
 import sys
 from time import sleep
 import argparse
+from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
 from sidtimer import SidTimer
@@ -70,7 +71,6 @@ class SuperSID_scanner():
         # the same interface
         self.config['viewer'] = 'text'  # Light text version aka "console mode"
         self.viewer = textSidViewer(self)
-        self.psd = self.viewer.get_psd
 
         # calculate Stations' buffer_size
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
@@ -117,7 +117,7 @@ class SuperSID_scanner():
         try:
             # return a list of signal strength
             data = self.sampler.capture_1sec()
-            Pxx, freqs = self.psd(data, self.sampler.NFFT,
+            pxx, freqs = self.get_psd(data, self.sampler.NFFT,
                                   self.sampler.audio_sampling_rate)
         except IndexError as idxerr:
             print("Index Error:", idxerr)
@@ -127,7 +127,7 @@ class SuperSID_scanner():
         for channel, bin in zip(
                 self.sampler.monitored_channels,
                 self.sampler.monitored_bins):
-            signal_strengths.append(Pxx[channel][bin])
+            signal_strengths.append(pxx[channel][bin])
 
         # Save signal strengths into memory buffers
         # prepare message for status bar
@@ -147,13 +147,26 @@ class SuperSID_scanner():
                 filename=fileName,
                 log_type='raw',
                 log_format='supersid_extended')
-            print(fsaved, "saved.")
+            print(fsaved, "saved. Press 'x' to exit")
             self.close()
             sys.exit(0)
 
         # end of this thread/need to handle to View to
         # display captured data & message
         self.viewer.status_display(message)
+
+    def get_psd(self, data, nfft, fs):
+        """Call 'psd', calculates the spectrum."""
+        try:
+            pxx = {}
+            freqs = []
+            for channel in range(self.config['Channels']):
+                pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=nfft, Fs=fs)
+        except RuntimeError as err_re:
+            print("Warning:", err_re)
+            pxx, freqs = None, None
+        return pxx, freqs
 
     def save_current_buffers(self, filename='',
                              log_type='raw',
