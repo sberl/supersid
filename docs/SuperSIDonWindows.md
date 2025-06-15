@@ -70,20 +70,19 @@ Open an `Anaconda Command Promt (Anaconda3)`
     > pip install pyephem
 ```
 
-### 1.2) Install Python 3.9.7 (64 bit) and the Python modules
-- Download [Python 3.9.7 (64-bit)](https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe)
-- Install *python-3.9.7-amd64.exe*
+### 1.2) Install Python 3.9.12 (64 bit)
+- Download [Python 3.9.12 (64-bit)](https://www.python.org/ftp/python/3.9.12/python-3.9.12-amd64.exe)
+- Install *python-3.9.12-amd64.exe*
     - Customize installation, keep all selected, Next
-    - Additionally select [x] Install for all users
-    - Double check the install location cahnged to *C:\\Program Files\\Python39*
+    - Additionally select [x] Install for all users [x] Add Python to environment variables
+    - Double check the install location changed to *C:\\Program Files\\Python39*
     - Install
+    - Disable path length limit
     - Close
 
 Open a `CMD` window.
 ```console
     > "C:\Program Files\Python39\python.exe" -m pip install --upgrade pip
-    > "C:\Program Files\Python39\python.exe" -m pip install matplotlib numpy>=1.21.5 pandas>=1.3.5 pyparsing python-dateutil six pyephem sounddevice pipwin
-    > "C:\Program Files\Python39\python.exe" -m pipwin install PyAudio
 ```
 
 If you choose the option 1.2 (system level install), then you'll have to replace any occurence of `python` below with `"C:\Program Files\Python39\python.exe"`.
@@ -104,10 +103,15 @@ If you choose the option 1.2 (system level install), then you'll have to replace
 
 To update (pull) to the latest version, do:
 ```console
-    $ cd ~/supersid
+    $ cd <path to your supersid installation>/supersid
     $ git pull
 ```
 
+### Install the Python 3.9.12 Python modules
+If you choose the option 1.2 (system level install), then you'll have to continue the Python modules installation.
+```console
+    > "C:\Program Files\Python39\python.exe" -m pip install -r requirements-win.txt
+```
 
 ## 3) Choose your Sound Card
 
@@ -119,13 +123,14 @@ If your proprietary sound card software has configuration options to select micr
 If your proprietary sound card software has configuration options, deselect all sound effects, set 16 bit and the desired sample rate (48000, 96000 or 192000).<br/>
 If your sound card does not come with a proprietary configuration software, you may want to follow the guide [How do I Change the Sample Rate and Bit Depth on a USB Microphone?](https://www.audio-technica.com/en-us/support/audio-solutions-question-of-the-week-how-do-i-change-the-sample-rate-and-bit-depth-on-a-usb-microphone/).
 
-- use `sampler.py` in order to get a complete list including the errors
-- use `sampler.py | grep "duration 1\.[012]"` in order to get a compact list of the acceptable candidates
-- use `sampler.py | grep "duration 1\.[012]" -B2 -A2` in order to get a verbose list of the acceptable candidates
+- use `python sampler.py` in order to get a complete list including the errors
+- use `python sampler.py | grep -v "peak freq \[0\] Hz" | grep "duration 1\.[012]"` in order to get a compact list of the acceptable candidates. This command will take a while before it outputs anything.
+- use `python sampler.py | grep -v "peak freq \[0\] Hz" | grep "duration 1\.[012]" -B2 -A2` in order to get a verbose list of the acceptable one channel candidates. This command will take a while before it outputs anything.
+- use `python sampler.py -n2 | grep -v "peak freq \[0, 0\] Hz" | grep "duration 1\.[012]" -B2 -A2` in order to get a verbose list of the acceptable two channel candidates. This command will take a while before it outputs anything.
 
 ```console
-    > cd C:\temp\supersid\supersid
-    > python sampler.py | grep "duration 1\.[012]" -B2 -A2
+    > cd <path to your supersid installation>\supersid\supersid
+    > python sampler.py | grep -v "peak freq \[0\] Hz" | grep "duration 1\.[012]" -B2 -A2
 ```
 
 Find the right card line you want to use based on the card name and the frequency you want to sample.
@@ -144,13 +149,13 @@ Selected:
 ```example
     sounddevice device 'MME: Microsoft Sound Mapper - Input', sampling rate 192000, format S32_LE
     sounddevice 'MME: Microsoft Sound Mapper - Input' at 192000 Hz
-    192000 <class 'numpy.int32'> read from sounddevice 'MME: Microsoft Sound Mapper - Input', shape (192000,), format S32_LE, duration 1.09 sec, peak freq 9984 Hz
+    192000 <class 'numpy.int32'> read from sounddevice 'MME: Microsoft Sound Mapper - Input', shape (192000,), format S32_LE, duration 1.09 sec, peak freq [9984] Hz
     [     0      0 -65536      0      0      0      0 -65536      0      0]
     Vector sum -517996544
 ```
 
 The important parts are in this line<br/>
-**192000** <class 'numpy.int32'> read from sounddevice '**MME: Microsoft Sound Mapper - Input**', shape (192000,), format **S32_LE**, duration 1.09 sec, peak freq 9984 Hz
+**192000** <class 'numpy.int32'> read from sounddevice '**MME: Microsoft Sound Mapper - Input**', shape (192000,), format **S32_LE**, duration 1.09 sec, peak freq [9984] Hz
 
 The corresponding lines of the configuration file 'supersid.cfg':
 ```example
