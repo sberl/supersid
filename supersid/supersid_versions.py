@@ -84,7 +84,7 @@ tested_versions = {
         'pip': {'versions': ['25.1.1'], 'requirement': 'mandatory'},
         'pyaudio': {'versions': ['0.2.14'], 'requirement': 'optional'},
         'pyalsaaudio': {'versions': ['0.9.0'], 'requirement': 'optional'},
-        'readchar': {'versions': ['x.x.x'], 'requirement': 'mandatory'},
+        'readchar': {'versions': ['4.2.1'], 'requirement': 'mandatory'},
 
         # builtin
         'itertools': {'versions': ['builtin'], 'requirement': 'mandatory'},
@@ -123,7 +123,7 @@ tested_versions = {
         'pip': {'versions': ['25.1.1'], 'requirement': 'mandatory'},
         'pyaudio': {'versions': ['0.2.14'], 'requirement': 'optional'},
         'pyalsaaudio': {'versions': ['0.9.0'], 'requirement': 'optional'},
-        'readchar': {'versions': ['x.x.x'], 'requirement': 'mandatory'},
+        'readchar': {'versions': ['4.2.1'], 'requirement': 'mandatory'},
 
         # builtin
         'itertools': {'versions': ['builtin'], 'requirement': 'mandatory'},
