@@ -49,12 +49,12 @@ measures x kHz: y = working, cutoff = working but frequency is cut off, falling 
 - Install *Anaconda3-2021.05-Windows-x86_64.exe*
     - Welcome to Anaconda3 2021.05 --> Next
     - License Agreement --> I agreee
-    - (x) All users (requires admin priviledges) --> Next
+    - (x) All users (requires admin privileges) --> Next
     - Choose Install Location: keep 'C:\ProgramData\Anaconda3' --> Next
     - Advanced Installation Options: select none --> Install
-    - Installation COmplete --> Next
-    - advertsiment for PyCharm Pro --> Next
-    - Completing Anaconda3 2021.05: deselct both --> Finish
+    - Installation Complete --> Next
+    - advertisement for PyCharm Pro --> Next
+    - Completing Anaconda3 2021.05: deselect both --> Finish
 
 Open an `Anaconda Command Promt (Anaconda3)`
 ```console
@@ -104,7 +104,7 @@ If you choose the option 1.2 (system level install), then you'll have to replace
 
 To update (pull) to the latest version, do:
 ```console
-    $ cd <path to your supersid installation>/supersid
+    $ cd <path to your supersid installation>
     $ git pull
 ```
 
@@ -130,7 +130,7 @@ If your sound card does not come with a proprietary configuration software, you 
 - use `python sampler.py -n2 | grep -v "peak freq \[0, 0\] Hz" | grep "duration 1\.[012]" -B2 -A2` in order to get a verbose list of the acceptable two channel candidates. This command will take a while before it outputs anything.
 
 ```console
-    > cd <path to your supersid installation>\supersid\supersid
+    > cd <path to your supersid installation>\src\
     > python sampler.py | grep -v "peak freq \[0\] Hz" | grep "duration 1\.[012]" -B2 -A2
 ```
 
@@ -178,6 +178,6 @@ See [ConfigHelp.md](./ConfigHelp.md)
 ## 5) Start the SuperSID program
 
 ```console
-    > cd <path to your supersid installation>\supersid\supersid
+    > cd <path to your supersid installation>\src
     > python supersid.py -c ..\Config\supersid.cfg
 ```
