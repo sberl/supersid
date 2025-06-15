@@ -171,10 +171,10 @@ class SuperSID:
                                       self.sampler.audio_sampling_rate)
                 if pxx is not None:
                     self.viewer.update_psd(pxx, freqs)
-                    for channel, binSample in zip(
+                    for channel, bin_sample in zip(
                             self.sampler.monitored_channels,
                             self.sampler.monitored_bins):
-                        signal_strengths.append(pxx[channel][binSample])
+                        signal_strengths.append(pxx[channel][bin_sample])
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
