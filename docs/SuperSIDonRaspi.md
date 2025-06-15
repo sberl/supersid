@@ -201,7 +201,7 @@ Read the help of find_alsa_devices.py and follow it.  Then connect line out of
 the sound card with line in of the same sound card.
 
 ```console
-    $ cd ~/supersid/supersid
+    $ cd ~/supersid/src
     $ python3 find_alsa_devices.py --help | less
     $ python3 -u find_alsa_devices.py 2>&1
 ```
@@ -235,7 +235,7 @@ In one console generate the test frequency.
 In another console search for the suitable device.  Replace
 'plughw:CARD=Dongle,DEV=0' with the device of interest.
 ```console
-    $ cd ~/supersid/supersid
+    $ cd ~/supersid/src
     $ python3 -u find_alsa_devices.py -t=external -d="plughw:CARD=Dongle,DEV=0" 2>&1 | grep OK
 ```
 
@@ -408,7 +408,7 @@ ftp.
 ## 7) Start the SuperSID program
 
 ```console
-    $ cd ~/supersid/supersid
+    $ cd ~/supersid/src
     $ ./supersid.py
 ```
 There are three arguments that can be used with supersid.py
@@ -452,7 +452,7 @@ add the following to the file:
 ```
     #!/bin/sh
     sleep 30
-    cd /home/pi/supersid/supersid
+    cd /home/pi/supersid/src
     ./supersid.py
 ```
 
@@ -467,7 +467,7 @@ Make it executable by doing:
 
 ## 10) Plot commands
 
-In a terminal window, navigate to /home/pi/supersid/supersid
+In a terminal window, navigate to /home/pi/supersid/src
 
 Replace filename.csv with the name of the file you want to plot
 
