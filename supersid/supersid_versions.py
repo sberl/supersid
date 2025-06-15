@@ -20,7 +20,7 @@ sounddevice==0.4.3
   - CFFI [required: >=1.0, installed: 1.15.0]
     - pycparser [required: Any, installed: 2.21]
 
-pyephem==9.99
+ephem==4.2
   - ephem [required: Any, installed: 4.1]
 """
 
@@ -46,8 +46,7 @@ tested_versions = {
     'CFFI': {'versions': ['1.15.0'], 'requirement': 'optional'},
     'pycparser': {'versions': ['2.21'], 'requirement': 'optional'},
 
-    # pyephem dependencies
-    'pyephem': {'versions': ['9.99'], 'requirement': 'mandatory'},
+    # ephem dependencies
     'ephem': {'versions': ['4.1'], 'requirement': 'mandatory'},
 
     # standalone

@@ -9,7 +9,7 @@
 
     Dependencies:
     - matplotlib
-    - pyephem     [ dnf install python3-pyephem ]
+    - ephem
 
 """
 import os.path
@@ -126,9 +126,10 @@ class PlotGui(ttk.Frame):
                             color_list[color_idx % len(color_list)] + '-'
                         color_idx += 1
                 # Add points to the plot
-                self.graph.plot_date(sid_file.timestamp,
-                                     sid_file.get_station_data(station),
-                                     self.color_station[station])
+                self.graph.xaxis.axis_date()
+                self.graph.plot(sid_file.timestamp,
+                                sid_file.get_station_data(station),
+                                self.color_station[station])
         # add the buttons to show/add a station's curve
         for s, c in self.color_station.items():
             btn_color = convert_to_tkinter_color(c)
@@ -245,9 +246,10 @@ class PlotGui(ttk.Frame):
             for station in set(sid_file.stations) - self.hidden_stations:
                 print(sid_file.startTime, station)
                 # Add points to the plot
-                self.graph.plot_date(sid_file.timestamp,
-                                     sid_file.get_station_data(station),
-                                     self.color_station[station])
+                self.graph.xaxis.axis_date()
+                self.graph.plot(sid_file.timestamp,
+                                sid_file.get_station_data(station),
+                                self.color_station[station])
         self.show_figure()
 
     def calc_ephem(self):

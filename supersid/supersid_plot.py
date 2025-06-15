@@ -177,6 +177,8 @@ class SUPERSID_PLOT():
         filenames.extend([a for a in itertools.chain.from_iterable(
                 [glob.glob(os.path.expanduser(f)) for f in filelist])])
         # print(filenames)
+        if 0 == len(filenames):
+            sys.exit(f"{filelist} doesn't match any known file, no file to procss")
 
         # plot's figure and axis
         fig = plt.figure()
@@ -185,6 +187,7 @@ class SUPERSID_PLOT():
         current_axes.xaxis.set_major_locator(matplotlib.dates.DayLocator())
         current_axes.xaxis.set_major_formatter(ff(self.m2yyyymmdd))
         current_axes.xaxis.set_minor_formatter(ff(self.m2hm))
+        current_axes.xaxis.axis_date()
         current_axes.set_xlabel("UTC Time")
         current_axes.set_ylabel("Signal Strength")
 
@@ -220,10 +223,10 @@ class SUPERSID_PLOT():
                             colorList[colorIdx % len(colorList)] + '-'
                         colorIdx += 1
                 # Add points to the plot
-                plt.plot_date(sFile.timestamp,
-                              sFile.get_station_data(station),
-                              colorStation[station],
-                              label=station)
+                plt.plot(sFile.timestamp,
+                         sFile.get_station_data(station),
+                         colorStation[station],
+                         label=station)
                 # Extra housekeeping
 
                 # maxData will be used later to put the XRA labels up
@@ -476,29 +479,31 @@ if __name__ == '__main__':
                 Now -= datetime.timedelta(days=1)
             # stations can be given as a comma delimited string
             # SuperSID id is unique
-            lstFileNames = []
+            lst_filenames = []
             data_path = config.get("data_path")
             if args.station_id is None:  # file name like supersid file format
-                lstFileNames.append("%s/%s_%04d-%02d-%02d.csv" %
-                                    (data_path,
-                                     args.site_id or config["site_name"],
-                                     Now.year, Now.month, Now.day))
+                filename = os.path.join(data_path,
+                    f"{args.site_id or config['site_name']}_"
+                    f"{Now.year:04d}-{Now.month:02d}-{Now.day:02d}.csv"
+                )
+                lst_filenames.append(filename)
             else:
                 if args.station_id == '*':
                     # all possible stations from .cfg file
                     # - must be '*' on the command line!
-                    strStations = ",".join([s["call_sign"]
+                    str_stations = ",".join([s["call_sign"]
                                             for s in config.stations])
                 else:  # only given stations - can be a comma delimited list
-                    strStations = args.station_id
+                    str_stations = args.station_id
                 # build the list of sid format file names
-                for station in strStations.split(","):
-                    lstFileNames.append("%s/%s_%s_%04d-%02d-%02d.csv" %
-                                        (data_path,
-                                         args.site_id or config["site_name"],
-                                         station,
-                                         Now.year, Now.month, Now.day))
-            filenames = ",".join(lstFileNames)
+                for station in str_stations.split(","):
+                    filename = os.path.join(data_path,
+                        f"{args.site_id or config['site_name']}_"
+                        f"{station}_"
+                        f"{Now.year:04d}-{Now.month:02d}-{Now.day:02d}.csv"
+                    )
+                    lst_filenames.append(filename)
+            filenames = ",".join(lst_filenames)
     else:
         filenames = args.filename
 
