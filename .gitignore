@@ -34,8 +34,6 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
-Private
-Data
 *.nja
 .idea
 *.bak
