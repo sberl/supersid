@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     # cleanup and show max errors
     tst.cancel_timer()
-    print(f"mximum too late by: {tst.max_plus_error} seconds")
+    print(f"maximum too late by: {tst.max_plus_error} seconds")
     print(f"maximum too early by: {tst.max_minus_error} seconds")
 
     print("\nTestSidTimerSubclass")
@@ -205,5 +205,5 @@ if __name__ == '__main__':
 
     # cleanup and show max errors
     tst.cancel_timer()
-    print(f"mximum too late by: {tst.max_plus_error} seconds")
+    print(f"maximum too late by: {tst.max_plus_error} seconds")
     print(f"maximum too early by: {tst.max_minus_error} seconds")
