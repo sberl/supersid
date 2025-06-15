@@ -28,9 +28,6 @@ pandas==2.3.0
 ├── pytz [required: >=2020.1, installed: 2025.2]
 └── tzdata [required: >=2022.7, installed: 2025.2]
 
-pyephem==9.99
-└── ephem [required: Any, installed: 4.2]
-
 sounddevice==0.5.2
 └── cffi [required: >=1.0, installed: 1.17.1]
     └── pycparser [required: Any, installed: 2.22]
@@ -82,14 +79,12 @@ tested_versions = {
         'cffi': {'versions': ['1.17.1'], 'requirement': 'optional'},
         'pycparser': {'versions': ['2.22'], 'requirement': 'optional'},
 
-        # pyephem dependencies
-        'pyephem': {'versions': ['9.99'], 'requirement': 'mandatory'},
-        'ephem': {'versions': ['4.2'], 'requirement': 'mandatory'},
-
         # standalone
+        'ephem': {'versions': ['4.2'], 'requirement': 'mandatory'},
         'pip': {'versions': ['25.1.1'], 'requirement': 'mandatory'},
         'pyaudio': {'versions': ['0.2.14'], 'requirement': 'optional'},
         'pyalsaaudio': {'versions': ['0.9.0'], 'requirement': 'optional'},
+        'readchar': {'versions': ['x.x.x'], 'requirement': 'mandatory'},
 
         # builtin
         'itertools': {'versions': ['builtin'], 'requirement': 'mandatory'},
@@ -123,14 +118,12 @@ tested_versions = {
         'cffi': {'versions': ['1.17.1'], 'requirement': 'optional'},
         'pycparser': {'versions': ['2.22'], 'requirement': 'optional'},
 
-        # pyephem dependencies
-        'pyephem': {'versions': ['9.99'], 'requirement': 'mandatory'},
-        'ephem': {'versions': ['4.2'], 'requirement': 'mandatory'},
-
         # standalone
+        'ephem': {'versions': ['4.2'], 'requirement': 'mandatory'},
         'pip': {'versions': ['25.1.1'], 'requirement': 'mandatory'},
         'pyaudio': {'versions': ['0.2.14'], 'requirement': 'optional'},
         'pyalsaaudio': {'versions': ['0.9.0'], 'requirement': 'optional'},
+        'readchar': {'versions': ['x.x.x'], 'requirement': 'mandatory'},
 
         # builtin
         'itertools': {'versions': ['builtin'], 'requirement': 'mandatory'},

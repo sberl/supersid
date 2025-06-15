@@ -111,7 +111,7 @@ To update (pull) to the latest version, do:
 ### Install the Python 3.13.5 Python modules
 If you choose the option 1.2 (system level install), then you'll have to continue the Python modules installation.
 ```console
-    > "C:\Program Files\Python313\python.exe" -m pip install -r requirements-win.txt
+    > "C:\Program Files\Python313\python.exe" -m pip install -r requirements.txt
 ```
 
 ## 3) Choose your Sound Card
