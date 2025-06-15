@@ -1,9 +1,19 @@
 matplotlib
-numpy~=1.23.0
-pandas~=2.1.0
-pyalsaaudio~=0.10.0
+
+numpy~=1.23.0 ; sys_platform == "linux" or sys_platform == "darwin"
+numpy ; sys_platform == "win32"
+
+pandas~=2.1.0 ; sys_platform == "linux" or sys_platform == "darwin"
+pandas ; sys_platform == "win32"
+
+pyalsaaudio~=0.10.0 ; sys_platform == "linux" or sys_platform == "darwin"
+sounddevice ; sys_platform == "win32"
+pyaudio ; sys_platform == "win32"
+
 pyparsing
 python-dateutil
 six
 ephem
 readchar
+
+pipwin ; sys_platform == "win32"
