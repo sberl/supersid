@@ -12,6 +12,7 @@ Change tracking:
     20150801:
         - truncate sid_params['utc_starttime'] to 19 first chars
 """
+import sys
 from os import path
 from time import gmtime, strftime
 from sidfile import SidFile
@@ -52,7 +53,7 @@ class Logger():
                 ",".join([s[FREQUENCY] for s in self.config.stations])
         else:
             print("Error: no station to log???")
-            exit(5)
+            sys.exit(5)
         self.sid_file = SidFile(sid_params=self.config)
 
         # Do we have a file to read from the command line by the user at launch
@@ -66,7 +67,7 @@ class Logger():
                     "recording? [y/N]")
                 if answer.lower() != 'y':
                     print("Abort.")
-                    exit(-10)
+                    sys.exit(-10)
             elif (sid_file2.sid_params['utc_starttime'][:19]
                     != strftime("%Y-%m-%d 00:00:00", gmtime())):
                 print("Not today's file. The file UTC_StartTime =",
@@ -76,7 +77,7 @@ class Logger():
                     "recording? [y/N]")
                 if answer.lower() != 'y':
                     print("Abort.")
-                    exit(-11)
+                    sys.exit(-11)
             elif (sorted(sid_file2.stations)
                     != sorted([s['call_sign'] for s in self.config.stations])):
                 print("Station Lists are different:",
@@ -87,7 +88,7 @@ class Logger():
                     "recording? [y/N]")
                 if answer.lower() != 'y':
                     print("Abort.")
-                    exit(-11)
+                    sys.exit(-11)
             self.sid_file.copy_data(sid_file2)
             print("Continue recording with data from file",
                   read_file, "included.")
