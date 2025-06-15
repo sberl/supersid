@@ -70,22 +70,23 @@ Open an `Anaconda Command Promt (Anaconda3)`
     > pip install ephem
 ```
 
-### 1.2) Install Python 3.9.12 (64 bit)
-- Download [Python 3.9.12 (64-bit)](https://www.python.org/ftp/python/3.9.12/python-3.9.12-amd64.exe)
-- Install *python-3.9.12-amd64.exe*
-    - Customize installation, keep all selected, Next
-    - Additionally select [x] Install for all users [x] Add Python to environment variables
-    - Double check the install location changed to *C:\\Program Files\\Python39*
+### 1.2) Install Python 3.13.5 (64 bit)
+- Download [Python 3.13.5 (64-bit)](https://www.python.org/ftp/python/3.13.5/python-3.13.5-amd64.exe)
+- Install *python-3.13.5-amd64.exe*
+    - Select both [x] Use admin privileges ... and [x] Add python.exe to path, Customize installation, Next
+    - Select all, including [x] py launcher [x] for all users, Next
+	- Advaned options: additionally select [x] Install Python 3.13 for all users
+    - Double check the install location changed to *C:\\Program Files\\Python313*
     - Install
     - Disable path length limit
     - Close
 
 Open a `CMD` window.
 ```console
-    > "C:\Program Files\Python39\python.exe" -m pip install --upgrade pip
+    > "C:\Program Files\Python313\python.exe" -m pip install --upgrade pip
 ```
 
-If you choose the option 1.2 (system level install), then you'll have to replace any occurence of `python` below with `"C:\Program Files\Python39\python.exe"`.
+If you choose the option 1.2 (system level install), then you'll have to replace any occurence of `python` below with `"C:\Program Files\Python313\python.exe"`.
 
 
 ## 2) Install SuperSID
@@ -107,10 +108,10 @@ To update (pull) to the latest version, do:
     $ git pull
 ```
 
-### Install the Python 3.9.12 Python modules
+### Install the Python 3.13.5 Python modules
 If you choose the option 1.2 (system level install), then you'll have to continue the Python modules installation.
 ```console
-    > "C:\Program Files\Python39\python.exe" -m pip install -r requirements-win.txt
+    > "C:\Program Files\Python313\python.exe" -m pip install -r requirements-win.txt
 ```
 
 ## 3) Choose your Sound Card

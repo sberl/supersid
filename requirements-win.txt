@@ -1,6 +1,6 @@
 matplotlib
-numpy~=1.23.0
-pandas~=2.1.0
+numpy
+pandas
 sounddevice
 pyaudio
 pyparsing
