@@ -67,7 +67,7 @@ Open an `Anaconda Command Promt (Anaconda3)`
     > conda install PyAudio
     > pip install PyPubSub
     > pip install sounddevice
-    > pip install pyephem
+    > pip install ephem
 ```
 
 ### 1.2) Install Python 3.9.12 (64 bit)

@@ -5,5 +5,5 @@ pyalsaaudio~=0.10.0
 pyparsing
 python-dateutil
 six
-pyephem
+ephem
 readchar

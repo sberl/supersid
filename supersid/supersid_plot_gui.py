@@ -9,7 +9,7 @@
 
     Dependencies:
     - matplotlib
-    - pyephem     [ dnf install python3-pyephem ]
+    - ephem
 
 """
 import os.path
