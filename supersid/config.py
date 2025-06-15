@@ -135,6 +135,13 @@ class Config(dict):
                 # 0 means waterfall diagram is disabled
                 ('waterfall_samples', int, 0),
 
+                # What sampler and timing mode to use
+                # normal (default), gapless
+                ('sampler', str, 'normal'),
+
+                # Whether to use overlap in computing the FFTs
+                ('overlap', bool, False),
+
                 #####################
                 # mandatory entries #
                 #####################
@@ -428,7 +435,14 @@ class Config(dict):
             self.config_ok = False
             self.config_err = "'viewer' must be either one of 'text', 'tk'."
             return
-
+        
+        # check sampler
+        self['sampler'] = self['sampler'].lower()
+        if self['sampler'] not in ('gapless', 'normal'):
+            self.config_ok = False
+            self.config_err = "'sampler' must be either one of 'normal', 'gapless'."
+            return
+        
         # Check the 'data_path' validity
         # and create it as a Config instance property
         self['data_path'] = script_relative_to_cwd_relative(self['data_path'])\
