@@ -772,10 +772,11 @@ class Sampler():
         """
         try:
             self.data = self.capture_device.capture_1sec()
-        except Exception:
+        except Exception as err:
             self.sampler_ok = False
             print(
-                "Fail to read data from audio using "
+                type(err), err,
+                "Failed to read data from audio using "
                 + self.capture_device.name)
             self.data = []
         else:
