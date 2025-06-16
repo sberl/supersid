@@ -36,7 +36,7 @@ from email import encoders, utils
 import argparse
 # SuperSID modules
 from sidfile import SidFile
-from config import read_config, print_config, CONFIG_FILE_NAME
+from supersid_config import read_config, print_config, CONFIG_FILE_NAME
 from supersid_common import exist_file
 
 try:
