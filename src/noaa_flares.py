@@ -23,10 +23,12 @@ https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/solar-flar
 import urllib.request
 import urllib.error
 import os
+import sys
 from os import path
 from datetime import datetime, date, timezone
 from supersid_common import script_relative_to_cwd_relative
 
+NOAA_CACHE_FOLDER = path.join("..", "Private")
 
 class NOAA_flares:
     """This object carries a list of all events of a given day."""
@@ -62,7 +64,7 @@ class NOAA_flares:
             self.ftp_noaa()
         else:
             # Given day is 2016 or earlier --> fetch data by https
-            # If the file is NOT in the ../PRIVATE/ directory then we need to
+            # If the file is NOT in the NOAA_CACHE_FOLDER then we need to
             # fetch it first then read line by line to grab the data
             # from the expected day
             file_path = self.http_ngdc()
@@ -108,11 +110,18 @@ class NOAA_flares:
             if self.day[:4] != "2015" \
             else "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
 
-        folder = script_relative_to_cwd_relative(path.join("..", "Private"))
+        folder = script_relative_to_cwd_relative(NOAA_CACHE_FOLDER)
 
-        # create folder ../Private if it does not exist
+        # create NOAA_CACHE_FOLDER if it does not exist
         if not path.isdir(folder):
-            os.mkdir(folder)
+            try:
+                os.mkdir(folder)
+            except FileExistsError as err:
+                sys.exit(f"'{folder}: {err}")
+            except FileNotFoundError as err:
+                sys.exit(f"'{folder}: {err}")
+            except OSError as err:
+                sys.exit(f"'{folder}: {err}")
 
         file_path = path.join(folder, file_name)
         url = path.join(self.ngdc_url, file_name)

@@ -437,7 +437,20 @@ class Config(dict):
         # data_path must be a folder with read/write permission
         if not os.path.isdir(self['data_path']):
             print(f"creating folder {self['data_path']}")
-            os.mkdir(self['data_path'])        
+            try:
+                os.mkdir(self['data_path'])
+            except FileExistsError as err:
+                self.config_ok = False
+                self.config_err = f"'{self['data_path']}: {err}"
+                return
+            except FileNotFoundError as err:
+                self.config_ok = False
+                self.config_err = f"'{self['data_path']}: {err}"
+                return
+            except OSError as err:
+                self.config_ok = False
+                self.config_err = f"'{self['data_path']}: {err}"
+                return
         if not os.access(self['data_path'], os.R_OK | os.W_OK):
             self.config_ok = False
             self.config_err = "'data_path' must have read/write " \
@@ -450,7 +463,20 @@ class Config(dict):
                 self['local_tmp']) + os.sep
             if not os.path.isdir(self['local_tmp']):
                 print(f"creating folder {self['local_tmp']}")
-                os.mkdir(self['local_tmp'])        
+                try:
+                    os.mkdir(self['local_tmp'])
+                except FileExistsError as err:
+                    self.config_ok = False
+                    self.config_err = f"'{self['local_tmp']}: {err}"
+                    return
+                except FileNotFoundError as err:
+                    self.config_ok = False
+                    self.config_err = f"'{self['local_tmp']}: {err}"
+                    return
+                except OSError as err:
+                    self.config_ok = False
+                    self.config_err = f"'{self['local_tmp']}: {err}"
+                    return
             if not os.access(self['local_tmp'], os.R_OK | os.W_OK):
                 self.config_ok = False
                 self.config_err = "'local_tmp' must have read/write " \
