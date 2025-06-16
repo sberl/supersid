@@ -22,4 +22,4 @@ jobs:
         pip install -r requirements.txt
     - name: Analysing the code with pylint
       run: |
-        cd supersid; pylint `ls -R|grep .py$|xargs`
+        cd src; pylint `ls -R|grep .py$|xargs`

@@ -22,7 +22,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-from supersid_common import script_relative_to_cwd_relative
+from supersid_common import script_relative_to_cwd_relative, is_script
 
 
 def psd_format_coord(bin_freq, bin_power):
@@ -424,9 +424,12 @@ class tkSidViewer():
             "expected exactly one configuration file, got " \
             f"{len(self.controller.config.filenames)}"
         print("plotting", filenames[0])
-        subprocess.Popen([
-            sys.executable,
-            script_relative_to_cwd_relative('supersid_plot.py'),
+        if is_script():
+            cmd = [sys.executable,
+                   script_relative_to_cwd_relative('supersid_plot.py')]
+        else:
+            cmd = [script_relative_to_cwd_relative('supersid_plot.exe')]
+        subprocess.Popen(cmd + [
             '-f',
             filenames[0],
             '-c',
