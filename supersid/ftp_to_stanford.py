@@ -18,13 +18,14 @@ Script's Arguments:
     [data_path/<monitor_id>_YYYY_MM_DD.csv]
 [filename1 filename2 ...]: optional list of files to send
 
-New section in the configuration file:
+Section in the configuration file:
 [FTP]
 automatic_upload = yes
 ftp_server = sid-ftp.stanford.edu
 ftp_directory = /incoming/SuperSID/NEW/
-local_tmp = /home/eric/supersid/Private/tmp
-call_signs = NWC:10000,JJI:100000
+# local_tmp shall be an absolute path or a path relative to the src script folder
+local_tmp = ../outgoing
+call_signs = NWC
 
 """
 import sys
@@ -61,7 +62,7 @@ if __name__ == '__main__':
 
     # read the configuration file or exit
     cfg = read_config(args.cfg_filename)
-    if cfg.get('local_tmp') is None:
+    if cfg.get('local_tmp') == "":
         print("Error: 'local_tmp' has to be configured for FTP")
         sys.exit(1)
 
