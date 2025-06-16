@@ -26,6 +26,7 @@ import os
 from os import path
 from datetime import datetime, date, timezone
 from supersid_common import script_relative_to_cwd_relative
+from ftplib import FTP, error_perm
 
 
 class NOAA_flares:
@@ -138,20 +139,33 @@ class NOAA_flares:
           1000 +   1748 1752 1755  G15 5 XRA  1-8A M1.0 2.1E-03 2443
         """
         # ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
-        noaa_url = f"ftp://ftp.swpc.noaa.gov/pub/indices/events/{self.day}events.txt"
 
-        response, self.XRAlist = None, []
+        noaa_server = "ftp.swpc.noaa.gov"
+        noaa_path = "pub/indices/events"
+        noaa_file = f"{self.day}events.txt"
+
         try:
-            response = urllib.request.urlopen(noaa_url)
-        except (urllib.error.HTTPError, urllib.error.URLError) as err:
-            print(f"Cannot retrieve the file: '{self.day}events.txt'")
-            print("from URL:", noaa_url)
+            ftp = FTP(noaa_server)
+            ftp.login()
+            ftp.cwd(noaa_path)
+
+            conn = ftp.transfercmd(f"RETR {noaa_file}") # the data socket
+            chunk = conn.recv(8192)
+            ftp_data = chunk
+            while len(chunk) > 0:
+                chunk = conn.recv(8192)
+                ftp_data += chunk
+            conn.close()
+
+        except error_perm as err:
+            print(f"Cannot retrieve the file: '{noaa_path}/{noaa_file}' "
+                  f"from server '{noaa_server}'")
             print(err, "\n")
         else:
-            for webline in response.read().splitlines():
+            for line in ftp_data.splitlines():
 
                 # cast bytes to str then split
-                fields = str(webline, 'utf-8').split()
+                fields = str(line, 'utf-8').split()
 
                 if len(fields) >= 9 and not fields[0].startswith("#"):
                     if fields[1] == '+':
@@ -190,6 +204,7 @@ class NOAA_flares:
 
 # Run some test cases
 if __name__ == '__main__':
+    import time
 
     test_list = ["20140104",
                  "20170104",
@@ -198,6 +213,7 @@ if __name__ == '__main__':
                  datetime(2023, 10, 1, 12, 0),
                  datetime(2023, 10, 1, 12, 0, tzinfo=timezone.utc),
                  date(2023, 10, 1),
+                 datetime.now(timezone.utc),
                  "2023123a"]  # this one should throw an exception
 
 
@@ -205,8 +221,10 @@ if __name__ == '__main__':
     print("eventName, BeginTime, MaxTime, EndTime, Particulars")
     for test in test_list:
         try:
+            t_start = time.time()
             flare = NOAA_flares(test)
-            print(flare.day, "\n", flare.print_XRAlist(), "\n")
+            flare.print_XRAlist()
+            print(f"querying {flare.day} took {time.time() - t_start:0.3f} seconds\n")
         except Exception as e:
             print(f"Error processing {test}: {e}\n")
 
