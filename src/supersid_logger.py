@@ -16,8 +16,8 @@ import sys
 from os import path
 from time import gmtime, strftime
 from sidfile import SidFile
-from config import FILTERED, RAW, CALL_SIGN, FREQUENCY
-from config import SID_FORMAT, SUPERSID_FORMAT
+from supersid_config import FILTERED, RAW, CALL_SIGN, FREQUENCY
+from supersid_config import SID_FORMAT, SUPERSID_FORMAT
 
 
 class Logger():

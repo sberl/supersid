@@ -26,7 +26,7 @@ from struct import unpack as st_unpack
 from numpy import array
 from matplotlib.mlab import psd as mlab_psd
 
-from config import FREQUENCY, S16_LE, S24_3LE, S32_LE
+from supersid_config import FREQUENCY, S16_LE, S24_3LE, S32_LE
 
 
 def get_peak_freq(data, audio_sampling_rate):

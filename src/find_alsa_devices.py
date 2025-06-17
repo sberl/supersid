@@ -17,7 +17,7 @@ from pprint import pprint
 import pandas as pd     # python3 -m pip install pandas
 import numpy as np
 
-from config import read_config, CONFIG_FILE_NAME
+from supersid_config import read_config, CONFIG_FILE_NAME
 from supersid_common import exist_file, slugify
 from isine import SinePlayer
 
