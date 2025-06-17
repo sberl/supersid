@@ -36,7 +36,7 @@ from email import encoders, utils
 import argparse
 # SuperSID modules
 from sidfile import SidFile
-from config import read_config, print_config, CONFIG_FILE_NAME
+from supersid_config import read_config, print_config, CONFIG_FILE_NAME
 from supersid_common import exist_file
 
 try:
@@ -344,7 +344,7 @@ class SUPERSID_PLOT():
 
         fig.suptitle(", ".join(figTitle))
 
-        # set the y axis limits as passed vai command line arguments
+        # set the y axis limits as passed via command line arguments
         if not math.isnan(y_min):
             plt.ylim(bottom=y_min)
         if not math.isnan(y_max):

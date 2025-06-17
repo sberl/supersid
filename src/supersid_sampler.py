@@ -26,7 +26,7 @@ from struct import unpack as st_unpack
 from numpy import array
 from matplotlib.mlab import psd as mlab_psd
 
-from config import FREQUENCY, S16_LE, S24_3LE, S32_LE
+from supersid_config import FREQUENCY, S16_LE, S24_3LE, S32_LE
 
 
 def get_peak_freq(data, audio_sampling_rate):
@@ -772,10 +772,11 @@ class Sampler():
         """
         try:
             self.data = self.capture_device.capture_1sec()
-        except Exception:
+        except Exception as err:
             self.sampler_ok = False
             print(
-                "Fail to read data from audio using "
+                type(err), err,
+                "Failed to read data from audio using "
                 + self.capture_device.name)
             self.data = []
         else:

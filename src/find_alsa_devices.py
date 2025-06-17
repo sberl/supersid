@@ -17,9 +17,9 @@ from pprint import pprint
 import pandas as pd     # python3 -m pip install pandas
 import numpy as np
 
-from config import read_config, CONFIG_FILE_NAME
+from supersid_config import read_config, CONFIG_FILE_NAME
 from supersid_common import exist_file, slugify
-from isine import SinePlayer
+from supersid_isine import SinePlayer
 
 
 if __name__ == '__main__':
@@ -965,11 +965,11 @@ n: The candidate suggestion doesn't work without the loop back from line out to
    line in.
 y: Doublecheck the cable is ok and correctly plugged in. Continue reading ...
 
-Q: Is the line out generatin a test tone?
+Q: Is the line out generating a test tone?
    Connect a speaker.
    Use the command below and replace the device name with the one to be
    verified.
-   python3 isine.py -Dplughw:CARD=Generic,DEV=0 -f 440
+   python3 supersid_isine.py -Dplughw:CARD=Generic,DEV=0 -f 440
 n: Try command line options -t/--test-tone and -d/--device
    Connect line out of the -t interface with line in of the -d interface.
 y: Continue reading ...

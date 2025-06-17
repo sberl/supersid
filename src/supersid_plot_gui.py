@@ -26,7 +26,7 @@ import ephem
 from sidfile import SidFile
 from noaa_flares import NOAA_flares
 from supersid_common import exist_file
-from config import read_config, print_config, CONFIG_FILE_NAME
+from supersid_config import read_config, print_config, CONFIG_FILE_NAME
 
 
 def m2hm(x, _):
