@@ -248,7 +248,7 @@ class Config(dict):
                 # sounddevice, pyaudio: Device name for capture
                 ("Device", str, 'MME: Microsoft Soundmapper - Input'),
 
-                # sounddevice, pyaudio S16_LE, S24_3LE, S32_LE
+                # sounddevice, pyaudio: format S16_LE, S24_3LE, S32_LE
                 ("Format", str, 'S16_LE'),
 
                 # sounddevice, pyaudio: number of channels to be captured
