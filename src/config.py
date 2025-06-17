@@ -19,8 +19,29 @@ import sys
 import os.path
 import configparser
 import argparse
+import platform
 from collections import OrderedDict
 from supersid_common import script_relative_to_cwd_relative, exist_file
+
+audio_modules = []
+try:
+    import alsaaudio # pylint: disable=unused-import
+    audio_modules.append("alsaaudio")
+except ModuleNotFoundError:
+    pass
+
+try:
+    import sounddevice # pylint: disable=unused-import
+    audio_modules.append("sounddevice")
+except ModuleNotFoundError:
+    pass
+
+try:
+    import pyaudio # pylint: disable=unused-import
+    audio_modules.append("pyaudio")
+except ModuleNotFoundError:
+    pass
+
 
 # constant for 'log_type'
 FILTERED, RAW = 'filtered', 'raw'
@@ -41,7 +62,7 @@ SID_EXTENDED, SUPERSID_EXTENDED = 'sid_extended', 'supersid_extended'
 BOTH = 'both'                    # combines 'sid_format', 'supersid_format'
 BOTH_EXTENDED = 'both_extended'  # combines 'sid_extended', 'supersid_extended'
 
-# constants for alsaaudio 'Format'
+# constants for audio modules 'Format'
 S16_LE, S24_3LE, S32_LE = 'S16_LE', 'S24_3LE', 'S32_LE'
 
 # the default configuration path, can be overridden on command line
@@ -155,7 +176,7 @@ class Config(dict):
 
             'Capture': (
                 # audio module: alsaaudio, sounddevice, pyaudio
-                ("Audio", str, 'alsaaudio'),
+                ("Audio", str, audio_modules[0]),
 
                 # alsaaudio, sounddevice, pyaudio: Device name for capture
                 ("Device", str, 'plughw:CARD=Generic,DEV=0'),
@@ -167,10 +188,10 @@ class Config(dict):
                 # alsaaudio: period size for capture
                 ("PeriodSize", int, 1024),
 
-                # alsaaudio: format S16_LE, S24_3LE, S32_LE
+                # alsaaudio, sounddevice, pyaudio: format S16_LE, S24_3LE, S32_LE
                 ("Format", str, 'S16_LE'),
 
-                # alsaaudio: number of channels to be captured
+                # alsaaudio, sounddevice, pyaudio: number of channels to be captured
                 # default 1, optional 2
                 ("Channels", int, 1),
             ),
@@ -219,18 +240,18 @@ class Config(dict):
             ),
         }   # End of sections
 
-        if sys.platform.startswith('win32'):
+        if platform.system() == 'Windows':
             sections['Capture'] = (
                 # audio module: sounddevice, pyaudio
-                ("Audio", str, 'sounddevice'),
+                ("Audio", str, audio_modules[0]),
 
                 # sounddevice, pyaudio: Device name for capture
-                ("Device", str, 'MME: Microsoft Sound Mapper - Input'),
+                ("Device", str, 'MME: Microsoft Soundmapper - Input'),
 
-                # alsaaudio: format S16_LE, S24_3LE, S32_LE
+                # sounddevice, pyaudio S16_LE, S24_3LE, S32_LE
                 ("Format", str, 'S16_LE'),
 
-                # alsaaudio: number of channels to be captured
+                # sounddevice, pyaudio: number of channels to be captured
                 # default 1, optional 2
                 ("Channels", int, 1),
             )
@@ -467,6 +488,11 @@ class Config(dict):
         if "Audio" not in self:
             self["Audio"] = "sounddevice"
 
+        if self["Audio"] not in audio_modules:
+            self.config_ok = False
+            self.config_err = f"'Audio' module '{self['Audio']}' is not installed.\n"
+            self.config_err += audio_proposal()
+
         # obsolete Card
         if 'Card' in self:
             if self['Card']:
@@ -475,7 +501,7 @@ class Config(dict):
                       "your .cfg files.\n")
 
         # when present, 'Format' must be one of the supported formats
-        # (relevant for the format conversion in sampler.py for alsaaudio)
+        # (relevant for the format conversion in sampler.py)
         if 'Format' in self:
             if self['Format'] not in [S16_LE, S24_3LE, S32_LE]:
                 self.config_ok = False
@@ -517,6 +543,16 @@ def print_config(config):
               f"{CHANNEL} = {station[CHANNEL]}")
 
 
+def audio_proposal():
+    """ proposal of supported audio modules depending on the platform """
+    if platform.system() == "Darwin":
+        return "Consider installing and configuring 'pyaudio' or 'sounddevice'"
+    if platform.system() == "Windows":
+        return "Consider installing and configuring 'pyaudio' or 'sounddevice'"
+    # default includes platform.system() == "Linux":
+    return "Consider installing and configuring 'alsaaudio', 'pyaudio' or 'sounddevice'"
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", dest="cfg_filename",
@@ -525,6 +561,10 @@ if __name__ == '__main__':
                         help="Supersid configuration file")
     args = parser.parse_args()
 
-    # read the configuration file or exit
-    cfg = read_config(args.cfg_filename)
-    print_config(cfg)
+    if len(audio_modules) > 0:
+        # read the configuration file or exit
+        cfg = read_config(args.cfg_filename)
+        print_config(cfg)
+    else:
+        print("Error: No audio module is installed.")
+        print(audio_proposal())
