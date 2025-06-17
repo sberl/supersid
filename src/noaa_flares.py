@@ -7,14 +7,43 @@ Input Parameter is date of solar observation
     or a string of the form YYYYMMDD
 
 Output:
-    - datetime of start, high, end
-    - classification (A, B, C, M, X...)
+    Returns a NOAA_flares object.
+        my_flares = NOAA_flares(date)
+        my_flares.XRAlist
+        my_flares.print_XRAlist() # print out the list of flares on the day
 
-    This data can be used by the supersid_plot script to enrich the graph
-    with the X-ray flares
+    XRAlist is a list of tuples. Each tuple represents a flare detected by GOES satellite
+    Each tuple contains:
+        Name of the event
+        Date of beginning of event
+        UTC time of beginning of event
+        Date of max x-ray flux
+        Time of max x-ray flux
+        Date of end of event
+        Time of end of event
+        Classification of strength of the event (A, B, C, M, X, etc)
 
-    If the date is in the current year then FTP for the day's file is done,
-    else the complete past year file is downloaded (and kept) then data is read
+  (Used to draw corresponding lines on the plot)
+          Returns the list of XRA events as
+          [(eventName, BeginTime, MaxTime, EndTime, Particulars), ...]
+          from the line:
+          1000 +   1748 1752 1755  G15 5 XRA  1-8A M1.0 2.1E-03 2443
+
+    If the date is from 2015-06-29 to the present (as of 2025-06-16), it is
+    retrieved via FTP. Each file has 1 day of flare data and can be found at
+    ftp://ftp.swpc.noaa.gov/pub/indices/events/{YYYYMMDD}events.txt
+    where {YYYYMMDD} is replaced by 4 digit year, 2 digit month and 2 digit day.
+
+    For dates before 2015-06-29 we must download a compressed archive file that
+    contains a complete year of flare data. This file is also available via FTP.
+    The URL is ftp://ftp.swpc.noaa.gov/pub/warehouse/{year}/{year}_events.tar.gz
+    Once the file is downloaded, it is uncompressed into a directory hierarchy.
+    In that hierarchy, the path to the daily file is ./YYYY_events/YYYYMMDDevents.txt
+
+    These files all have the same format as described in
+    ftp://ftp.swpc.noaa.gov/pub/indices/events/README
+
+    It is not clear if and when any of this is going to change.
 
 ftp://ftp.swpc.noaa.gov/pub/indices/events/20150629events.txt
 https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/solar-flares/x-rays/goes/xrs/goes-xrs-report_2014.txt
@@ -22,6 +51,7 @@ https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/solar-flar
 
 import urllib.request
 import urllib.error
+from ftplib import FTP
 import os
 from os import path
 from datetime import datetime, date, timezone
@@ -30,16 +60,15 @@ from supersid_common import script_relative_to_cwd_relative
 
 class NOAA_flares:
     """This object carries a list of all events of a given day."""
-
-    ngdc_url = ("https://www.ngdc.noaa.gov/stp/space-weather/"
-                "solar-data/solar-features/solar-flares/x-rays/goes/xrs/")
-
     def __init__(self, day):
+        # XRAlist is a list of tuples.
+        # Each contains:
+        # (event_number, begin_time, max_time, end_time, flare_strength)
+        self.XRAlist = [] # List of tuples
+
         if isinstance(day, str):
-            print("NOAA_flares: Initialize from string:", day)
             self.day = day[:8]  # limit to YYYYMMDD
         elif isinstance(day, (datetime, date)):
-            print(f"NOAA_flares: Initialize from {type(day)} [{day}]")
             self.day = day.strftime('%Y%m%d')
         else:
             raise TypeError(
@@ -49,10 +78,6 @@ class NOAA_flares:
         # Code beyond this point assumes self.day is a string in 'YYYYMMDD' format
         if len(self.day) != 8 or not self.day.isdigit():
             raise ValueError("day must be a string in 'YYYYMMDD' format")
-
-        print("NOAA_flares: day =", self.day)
-
-        self.XRAlist = []
 
         # Starting in year 2017, NOAA makes the data available via FTP.
         # Earlier year data is available via HTTP.
@@ -103,19 +128,26 @@ class NOAA_flares:
 
         Return the full path of the data file
         """
-        file_name = "goes-xrs-report_{}.txt" \
-            .format(self.day[:4]) \
-            if self.day[:4] != "2015" \
-            else "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
+
+        ngdc_url = ("https://www.ngdc.noaa.gov/stp/space-weather/"
+                    "solar-data/solar-features/solar-flares/x-rays/goes/xrs/")
+
+        if self.day[:4] != "2015":
+            file_name = f"goes-xrs-report_{self.day[:4]}.txt"
+        else:
+            file_name = "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
 
         folder = script_relative_to_cwd_relative(path.join("..", "Private"))
 
         # create folder ../Private if it does not exist
         if not path.isdir(folder):
-            os.mkdir(folder)
+            try:
+                os.mkdir(folder)
+            except OSError:
+                print("Unable to create folder:", folder)
 
         file_path = path.join(folder, file_name)
-        url = path.join(self.ngdc_url, file_name)
+        url = path.join(ngdc_url, file_name)
         if not path.isfile(file_path):
             try:
                 txt = urllib.request.urlopen(url).read().decode()
@@ -129,62 +161,72 @@ class NOAA_flares:
 
     def ftp_noaa(self):
         """
-        Get the XRA data from NOAA website.
-
-          (Used to draw corresponding lines on the plot)
-          Returns the list of XRA events as
-          [(eventName, BeginTime, MaxTime, EndTime, Particulars), ...]
-          from the line:
-          1000 +   1748 1752 1755  G15 5 XRA  1-8A M1.0 2.1E-03 2443
+        Get the XRA data from NOAA website via FTP
+        This method will get data from 2015-06-29 up to
+        the present (last checked 2025-06-16)
+        Older data can be retrieved. Those files are in compressed
+        archive files containing an entire year of data.
         """
         # ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
-        noaa_url = f"ftp://ftp.swpc.noaa.gov/pub/indices/events/{self.day}events.txt"
+        # noaa_url = f"ftp://ftp.swpc.noaa.gov/pub/indices/events/{self.day}events.txt"
 
-        response, self.XRAlist = None, []
-        try:
-            response = urllib.request.urlopen(noaa_url)
-        except (urllib.error.HTTPError, urllib.error.URLError) as err:
-            print(f"Cannot retrieve the file: '{self.day}events.txt'")
-            print("from URL:", noaa_url)
-            print(err, "\n")
+        noaa_ftp_host = "ftp.swpc.noaa.gov"
+        noaa_ftp_path = f"pub/indices/events/{self.day}events.txt"
+        noaa_ftp_file = f"{self.day}events.txt"
+
+        local_folder = script_relative_to_cwd_relative(path.join("..", "Private"))
+        local_file = path.join(local_folder, noaa_ftp_file)
+        if path.isfile(local_file):
+            print(f"local file {local_file} already exists in Private folder")
         else:
-            for webline in response.read().splitlines():
+            try:
+                ftp = FTP(noaa_ftp_host)
+                ftp.login(user='anonymous', passwd='example@example.com')
+                ftp_command = f"RETR {noaa_ftp_path}"
+                with open(local_file, 'wb') as local_fd:
+                    ftp.retrbinary(ftp_command, local_fd.write)
+                ftp.quit()
+            except ftplib.all_errors as err:
+                print(f"Can't retrieve FTP file {noaa_ftp_host}/{noaa_ftp_path}: {err}")
+                return self.XRAlist
 
-                # cast bytes to str then split
-                fields = str(webline, 'utf-8').split()
-
-                if len(fields) >= 9 and not fields[0].startswith("#"):
-                    if fields[1] == '+':
-                        fields.remove('+')
-
-                    # maybe other event types could be of interrest
-                    if fields[6] in ('XRA',):
-                        # msg = fields[0] + " "     # eventName
-                        # msg += fields[1] + " "    # BeginTime
-                        # msg += fields[2] + " "    # MaxTime
-                        # msg += fields[3] + " "    # EndTime
-                        # msg += fields[8]          # Particulars
-                        try:
-                            # 'try' necessary as few occurences of
-                            # --:-- instead of HH:MM exist
-                            btime = self.t_stamp(fields[1])
-                        except Exception:
-                            pass
-                        try:
-                            mtime = self.t_stamp(fields[2])
-                        except Exception:
-                            mtime = btime
-                        try:
-                            etime = self.t_stamp(fields[3])
-                        except Exception:
-                            etime = mtime
-                        self.XRAlist.append((fields[0], btime, mtime, etime,
-                                             fields[8]))  # as a tuple
+        # At this point we have the file in Private cache directory.
+        with open(local_file, "rt", encoding="utf-8") as goes_data:
+            for line in goes_data:
+                if (line[0] != "#") and (line[0] != ":"): #ignore comment lines
+                    fields = line.split()
+                    if len(fields) >= 9:
+                        if fields[1] == '+':
+                            fields.remove('+')
+                        if fields[6] in ('XRA',):
+                            # fields[0] eventName
+                            # fields[1] BeginTime
+                            # fields[2] MaxTime
+                            # fields[3] EndTime
+                            # fields[8] Particulars
+                            try:
+                                # 'try' necessary as few occurrences of
+                                # --:-- instead of HH:MM exist
+                                begin_time = self.t_stamp(fields[1])
+                            except Exception:
+                                pass
+                            try:
+                                max_time = self.t_stamp(fields[2])
+                            except Exception:
+                                max_time = begin_time
+                            try:
+                                end_time = self.t_stamp(fields[3])
+                            except Exception:
+                                end_time = max_time
+                            self.XRAlist.append((fields[0],
+                                                 begin_time,
+                                                 max_time,
+                                                 end_time,
+                                                 fields[8]))
 
     def print_XRAlist(self):
         """Print the XRA list in a readable format."""
-        for eventName, BeginTime, MaxTime, EndTime, Particulars \
-                in self.XRAlist:
+        for eventName, BeginTime, MaxTime, EndTime, Particulars in self.XRAlist:
             print(eventName, BeginTime, MaxTime, EndTime, Particulars)
 
 
@@ -192,6 +234,7 @@ class NOAA_flares:
 if __name__ == '__main__':
 
     test_list = ["20140104",
+                 "20130525"
                  "20170104",
                  "20201211",
                  "20250529",
@@ -200,13 +243,11 @@ if __name__ == '__main__':
                  date(2023, 10, 1),
                  "2023123a"]  # this one should throw an exception
 
-
-    print("NOAA_flares test cases")
-    print("eventName, BeginTime, MaxTime, EndTime, Particulars")
     for test in test_list:
         try:
+            print(f"Test for date {test}")
             flare = NOAA_flares(test)
-            print(flare.day, "\n", flare.print_XRAlist(), "\n")
+            print(flare.print_XRAlist(), "\n")
         except Exception as e:
             print(f"Error processing {test}: {e}\n")
 
