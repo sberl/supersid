@@ -38,6 +38,13 @@ nosetests.xml
 .idea
 *.bak
 
-#Virtual Enviroment
+# Virtual Enviroment
 venv/
 .DS_Store
+
+# PyInstaller
+Program/
+PyInstaller/build
+PyInstaller/dist
+PyInstaller/specs
+SuperSID.zip

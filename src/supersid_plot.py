@@ -344,7 +344,7 @@ class SUPERSID_PLOT():
 
         fig.suptitle(", ".join(figTitle))
 
-        # set the y axis limits as passed vai command line arguments
+        # set the y axis limits as passed via command line arguments
         if not math.isnan(y_min):
             plt.ylim(bottom=y_min)
         if not math.isnan(y_max):
