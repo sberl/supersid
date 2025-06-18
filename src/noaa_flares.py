@@ -57,7 +57,7 @@ import ftplib
 import os
 from os import path
 import time
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 from supersid_common import script_relative_to_cwd_relative
 
 
@@ -154,7 +154,7 @@ class NOAA_flares:
         except FileNotFoundError:
             print("File not found")
 
-    def t_stamp(self, hhmm):
+    def t_stamp(self, hhmm) -> datetime:
         """ Convert HHMM string to datetime object."""
         # "201501311702" -> datetime(2015, 1, 31, 17, 2)
         return datetime.strptime(self.day + hhmm, "%Y%m%d%H%M")
@@ -182,7 +182,8 @@ class NOAA_flares:
         else:
             print(f"downloading {file_name} from www.ngdc.noaa.gov")
             try:
-                txt = urllib.request.urlopen(url).read().decode()
+                with urllib.request.urlopen(url) as response:
+                    txt = response.read().decode("utf-8")
             except (urllib.error.HTTPError, urllib.error.URLError) as err:
                 print(f"Cannot retrieve the file {file_name} from URL: {url}")
                 print(f"Error: {err}\n")
@@ -225,8 +226,17 @@ class NOAA_flares:
 
     def parse_noaa_event_file(self,local_file):
         """ Parse the NOAA event file retrieved from website
-            local_file is a path to the file in the Private folder
+
+            Input - local_file is a path to the file in the Private folder
+
             Populates self.xra_list with xra data
+
+            There is a special case where max and/or end times are
+            before start time.
+            This happens when the flare starts on one day and does
+            not reach max or end until the next day. In these cases
+            we need to bump up the day by 1.
+            20250529events.txt has an example
         """
         # At this point the file is in Private cache directory.
         try:
@@ -251,10 +261,14 @@ class NOAA_flares:
                                     pass
                                 try:
                                     max_time = self.t_stamp(fields[2])
+                                    if max_time < begin_time:
+                                        max_time = max_time + timedelta(days=1)
                                 except (ValueError,TypeError,AttributeError):
                                     max_time = begin_time
                                 try:
                                     end_time = self.t_stamp(fields[3])
+                                    if end_time < begin_time:
+                                        end_time = end_time + timedelta(days=1)
                                 except (ValueError,TypeError,AttributeError):
                                     end_time = max_time
                                 self.xra_list.append((fields[0],
