@@ -107,7 +107,7 @@ class PlotGui(ttk.Frame):
             sid_file = SidFile(filename)
 
             # list will be populated if the user click on 'NOAA' button
-            sid_file.XRAlist = []
+            sid_file.xra_list = []
 
             self.sid_files.append(sid_file)
             self.daysList[sid_file.startTime] = []
@@ -165,7 +165,7 @@ class PlotGui(ttk.Frame):
             else:
                 nf = NOAA_flares(sid_file.startTime)
                 nf.print_xra_list()
-                self.daysList[sid_file.startTime] = nf.xra_list
+                self.daysList[sid_file.startTime] = nf.get_xra_list()
                 sid_file.xra_list = self.daysList[sid_file.startTime]
         self.update_graph()
 
