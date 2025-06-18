@@ -59,7 +59,7 @@ from supersid_common import script_relative_to_cwd_relative
 
 
 class NOAA_flares:
-    """This object carries a list of all events of a given day."""
+    """This object carries a list of all events for a given day."""
     def __init__(self, day):
         # xra_list is a list of tuples.
         # Each contains:
@@ -81,50 +81,61 @@ class NOAA_flares:
 
         # Starting in year 2017, NOAA makes the data available via FTP.
         # Earlier year data is available via HTTP.
-        # So need to decide how to fetch the data based on the date.
+        # Decide how to fetch the data based on the date.
         if int(self.day[:4]) >= 2017:
             # given day is 2017 or later --> fetch data by FTP
-            self.ftp_noaa()
+            file = self.ftp_fetch_noaa()
+            self.parse_noaa_event_file(file)
         else:
             # Given day is 2016 or earlier --> fetch data by https
-            # If the file is NOT in the ../PRIVATE/ directory then we need to
-            # fetch it first then read line by line to grab the data
+            # If the file is NOT in the ../PRIVATE/ directory,
+            # fetch it first, then read line by line to grab the data
             # from the expected day
-            file_path = self.http_ngdc()
+            file_path = self.http_fetch_ngdc()
+            self.parse_ngdc_file(file_path)
+
+    def parse_ngdc_file(self, file_path):
+        """ Parse the goes-xrs-report file retrieved from website
+            local_file is a path to the file in the Private folder
+            Populates self.xra_list with xra data
+        """
+        try:
             with open(file_path, "rt", encoding="utf-8") as fin:
-                for line in fin:
-                    fields = line.split()
-                    # compare YYMMDD only
-                    if fields and fields[0][5:11] == self.day[2:]:
-                        # two line formats:
-                        # 31777151031  0835 0841 0839 N05E57 C 17    G15  3.6E-04 12443 151104.6
-                        # 31777151031  1015 1029 1022  C 15    G15  1.0E-03
-                        if len(fields) == 11:
-                            self.xra_list.append((
-                                fields[4],
-                                self.t_stamp(fields[1]),  # beg time
-                                self.t_stamp(fields[2]),  # highest time,
-                                self.t_stamp(fields[3]),  # end time,
-                                fields[5]+fields[6][0]+'.'+fields[6][1]))
-                        elif len(fields) == 8:
-                            self.xra_list.append((
-                                "None",
-                                self.t_stamp(fields[1]),  # beg time
-                                self.t_stamp(fields[2]),  # highest time,
-                                self.t_stamp(fields[3]),  # end time,
-                                fields[4]+fields[5][0]+'.'+fields[5][1]))
-                        else:
-                            print("Please check this line format:")
-                            print(line)
+                    for line in fin:
+                        fields = line.split()
+                        # compare YYMMDD only
+                        if fields and fields[0][5:11] == self.day[2:]:
+                            # two line formats:
+                            # 31777151031  0835 0841 0839 N05E57 C 17    G15  3.6E-04 12443 151104.6
+                            # 31777151031  1015 1029 1022  C 15    G15  1.0E-03
+                            if len(fields) == 11:
+                                self.xra_list.append((
+                                    fields[4],
+                                    self.t_stamp(fields[1]),  # beg time
+                                    self.t_stamp(fields[2]),  # highest time,
+                                    self.t_stamp(fields[3]),  # end time,
+                                    fields[5]+fields[6][0]+'.'+fields[6][1]))
+                            elif len(fields) == 8:
+                                self.xra_list.append((
+                                    "None",
+                                    self.t_stamp(fields[1]),  # beg time
+                                    self.t_stamp(fields[2]),  # highest time,
+                                    self.t_stamp(fields[3]),  # end time,
+                                    fields[4]+fields[5][0]+'.'+fields[5][1]))
+                            else:
+                                print("Please check this line format:")
+                                print(line)
+        except FileNotFoundError:
+            print("File not found")
 
     def t_stamp(self, hhmm):
         """ Convert HHMM string to datetime object."""
         # "201501311702" -> datetime(2015, 1, 31, 17, 2)
         return datetime.strptime(self.day + hhmm, "%Y%m%d%H%M")
 
-    def http_ngdc(self):
+    def http_fetch_ngdc(self):
         """
-        Get the file for a past year from HTTP ngdc if not already saved.
+        Get the file for the year from HTTP ngdc if not already saved.
 
         Return the full path of the data file
         """
@@ -149,6 +160,7 @@ class NOAA_flares:
         file_path = path.join(folder, file_name)
         url = path.join(ngdc_url, file_name)
         if not path.isfile(file_path):
+            print(f"Retrieving file {file_path} from URL: {url}")
             try:
                 txt = urllib.request.urlopen(url).read().decode()
             except (urllib.error.HTTPError, urllib.error.URLError) as err:
@@ -157,9 +169,11 @@ class NOAA_flares:
             else:
                 with open(file_path, "wt", encoding="utf-8") as fout:
                     fout.write(txt)
+        else:
+            print(f"File {file_path} already exists")
         return file_path
 
-    def ftp_noaa(self):
+    def ftp_fetch_noaa(self):
         """
         Get the XRA data from NOAA website via FTP
         This method will get data from 2015-06-29 up to
@@ -179,6 +193,7 @@ class NOAA_flares:
         if path.isfile(local_file):
             print(f"local file {local_file} already exists in Private folder")
         else:
+            print(f"downloading {noaa_ftp_file} from {noaa_ftp_host}")
             try:
                 ftp = ftplib.FTP(noaa_ftp_host)
                 ftp.login(user='anonymous', passwd='example@example.com')
@@ -188,46 +203,54 @@ class NOAA_flares:
                 ftp.quit()
             except ftplib.all_errors as err:
                 print(f"Can't retrieve FTP file {noaa_ftp_host}/{noaa_ftp_path}: {err}")
-                return self.xra_list
+        return local_file
 
-        # At this point we have the file in Private cache directory.
-        with open(local_file, "rt", encoding="utf-8") as goes_data:
-            for line in goes_data:
-                if (line[0] != "#") and (line[0] != ":"): #ignore comment lines
-                    fields = line.split()
-                    if len(fields) >= 9:
-                        if fields[1] == '+':
-                            fields.remove('+')
-                        if fields[6] in ('XRA',):
-                            # fields[0] eventName
-                            # fields[1] BeginTime
-                            # fields[2] MaxTime
-                            # fields[3] EndTime
-                            # fields[8] Particulars
-                            try:
-                                # 'try' necessary as few occurrences of
-                                # --:-- instead of HH:MM exist
-                                begin_time = self.t_stamp(fields[1])
-                            except (ValueError,TypeError,AttributeError):
-                                pass
-                            try:
-                                max_time = self.t_stamp(fields[2])
-                            except (ValueError,TypeError,AttributeError):
-                                max_time = begin_time
-                            try:
-                                end_time = self.t_stamp(fields[3])
-                            except (ValueError,TypeError,AttributeError):
-                                end_time = max_time
-                            self.xra_list.append((fields[0],
-                                                  begin_time,
-                                                  max_time,
-                                                  end_time,
-                                                  fields[8]))
+    def parse_noaa_event_file(self,local_file):
+        """ Parse the NOAA event file retrieved from website
+            local_file is a path to the file in the Private folder
+            Populates self.xra_list with xra data
+        """
+        # At this point the file is in Private cache directory.
+        try:
+            with open(local_file, "rt", encoding="utf-8") as goes_data:
+                for line in goes_data:
+                    if (line[0] != "#") and (line[0] != ":"): #ignore comment lines
+                        fields = line.split()
+                        if len(fields) >= 9:
+                            if fields[1] == '+':
+                                fields.remove('+')
+                            if fields[6] in ('XRA',):
+                                # fields[0] eventName
+                                # fields[1] BeginTime
+                                # fields[2] MaxTime
+                                # fields[3] EndTime
+                                # fields[8] Particulars
+                                try:
+                                    # 'try' necessary as few occurrences of
+                                    # --:-- instead of HH:MM exist
+                                    begin_time = self.t_stamp(fields[1])
+                                except (ValueError,TypeError,AttributeError):
+                                    pass
+                                try:
+                                    max_time = self.t_stamp(fields[2])
+                                except (ValueError,TypeError,AttributeError):
+                                    max_time = begin_time
+                                try:
+                                    end_time = self.t_stamp(fields[3])
+                                except (ValueError,TypeError,AttributeError):
+                                    end_time = max_time
+                                self.xra_list.append((fields[0],
+                                                      begin_time,
+                                                      max_time,
+                                                      end_time,
+                                                      fields[8]))
+        except FileNotFoundError:
+            print(f"File {local_file} not found")
+
 
     def get_xra_list(self):
         """Return the list of tuples that contain flare data"""
         return self.xra_list
-
 
     def print_xra_list(self):
         """Print the XRA list in a readable format."""
