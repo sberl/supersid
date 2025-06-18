@@ -63,8 +63,17 @@ from supersid_common import script_relative_to_cwd_relative
 
 class NOAA_flares:
     """This object carries a list of all x-ray flare events of a given day."""
-    def __init__(self, day: object,
+    def __init__(self, day,
                  noaa_cache_path=None):
+        """ Initialize the NOAA flares object.
+            Input parameter day can be either:
+            - a datatime object
+            - or a string of the form YYYYMMDD
+            noaa_cache_path can be used if the system configuration has overridden
+            the default cache location at ../Private
+
+        """
+
         # xra_list is a list of tuples.
         # Each contains:
         # (event_number, begin_time, max_time, end_time, flare_strength)
@@ -118,30 +127,30 @@ class NOAA_flares:
         """
         try:
             with open(file_path, "rt", encoding="utf-8") as fin:
-                    for line in fin:
-                        fields = line.split()
-                        # compare YYMMDD only
-                        if fields and fields[0][5:11] == self.day[2:]:
-                            # two line formats:
-                            # 31777151031  0835 0841 0839 N05E57 C 17    G15  3.6E-04 12443 151104.6
-                            # 31777151031  1015 1029 1022  C 15    G15  1.0E-03
-                            if len(fields) == 11:
-                                self.xra_list.append((
-                                    fields[4],
-                                    self.t_stamp(fields[1]),  # beg time
-                                    self.t_stamp(fields[2]),  # highest time,
-                                    self.t_stamp(fields[3]),  # end time,
-                                    fields[5]+fields[6][0]+'.'+fields[6][1]))
-                            elif len(fields) == 8:
-                                self.xra_list.append((
-                                    "None",
-                                    self.t_stamp(fields[1]),  # beg time
-                                    self.t_stamp(fields[2]),  # highest time,
-                                    self.t_stamp(fields[3]),  # end time,
-                                    fields[4]+fields[5][0]+'.'+fields[5][1]))
-                            else:
-                                print("Please check this line format:")
-                                print(line)
+                for line in fin:
+                    fields = line.split()
+                    # compare YYMMDD only
+                    if fields and fields[0][5:11] == self.day[2:]:
+                        # two line formats:
+                        # 31777151031  0835 0841 0839 N05E57 C 17    G15  3.6E-04 12443 151104.6
+                        # 31777151031  1015 1029 1022  C 15    G15  1.0E-03
+                        if len(fields) == 11:
+                            self.xra_list.append((
+                                fields[4],
+                                self.t_stamp(fields[1]),  # beg time
+                                self.t_stamp(fields[2]),  # highest time,
+                                self.t_stamp(fields[3]),  # end time,
+                                fields[5]+fields[6][0]+'.'+fields[6][1]))
+                        elif len(fields) == 8:
+                            self.xra_list.append((
+                                "None",
+                                self.t_stamp(fields[1]),  # beg time
+                                self.t_stamp(fields[2]),  # highest time,
+                                self.t_stamp(fields[3]),  # end time,
+                                fields[4]+fields[5][0]+'.'+fields[5][1]))
+                        else:
+                            print("Please check this line format:")
+                            print(line)
         except FileNotFoundError:
             print("File not found")
 
@@ -270,7 +279,7 @@ class NOAA_flares:
     def manage_xre_cache(self):
         """ Delete certain files from the cache folder
             Recent event files are updated as new data comes in for about 3 days.
-            So, if the files is more that 1 hour old, and less that 3 days old,
+            So, if the files is more than 1 hour old, and less than 3 days old,
             it should be deleted so that a newer, more recent version will be
             retrieved.
         """
@@ -293,12 +302,15 @@ class NOAA_flares:
             month_string = filename[4:6]
             day_string = filename[6:8]
             try:
-                file_date = datetime(year=int(year_string), month=int(month_string), day=int(day_string))
+                file_date = datetime(year=int(year_string),
+                                     month=int(month_string),
+                                     day=int(day_string))
             except ValueError:
                 # Probably a goes-xrs-report which is always more than 3 days old
                 #print(f"Can't determine file date for {filename}")
                 continue
-            #print(f"{filename} day: {day_string} month: {month_string} year: {year_string} filedate: {file_date}")
+            #print(f"{filename} day: {day_string} month: {month_string} year: {year_string} "
+            #        f"filedate: {file_date}")
             file_age = current_time - file_date
             #print(f"{file_age.days} days old")
             if file_age.days > 4:
@@ -311,17 +323,16 @@ class NOAA_flares:
             current_time = datetime.now()
             file_age = current_time - modification_time
             #print(f"{file_path} is {file_age.seconds} seconds old")
-            if file_age.seconds < 3600: # seconds is 1 hour)
-                #print(f"{file_path} is less that 1 hour  old")
+            if file_age.seconds < 3600: # seconds is 1 hour
+                #print(f"{file_path} is less than 1 hour  old")
                 continue
 
             try:
                 os.remove(file_path)
                 print(f"Deleted: {file_path}")
-            except OSError as e:
-                print(f"Error deleting {file_path}: {e}")
+            except OSError as err:
+                print(f"Error deleting {file_path}: {err}")
         print("Done purging cache")
-        return
 
 # Run some test cases
 if __name__ == '__main__':
@@ -342,20 +353,19 @@ if __name__ == '__main__':
                  "foobar"]  # invalid input - throw exception
 
     def clear_xra_cache():
+        """ Utility to clear the XRA cache before running tests"""
         directory_path = script_relative_to_cwd_relative(path.join("..", "Private"))
         if not os.path.isdir(directory_path):
             print(f"Directory '{directory_path}' does not exist.")
         for filename in os.listdir(directory_path):
             if filename != "README.md":
-                # TOOO: be more selective on what to delete in
-                # order to test cache maintenance logic
                 file_path = os.path.join(directory_path, filename)
                 if os.path.isfile(file_path):  # Check if it's a file (not a subdirectory)
                     try:
                         os.remove(file_path)
                         print(f"Deleted: {file_path}")
-                    except OSError as e:
-                        print(f"Error deleting {file_path}: {e}")
+                    except OSError as err:
+                        print(f"Error deleting {file_path}: {err}")
 
     #clear_xra_cache()
     for test in test_list:
