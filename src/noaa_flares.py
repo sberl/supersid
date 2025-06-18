@@ -6,6 +6,8 @@ Input Parameter is date of solar observation
     Date can be specified as either a datetime object, a date object,
     or a string of the form YYYYMMDD
 
+Optional input parameter
+        noaa_cache_full_path - in case default cache location is overridden
 Output:
     Returns a NOAA_flares object.
         my_flares = NOAA_flares(date)
@@ -53,18 +55,34 @@ import urllib.request
 import urllib.error
 import ftplib
 import os
+import time
+from linecache import cache
 from os import path
 from datetime import datetime, date, timezone
 from supersid_common import script_relative_to_cwd_relative
 
 
 class NOAA_flares:
-    """This object carries a list of all events of a given day."""
-    def __init__(self, day):
+    """This object carries a list of all x-ray flare events of a given day."""
+    def __init__(self, day: object,
+                 noaa_cache_path=None):
         # xra_list is a list of tuples.
         # Each contains:
         # (event_number, begin_time, max_time, end_time, flare_strength)
         self.xra_list = [] # List of tuples
+
+        if noaa_cache_path is None:
+            self.cache_path = script_relative_to_cwd_relative(path.join("..", "Private"))
+        else:
+            self.cache_path = noaa_cache_path
+
+        # create cache folder if it does not exist
+        if not path.isdir(self.cache_path):
+            try:
+                os.mkdir(self.cache_path)
+            except OSError:
+                print("Unable to create folder:", self.cache_path)
+        self.manage_xre_cache()
 
         if isinstance(day, str):
             self.day = day[:8]  # limit to YYYYMMDD
@@ -87,7 +105,7 @@ class NOAA_flares:
             self.ftp_noaa()
         else:
             # Given day is 2016 or earlier --> fetch data by https
-            # If the file is NOT in the ../PRIVATE/ directory then we need to
+            # If the file is NOT in the self.cache_path directory then we need to
             # fetch it first then read line by line to grab the data
             # from the expected day
             file_path = self.http_ngdc()
@@ -129,7 +147,7 @@ class NOAA_flares:
         Return the full path of the data file
         """
 
-        ngdc_url = ("https://www.ngdc.noaa.gov/stp/space-weather/"
+        ngdc_url = ("http://www.ngdc.noaa.gov/stp/space-weather/"
                     "solar-data/solar-features/solar-flares/x-rays/goes/xrs/")
 
         if self.day[:4] != "2015":
@@ -137,18 +155,13 @@ class NOAA_flares:
         else:
             file_name = "goes-xrs-report_2015_modifiedreplacedmissingrows.txt"
 
-        folder = script_relative_to_cwd_relative(path.join("..", "Private"))
-
-        # create folder ../Private if it does not exist
-        if not path.isdir(folder):
-            try:
-                os.mkdir(folder)
-            except OSError:
-                print("Unable to create folder:", folder)
-
+        folder = self.cache_path
         file_path = path.join(folder, file_name)
         url = path.join(ngdc_url, file_name)
-        if not path.isfile(file_path):
+        if path.isfile(file_path):
+            print(f"local file {file_name} already exists")
+        else:
+            print(f"downloading {file_name} from www.ngdc.noaa.gov")
             try:
                 txt = urllib.request.urlopen(url).read().decode()
             except (urllib.error.HTTPError, urllib.error.URLError) as err:
@@ -174,11 +187,12 @@ class NOAA_flares:
         noaa_ftp_path = f"pub/indices/events/{self.day}events.txt"
         noaa_ftp_file = f"{self.day}events.txt"
 
-        local_folder = script_relative_to_cwd_relative(path.join("..", "Private"))
+        local_folder = self.cache_path
         local_file = path.join(local_folder, noaa_ftp_file)
         if path.isfile(local_file):
-            print(f"local file {local_file} already exists in Private folder")
+            print(f"local file {local_file} already exists")
         else:
+            print(f"downloading {local_file} from {noaa_ftp_host}")
             try:
                 ftp = ftplib.FTP(noaa_ftp_host)
                 ftp.login(user='anonymous', passwd='example@example.com')
@@ -190,7 +204,7 @@ class NOAA_flares:
                 print(f"Can't retrieve FTP file {noaa_ftp_host}/{noaa_ftp_path}: {err}")
                 return self.xra_list
 
-        # At this point we have the file in Private cache directory.
+        # At this point we have the file in self.cache_path cache directory.
         with open(local_file, "rt", encoding="utf-8") as goes_data:
             for line in goes_data:
                 if (line[0] != "#") and (line[0] != ":"): #ignore comment lines
@@ -234,26 +248,105 @@ class NOAA_flares:
         for event_name, begin_time, max_time, end_time, particulars in self.xra_list:
             print(event_name, begin_time, max_time, end_time, particulars)
 
+    def manage_xre_cache(self):
+        """ Delete certain files from the cache folder
+            Recent event files are updated as new data comes in for about 3 days.
+            So, if the files is more that 1 hour old, and less that 3 days old,
+            it should be deleted so that a newer, more recent version will be
+            retrieved.
+        """
+
+        print(f"Purging some files from {self.cache_path}")
+        current_time = datetime.now()
+
+        # Don't delete the README
+        for filename in os.listdir(self.cache_path):
+            if filename == "README.md":
+                continue
+
+            # Don't delete a subdirectory
+            file_path = os.path.join(self.cache_path, filename)
+            if os.path.isdir(file_path):
+                continue
+
+            # Don't delete if name is more than 4 days ago
+            year_string = filename[:4]
+            month_string = filename[4:6]
+            day_string = filename[6:8]
+            try:
+                file_date = datetime(year=int(year_string), month=int(month_string), day=int(day_string))
+            except ValueError:
+                # Probably a goes-xrs-report which is always more than 3 days old
+                #print(f"Can't determine file date for {filename}")
+                continue
+            #print(f"{filename} day: {day_string} month: {month_string} year: {year_string} filedate: {file_date}")
+            file_age = current_time - file_date
+            #print(f"{file_age.days} days old")
+            if file_age.days > 4:
+                #print(f"File {filename} is greater than 4 days old")
+                continue
+
+            # Don't delete file if downloaded less than an hour ago
+            modification_timestamp = os.path.getmtime(file_path)
+            modification_time = datetime.fromtimestamp(modification_timestamp)
+            current_time = datetime.now()
+            file_age = current_time - modification_time
+            #print(f"{file_path} is {file_age.seconds} seconds old")
+            if file_age.seconds < 3600: # seconds is 1 hour)
+                #print(f"{file_path} is less that 1 hour  old")
+                continue
+
+            try:
+                os.remove(file_path)
+                print(f"Deleted: {file_path}")
+            except OSError as e:
+                print(f"Error deleting {file_path}: {e}")
+        print("Done purging cache")
+        return
 
 # Run some test cases
 if __name__ == '__main__':
 
     test_list = ["20140104",
-                 "20130525"
-                 "20170104",
-                 "20201211",
-                 "20250529",
-                 datetime(2023, 10, 1, 12, 0),
-                 datetime(2023, 10, 1, 12, 0, tzinfo=timezone.utc),
-                 date(2023, 10, 1),
-                 "2023123a"]  # this one should throw an exception
+                  "20130525", # this one should download the goes-xrs report
+                  "20130525", # should be in the cache so faster
+                  "20170104",
+                  "20201211",
+                  "20250529",
+                 # # next 3 have the same date and file so 1st
+                 # # should download, 2nd and 3rd use cache
+                  datetime(2023, 10, 1, 12, 0),
+                  datetime(2023, 10, 1, 12, 0, tzinfo=timezone.utc),
+                  date(2023, 10, 1),
 
+                 datetime.now(timezone.utc),
+                 "foobar"]  # invalid input - throw exception
+
+    def clear_xra_cache():
+        directory_path = script_relative_to_cwd_relative(path.join("..", "Private"))
+        if not os.path.isdir(directory_path):
+            print(f"Directory '{directory_path}' does not exist.")
+        for filename in os.listdir(directory_path):
+            if filename != "README.md":
+                # TOOO: be more selective on what to delete in
+                # order to test cache maintenance logic
+                file_path = os.path.join(directory_path, filename)
+                if os.path.isfile(file_path):  # Check if it's a file (not a subdirectory)
+                    try:
+                        os.remove(file_path)
+                        print(f"Deleted: {file_path}")
+                    except OSError as e:
+                        print(f"Error deleting {file_path}: {e}")
+
+    #clear_xra_cache()
     for test in test_list:
         try:
+            t_start = time.time()
             print(f"Test for date {test}")
             flare = NOAA_flares(test)
             flare_list = flare.get_xra_list()
-            print(flare.print_xra_list(), "\n")
+            flare.print_xra_list()
+            print(f"querying {flare.day} took {time.time() - t_start:0.3f} seconds\n")
         except Exception as e:
             print(f"Error processing {test}: {e}\n")
 
