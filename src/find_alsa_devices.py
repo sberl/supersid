@@ -23,7 +23,7 @@ from supersid_isine import SinePlayer
 
 
 if __name__ == '__main__':
-    print("Version 20220123")
+    print("Version 20220105")
 
 
 """
@@ -220,7 +220,7 @@ class speaker_test():
     def get_pcms(self):
         return self.ap.get_pcms()
 
-    def start_test_tone(self, card, rate, frequency, channels):
+    def start_test_tone(self, card, rate, frequency=10000):
         """assumption: plughw: will generate the test tone"""
         if "CARD=" == card[0:5]:
             # by experience the 'plughw:CARD=xxxx' are working best
@@ -242,23 +242,20 @@ class speaker_test():
                         break
             if found:
                 try:
-                    self.isine = SinePlayer(device, rate, frequency, channels)
+                    self.isine = SinePlayer(device, rate, frequency)
                     self.isine.start()
                     time.sleep(2.0)
                     print(
                         "test tone started {} Hz, '{}'"
                         .format(int(self.isine.frequency), device))
-                    return True
                 except Exception as e:
-                    print("ERROR test tone:", type(e), e)
+                    print("ERROR:", type(e), e)
             else:
                 print(
-                    "ERROR test tone: device '{}' not found for test tone "
-                    "generation"
+                    "ERROR: device '{}' not found for test tone generation"
                     .format(device))
         else:
-            print("ERROR test tone: usage error, already active")
-        return False
+            print("usage error: test tone is already active")
 
     def stop_test_tone(self):
         if self.isine:
@@ -743,7 +740,7 @@ try:
                             generated_frequency = test_frequency
                             if st is not None:
                                 generated_frequency = rate // 3
-                                if not st.start_test_tone(
+                                st.start_test_tone(
                                     # preferably use the device configured for
                                     # the test tone
                                     test_tone if test_tone is not None
@@ -758,13 +755,8 @@ try:
 
                                     # adapt the frequency to the sample rate,
                                     # theoretical max would be (rate / 2)
-                                    generated_frequency,
-
-                                    # use the same number of channels as for
-                                    # the capturing
-                                    channels
-                                ):
-                                    continue  # test tone could not be started
+                                    generated_frequency
+                                )
                             for format in interface['formats']:
                                 asound_format = format
                                 alsaaudio_format = \
@@ -866,42 +858,30 @@ try:
                 self.test_summary(test_log, regression, channels)
 
         def test_summary(self, test_log, regression, channels):
-            # convert the entire results list
-            df = pd.DataFrame(test_log)
+            num_candidates = 0
+            if len(test_log) > 0:
+                # convert the entire results list
+                df = pd.DataFrame(test_log)
 
-            # drop all rows containing no values e.g. no duration,
-            # no peak_frequency, no frequency_ratio
-            df = df.dropna()
+                # drop all rows containing no values e.g. no duration,
+                # no peak_frequency, no frequency_ratio
+                df = df.dropna()
 
-            # drop frequency_ratio deviating more than 2 %% from the ideal 1.0
-            if 'frequency_ratio' in df.keys():
+                # drop frequency_ratio deviating more than 2 %% from the ideal 1.0
                 df = df[
                     (df['frequency_ratio'] >= 0.998) &
                     (df['frequency_ratio'] <= 1.002)]
 
-            # in the brute force operation it has been observed that devices
-            # appear to work with higher sample rates than supported, the
-            # recording time is then i.e. 4 sec for a 48000 device tested as
-            # 192000
-            if 'duration' in df.keys():
+                # in the brute force operation it has been observed that devices
+                # appear to work with higher sample rates than supported, the
+                # recording time is then i.e. 4 sec for a 48000 device tested as
+                # 192000
                 df = df[
                     (df['duration'] > 0.9) &
                     (df['duration'] < 1.1)]
-
-            df['candidate'] = None
-            num_candidates = 0
-
-            required_keys = {
-                'Device',
-                'audio_sampling_rate',
-                'Format',
-                'PeriodSize',
-                'candidate',
-            }
-            if set() == (required_keys - set(df.keys())):
+                df['candidate'] = None
                 for Device in df['Device'].unique():
-                    for audio_sampling_rate in df['audio_sampling_rate'] \
-                            .unique():
+                    for audio_sampling_rate in df['audio_sampling_rate'].unique():
                         for Format in df['Format'].unique():
                             for PeriodSize in df['PeriodSize'].unique():
                                 index = df[
@@ -912,8 +892,7 @@ try:
                                     (df['PeriodSize'] == PeriodSize)].index
                                 if len(index) == regression * channels:
                                     num_candidates += 1
-                                    df.loc[index, 'candidate'] = \
-                                        num_candidates
+                                    df.loc[index, 'candidate'] = num_candidates
 
             if num_candidates >= 1:
                 print("{} candidates found.".format(num_candidates))
