@@ -1,7 +1,6 @@
 """SuperSID text mode viewer.
 
 Minimal output for SuperSID in text mode i.e. within terminal window.
-Useful for Server mode
 
 Each Viewer must implement:
 - __init__(): all initializations
@@ -10,12 +9,11 @@ Each Viewer must implement:
 - status_display(): display a message in a status bar or equivalent
 """
 import sys
+import readchar
 from threading import Timer
 from time import sleep
-from _getch import _Getch
-from matplotlib.mlab import psd as mlab_psd
 
-from config import FILTERED, RAW, printConfig
+from supersid_config import FILTERED, RAW, print_config
 
 
 class textSidViewer:
@@ -23,7 +21,6 @@ class textSidViewer:
         self.version = "1.3.1 20150421 (text)"
         print("SuperSID initialization")
         self.controller = controller
-        self.getch = _Getch()
         self.MAXLINE = 70
         self.print_menu()
         self.timer = Timer(0.5, self.check_keyboard)
@@ -40,21 +37,12 @@ class textSidViewer:
         except (KeyboardInterrupt, SystemExit):
             pass
 
-    def status_display(self, msg, level=0):
+    def status_display(self, msg):
         print(("\r" + msg + " "*self.MAXLINE)[:self.MAXLINE],  end='')
         sys.stdout.flush()
 
-    def get_psd(self, data, NFFT, FS):
-        """Call 'psd', calculates the spectrum."""
-        try:
-            Pxx = {}
-            for channel in range(self.controller.config['Channels']):
-                Pxx[channel], freqs = \
-                    mlab_psd(data[:, channel], NFFT=NFFT, Fs=FS)
-        except RuntimeError as err_re:
-            print("Warning:", err_re)
-            Pxx, freqs = None, None
-        return Pxx, freqs
+    def update_psd(self, Pxx, freqs):
+        pass
 
     def close(self):
         self.timer.cancel()
@@ -71,32 +59,35 @@ class textSidViewer:
         print(" C) list the Config file(s) parameters")
         print(" V) Version")
         print(" ?) display this menu")
-        print(" X) eXit (without saving)")
+        if self.controller.config['hourly_save'] == 'YES':
+            print(" X) eXit (with saving)")
+        else:
+            print(" X) eXit (without saving)")
         print("-" * self.MAXLINE)
 
     def check_keyboard(self):
-        s = self.getch().lower()
-        if s == 'x':
+        s = readchar.readkey().lower()
+        if s == "x":
             self.controller.close()
-        elif s in ('f', 'r', 'e'):
+        elif s in ("f", "r", "e"):
             print("\n\n")
             for fname in self.controller.save_current_buffers(
-                    log_type=FILTERED if s == 'f' else RAW,
-                    log_format='both_extended' if s == 'e' else 'both'):
+                    log_type=FILTERED if s == "f" else RAW,
+                    log_format='both_extended' if s == "e" else 'both'):
                 print(fname, "saved")
             self.print_menu()
-        elif s == '?':
+        elif s == "?":
             self.print_menu()
-        elif s == 'c':
-            printConfig(self.controller.config)
+        elif s == "c":
+            print_config(self.controller.config)
             self.print_menu()
-        elif s == 'v':
+        elif s == "v":
             print("\n")
             print(self.controller.about_app())
             self.print_menu()
         else:
             sys.stdout.write('\a')  # terminal bell
         # call again in half a second to check if a new key has been pressed
-        if s != 'x':
+        if s != "x":
             self.timer = Timer(0.5, self.check_keyboard)
             self.timer.start()

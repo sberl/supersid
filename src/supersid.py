@@ -19,16 +19,17 @@ import sys
 import os.path
 import argparse
 import subprocess
+from datetime import datetime, timezone
+from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
 from sidtimer import SidTimer
-from sampler import Sampler
-from config import readConfig, CONFIG_FILE_NAME
-from logger import Logger
-from supersid_common import exist_file, script_relative_to_cwd_relative
+from supersid_sampler import Sampler
+from supersid_config import read_config, CONFIG_FILE_NAME
+from supersid_logger import Logger
+from supersid_common import exist_file, script_relative_to_cwd_relative, is_script
 
-
-class SuperSID():
+class SuperSID:
     """Main class which creates all other objects.
 
     In CMV pattern, this is the Controller.
@@ -43,10 +44,24 @@ class SuperSID():
         self.viewer = None
 
         # read the configuration file or exit
-        self.config = readConfig(config_file)
+        self.config = read_config(config_file)
         self.config["supersid_version"] = self.version
         if viewer is not None:
             self.config['viewer'] = viewer
+
+        # command line parameter -r/--read has precedence over automatic read
+        if read_file is None:
+            # if there are hourly saves ...
+            if self.config['hourly_save'] == 'YES':
+                # ... figure out the file name ...
+                utcnow = datetime.now(timezone.utc)
+                utc_starttime = f"{utcnow.year}-{utcnow.month:02d}-{utcnow.day:02d} 00:00:00"
+                file_name = (f"{self.config['data_path']}"
+                             f"hourly_current_buffers.raw.ext.{utc_starttime[:10]}.csv")
+                # ... check the existence ...
+                if os.path.isfile(file_name):
+                    # ... and force reading
+                    read_file = file_name
 
         # Create Logger -
         # Logger will read an existing file if specified
@@ -62,27 +77,15 @@ class SuperSID():
         if self.config['viewer'] == 'tk':
             # GUI Frame to display real-time VLF Spectrum based on
             # tkinter
-            from tksidviewer import tkSidViewer
+            from tksidviewer import tkSidViewer # pylint: disable=import-outside-toplevel
             self.viewer = tkSidViewer(self)
         elif self.config['viewer'] == 'text':
             # Lighter text version a.k.a. "console mode"
-            from textsidviewer import textSidViewer
+            from textsidviewer import textSidViewer # pylint: disable=import-outside-toplevel
             self.viewer = textSidViewer(self)
         else:
-            print("ERROR: Unknown viewer", sid.config['viewer'])
+            print("ERROR: Unknown viewer", self.config['viewer'])
             sys.exit(2)
-
-        # Assign desired PSD function for calculation after capture
-        # currently: using matplotlib's psd
-        if (self.config['viewer'] == 'tk'):
-            # calculate psd and draw result in one call
-            self.psd = self.viewer.get_psd
-        elif self.config['viewer'] == 'text':
-            # calculate psd only
-            self.psd = self.viewer.get_psd
-        else:
-            # just a precaution in case another viewer will be added in future
-            raise(NotImplementedError)
 
         # calculate Stations' buffer_size
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
@@ -129,15 +132,18 @@ class SuperSID():
             log_format = sid_extended
 
         The files for the upload are generated into the 'local_tmp' folder
-        of the [FTP] section. By default this is the directory '../outgoing'.
+        of the [FTP] section. By default, this is the directory '../outgoing'.
 
         Automatic ftp upload is performed only if 'automatic_upload = yes'
         is set.
 
         """
-        subprocess.Popen([
-            sys.executable,
-            script_relative_to_cwd_relative('ftp_to_stanford.py'),
+        if is_script():
+            cmd += [sys.executable,
+                    script_relative_to_cwd_relative('ftp_to_stanford.py')]
+        else:
+            cmd = [script_relative_to_cwd_relative('ftp_to_stanford.exe')]
+        subprocess.Popen(cmd + [
             '-y',
             '-c',
             script_relative_to_cwd_relative(self.config.filenames[0])])
@@ -153,23 +159,24 @@ class SuperSID():
         utc_now = self.timer.utc_now
 
         # Get new data and pass them to the View
-        message = "%s  [%d]  Capturing data..." % (self.timer.get_utc_now(),
-                                                   current_index)
-        self.viewer.status_display(message, level=1)
+        message = f"{self.timer.get_utc_now()}  [{current_index}]  Capturing data..."
+        self.viewer.status_display(message)
         signal_strengths = []
+        data = []
         try:
             # capture_1sec() returns list of signal strength,
             # may set sampler_ok = False
             data = self.sampler.capture_1sec()
 
             if self.sampler.sampler_ok:
-                Pxx, freqs = self.psd(data, self.sampler.NFFT,
+                pxx, freqs = self.get_psd(data, self.sampler.NFFT,
                                       self.sampler.audio_sampling_rate)
-                if Pxx is not None:
-                    for channel, binSample in zip(
+                if pxx is not None:
+                    self.viewer.update_psd(pxx, freqs)
+                    for channel, bin_sample in zip(
                             self.sampler.monitored_channels,
                             self.sampler.monitored_bins):
-                        signal_strengths.append(Pxx[channel][binSample])
+                        signal_strengths.append(pxx[channel][bin_sample])
         except IndexError as idxerr:
             print("Index Error:", idxerr)
             print("Data len:", len(data))
@@ -185,9 +192,10 @@ class SuperSID():
         if ((self.timer.utc_now.minute == 0) and
                 (self.timer.utc_now.second < self.config['log_interval'])):
             if self.config['hourly_save'] == 'YES':
-                fileName = "hourly_current_buffers.raw.ext.%s.csv" % (
-                    self.logger.sid_file.sid_params['utc_starttime'][:10])
-                self.save_current_buffers(filename=fileName,
+                file_name = (f"hourly_current_buffers.raw.ext."
+                             f"{self.logger.sid_file.sid_params['utc_starttime'][:10]}.csv")
+                print("Saving hourly buffers to", file_name)
+                self.save_current_buffers(filename=file_name,
                                           log_type='raw',
                                           log_format='supersid_extended')
             # a new day!
@@ -200,16 +208,29 @@ class SuperSID():
                 self.ftp_to_stanford()
         # Save signal strengths into memory buffers
         # prepare message for status bar
-        message = self.timer.get_utc_now() + "  [%d]  " % current_index
+        message = f"{self.timer.get_utc_now()}  [{current_index}]  "
         for station, strength in zip(self.config.stations,
                                      signal_strengths):
             station['raw_buffer'][current_index] = strength
-            message += station['call_sign'] + "=%f " % strength
+            message += f"{station['call_sign']}={strength:.4f} "
         self.logger.sid_file.timestamp[current_index] = utc_now
 
         # end of this thread/need to handle to View to display
         # captured data & message
-        self.viewer.status_display(message, level=2)
+        self.viewer.status_display(message)
+
+    def get_psd(self, data, nfft, fs):
+        """Call 'psd', calculates the spectrum."""
+        try:
+            pxx = {}
+            freqs = []
+            for channel in range(self.config['Channels']):
+                pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=nfft, Fs=fs)
+        except RuntimeError as err_re:
+            print("Warning:", err_re)
+            pxx, freqs = None, None
+        return pxx, freqs
 
     def save_current_buffers(self, filename='', log_type='raw',
                              log_format='both'):
@@ -225,10 +246,8 @@ class SuperSID():
         """
         filenames = []
         if log_format.startswith('both') or log_format.startswith('sid'):
-            # filename is '' to ensure one file per station
             fnames = self.logger.log_sid_format(
                 self.config.stations,
-                '',
                 log_type=log_type,
                 extended=log_format.endswith('extended'))
             filenames += fnames
@@ -242,6 +261,7 @@ class SuperSID():
         return filenames
 
     def on_close(self):
+        """Handle the close event of the application."""
         self.close()
 
     def run(self):
@@ -252,6 +272,12 @@ class SuperSID():
     def close(self):
         """Call all necessary stop/close functions of children objects."""
         self.__class__.running = False
+        if self.config['hourly_save'] == 'YES':
+            file_name = (f"hourly_current_buffers.raw.ext."
+                        f"{self.logger.sid_file.sid_params['utc_starttime'][:10]}.csv")
+            self.save_current_buffers(filename=file_name,
+                                      log_type='raw',
+                                      log_format='supersid_extended')
         if self.sampler:
             self.sampler.close()
         if self.timer:
@@ -273,7 +299,7 @@ class SuperSID():
                "Viewer: " + self.viewer.version + "\n"
                "\n\nOriginal Author: Eric Gibert  ericgibert@yahoo.fr"
                "\nAdditions by: Steve Berl <steveberl@gmail.com>"
-               "\n\nVisit http://solar-center.stanford.edu/SID/sidmonitor/ "
+               "\n\nVisit https://solar-center.stanford.edu/SID/sidmonitor/ "
                "for more information.")
 
         return msg

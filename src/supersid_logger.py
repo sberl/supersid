@@ -12,11 +12,12 @@ Change tracking:
     20150801:
         - truncate sid_params['utc_starttime'] to 19 first chars
 """
+import sys
 from os import path
 from time import gmtime, strftime
 from sidfile import SidFile
-from config import FILTERED, RAW, CALL_SIGN, FREQUENCY
-from config import SID_FORMAT, SUPERSID_FORMAT
+from supersid_config import FILTERED, RAW, CALL_SIGN, FREQUENCY
+from supersid_config import SID_FORMAT, SUPERSID_FORMAT
 
 
 class Logger():
@@ -52,7 +53,7 @@ class Logger():
                 ",".join([s[FREQUENCY] for s in self.config.stations])
         else:
             print("Error: no station to log???")
-            exit(5)
+            sys.exit(5)
         self.sid_file = SidFile(sid_params=self.config)
 
         # Do we have a file to read from the command line by the user at launch
@@ -66,7 +67,7 @@ class Logger():
                     "recording? [y/N]")
                 if answer.lower() != 'y':
                     print("Abort.")
-                    exit(-10)
+                    sys.exit(-10)
             elif (sid_file2.sid_params['utc_starttime'][:19]
                     != strftime("%Y-%m-%d 00:00:00", gmtime())):
                 print("Not today's file. The file UTC_StartTime =",
@@ -76,7 +77,7 @@ class Logger():
                     "recording? [y/N]")
                 if answer.lower() != 'y':
                     print("Abort.")
-                    exit(-11)
+                    sys.exit(-11)
             elif (sorted(sid_file2.stations)
                     != sorted([s['call_sign'] for s in self.config.stations])):
                 print("Station Lists are different:",
@@ -87,19 +88,17 @@ class Logger():
                     "recording? [y/N]")
                 if answer.lower() != 'y':
                     print("Abort.")
-                    exit(-11)
+                    sys.exit(-11)
             self.sid_file.copy_data(sid_file2)
             print("Continue recording with data from file",
                   read_file, "included.")
 
-    def log_sid_format(self, stations,  filename='', log_type=FILTERED,
-                       extended=False):
+    def log_sid_format(self, stations, log_type=FILTERED, extended=False):
         """One file per station. By default, buffered data is filtered."""
         filenames = []
         for station in stations:
-            my_filename = self.config.data_path \
-                + (filename or self.sid_file.get_sid_filename(
-                    station['call_sign']))
+            my_filename = self.config['data_path'] \
+                + self.sid_file.get_sid_filename(station['call_sign'])
             filenames.append(my_filename)
             self.sid_file.write_data_sid(station, my_filename, log_type,
                                          extended=extended,
@@ -111,7 +110,7 @@ class Logger():
         """Cascade all buffers in one file."""
         my_filename = filename \
             if filename and path.isabs(filename) \
-            else self.config.data_path \
+            else self.config['data_path'] \
             + (filename or self.sid_file.get_supersid_filename())
         self.sid_file.write_data_supersid(my_filename, log_type,
                                           extended=extended,

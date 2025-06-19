@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-
+"""
+A bunch of common functions used throughout the Supersid python code
+"""
+import sys
 import os.path
 import argparse
 import unicodedata
 import re
 
-
 def exist_file(x):
     """Check for argparse that file exists but does not open it."""
     if not os.path.isfile(x):
-        raise argparse.ArgumentTypeError("{0} does not exist".format(x))
+        raise argparse.ArgumentTypeError(f"{x} does not exist")
     return x
 
 
@@ -31,7 +33,7 @@ def script_relative_to_cwd_relative(path):
         # it is a relative path,
         # convert it to a relative path with respect to the script folder
         absolute_cwd = os.path.realpath(os.getcwd())
-        absolute_script_path = os.path.dirname(os.path.realpath(__file__))
+        absolute_script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
         relative_path = os.path.relpath(absolute_script_path, absolute_cwd)
         return os.path.normpath(os.path.join(relative_path, path))
 
@@ -55,11 +57,22 @@ def slugify(value, allow_unicode=False):
     return re.sub(r'[-\s]+', '-', value)
 
 
+def is_script():
+    executable = os.path.split(sys.executable)[-1].lower()
+    return 'python' == os.path.splitext(executable)[0]
+
+
 if __name__ == '__main__':
+    if is_script():
+        ext = ".py"
+    else:
+        ext = ".exe"
+
     for file in [
-            'supersid_common.py',
-            './supersid_common.py',
-            '../Config/supersid.cfg']:
+            f'supersid_common{ext}',
+            f'./supersid_common{ext}',
+            '../Config/supersid.cfg',
+            "not_a_file"]:
         try:
             print(exist_file(script_relative_to_cwd_relative(file)))
         except Exception as e:

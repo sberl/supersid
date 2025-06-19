@@ -1,7 +1,7 @@
 # File Naming Convention and Location
 
 SuperSID uses the parameters set in the provided configuration file passed as an argument on the command line. By convention, the file name is "supersid.cfg".
-It is possible to have more than one configuration file to launch the SuperSID application with different parameters. For example to specify different list of Stations to monitor or to choose between graphic or text mode interface.
+It is possible to have more than one configuration file to launch the SuperSID application with different parameters. For example to specify different list of stations to monitor or to choose between graphic or text mode interface.
 
 The file can be located in any accessible directory provided that the fully qualified path is given. In case no path is provided, the default path '../Config/supersid.cfg' will be used.
  
@@ -12,7 +12,7 @@ The configuration file is a simple text file formatted as a classic '.ini' struc
 The supported sections are:
 
   * [PARAMETERS](#id-section1)
-  * [STATION_x](#id-section2) where x is a number in [1..n]
+  * [STATION](#id-section2)
   * [Capture](#id-section3)
   * [Email](#id-section4)
   * [FTP](#id-section5)
@@ -79,15 +79,20 @@ Version 1.4: FTP information is no longer part of the [PARAMETERS] section. Refe
   * psd_max: float, max value for the y axis of the psd graph, **NaN** (default) means automatic scaling
   * psd_ticks: int, number of ticks for the y axis of the psd graph, **0** (default) means automatic ticks.
     Fixed number of 'psd_ticks' works only in conjunction with 'psd_min' and 'psd_max'.
+  * waterfall_samples: int, the number of samples displayed in the waterfall diagram(s)<br />
+    **0** (default) disables the waterfall diagrams otherwise one waterfall diagramm per numer of Channels.<br />
+    Positive values specify the number of samples to be displayed.<br />
+    60 seconds / log_interval corresponds to one minute.<br />
+    15 minutes at the default log_interval of 5 seconds results in 15 * (60 / 5) = 180.<br />
+    The waterfall diagrams are expensive in terms of RAM and CPU usage. May work with Raspberry Pi 400 with 4GB RAM.
   * bema_wing: beta_wing parameter for sidfile.filter_buffer() calculation. Default is '**6**'.
   * paper_size: one of **A3**, **A4**, **A5**, **Legal**, **Letter**
-  * number_of_stations: specify the number of stations to monitor. Each station is described within its own section.
 
 <div id='id-section2'/>
 
-## [STATION_x]
+## [STATION]
 
-Each station to monitor is enumerated from 1 till n=*number_of_stations*. For each station, one must provide:
+For each station, one must provide:
 
   * call_sign: Station ID (various VLF station lists exist like [AAVSO's] (http://www.aavso.org/vlf-station-list) and [Wikipedia's] (http://en.wikipedia.org/wiki/Very_low_frequency#List_of_VLF_transmissions))
   * frequency: emission frequency in Hz

@@ -26,7 +26,7 @@ from struct import unpack as st_unpack
 from numpy import array
 from matplotlib.mlab import psd as mlab_psd
 
-from config import FREQUENCY, S16_LE, S24_3LE, S32_LE
+from supersid_config import FREQUENCY, S16_LE, S24_3LE, S32_LE
 
 
 def get_peak_freq(data, audio_sampling_rate):
@@ -699,10 +699,15 @@ class Sampler():
     """Sampler will gather sound capture from various devices."""
 
     def __init__(self, controller, audio_sampling_rate=96000, NFFT=None):
+        """Initialize the sampler."""
         self.version = "1.4 20160207"
+        self.monitored_channels = []
+        self.monitored_bins = []
+        self.data = []
+
+        # Remember constructor parameters
         self.controller = controller
         self.scaling_factor = controller.config['scaling_factor']
-
         self.audio_sampling_rate = audio_sampling_rate
         if NFFT is not None:
             self.NFFT = NFFT
@@ -767,10 +772,11 @@ class Sampler():
         """
         try:
             self.data = self.capture_device.capture_1sec()
-        except Exception:
+        except Exception as err:
             self.sampler_ok = False
             print(
-                "Fail to read data from audio using "
+                type(err), err,
+                "Failed to read data from audio using "
                 + self.capture_device.name)
             self.data = []
         else:
@@ -875,7 +881,7 @@ select smaller numbers like 128, 256, 512, ...""",
                                 args.channels,
                                 args.periodsize)
         else:
-            print("not installed.")
+            print("alsaaudio not installed.")
 
     if (args.module is None) or (args.module == 'sounddevice'):
         if 'sounddevice' in audioModule:
@@ -890,7 +896,7 @@ select smaller numbers like 128, 256, 512, ...""",
                                 format,
                                 args.channels)
         else:
-            print("not installed.")
+            print("sounddevice not installed.")
 
     if (args.module is None) or (args.module == 'pyaudio'):
         if 'pyaudio' in audioModule:
@@ -905,4 +911,4 @@ select smaller numbers like 128, 256, 512, ...""",
                                 format,
                                 args.channels)
         else:
-            print("not installed.")
+            print("pyaudio not installed.")

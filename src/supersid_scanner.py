@@ -12,15 +12,17 @@ Can help to orientate the antenna.
 
 Works with pyaudio only.
 """
-import os.path
+
+import sys
 from time import sleep
 import argparse
+from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
 from sidtimer import SidTimer
-from sampler import Sampler
-from config import readConfig, CONFIG_FILE_NAME
-from logger import Logger
+from supersid_sampler import Sampler
+from supersid_config import read_config, CONFIG_FILE_NAME
+from supersid_logger import Logger
 from textsidviewer import textSidViewer
 from supersid_common import exist_file, slugify
 
@@ -41,7 +43,7 @@ class SuperSID_scanner():
         self.viewer = None
 
         # read the configuration file or exit
-        self.config = readConfig(config_file)
+        self.config = read_config(config_file)
 
         (self.scan_duration, self.scan_from, self.scan_to) = scan_params
         print("Scanning for %d minutes on [%d:%d]..." % scan_params)
@@ -69,7 +71,6 @@ class SuperSID_scanner():
         # the same interface
         self.config['viewer'] = 'text'  # Light text version aka "console mode"
         self.viewer = textSidViewer(self)
-        self.psd = self.viewer.get_psd
 
         # calculate Stations' buffer_size
         self.buffer_size = int(24*60*60 / self.config['log_interval'])
@@ -80,7 +81,7 @@ class SuperSID_scanner():
             audio_sampling_rate=self.config['audio_sampling_rate'])
         if not self.sampler.sampler_ok:
             self.close()
-            exit(3)
+            sys.exit(3)
         else:
             self.sampler.set_monitored_frequencies(self.config.stations)
 
@@ -90,8 +91,7 @@ class SuperSID_scanner():
 
         # Create Timer
         self.viewer.status_display("Waiting for Timer ... ")
-        self.timer = SidTimer(self.config['log_interval'], self.on_timer,
-                              delay=2)
+        self.timer = SidTimer(self.config['log_interval'], self.on_timer)
         self.scan_end_time = self.timer.start_time + 60 * self.scan_duration
 
     def about_app(self):
@@ -111,12 +111,12 @@ class SuperSID_scanner():
         # Get new data and pass them to the View
         message = "%s  [%d]  Capturing data..." % (self.timer.get_utc_now(),
                                                    current_index)
-        self.viewer.status_display(message, level=1)
+        self.viewer.status_display(message)
 
         try:
             # return a list of signal strength
             data = self.sampler.capture_1sec()
-            Pxx, freqs = self.psd(data, self.sampler.NFFT,
+            pxx, freqs = self.get_psd(data, self.sampler.NFFT,
                                   self.sampler.audio_sampling_rate)
         except IndexError as idxerr:
             print("Index Error:", idxerr)
@@ -126,7 +126,7 @@ class SuperSID_scanner():
         for channel, bin in zip(
                 self.sampler.monitored_channels,
                 self.sampler.monitored_bins):
-            signal_strengths.append(Pxx[channel][bin])
+            signal_strengths.append(pxx[channel][bin])
 
         # Save signal strengths into memory buffers
         # prepare message for status bar
@@ -146,13 +146,26 @@ class SuperSID_scanner():
                 filename=fileName,
                 log_type='raw',
                 log_format='supersid_extended')
-            print(fsaved, "saved.")
+            print(fsaved, "saved. Press 'x' to exit")
             self.close()
-            exit(0)
+            sys.exit(0)
 
         # end of this thread/need to handle to View to
         # display captured data & message
-        self.viewer.status_display(message, level=2)
+        self.viewer.status_display(message)
+
+    def get_psd(self, data, nfft, fs):
+        """Call 'psd', calculates the spectrum."""
+        try:
+            pxx = {}
+            freqs = []
+            for channel in range(self.config['Channels']):
+                pxx[channel], freqs = \
+                    mlab_psd(data[:, channel], NFFT=nfft, Fs=fs)
+        except RuntimeError as err_re:
+            print("Warning:", err_re)
+            pxx, freqs = None, None
+        return pxx, freqs
 
     def save_current_buffers(self, filename='',
                              log_type='raw',
@@ -169,10 +182,8 @@ class SuperSID_scanner():
         """
         filenames = []
         if log_format.startswith('both') or log_format.startswith('sid'):
-            # filename is '' to ensure one file per station
             fnames = self.logger.log_sid_format(
                 self.config.stations,
-                '',
                 log_type=log_type,
                 extended=log_format.endswith('extended'))
             filenames += fnames
@@ -249,10 +260,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.record_sec:
-        from sampler import pyaudio_soundcard
+        from supersid_sampler import pyaudio_soundcard
         import wave
 
-        config = readConfig(args.config_file)
+        config = read_config(args.config_file)
         config.supersid_check()
         device = pyaudio_soundcard(
             config['Device'],

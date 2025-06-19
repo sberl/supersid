@@ -23,6 +23,7 @@ import glob
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter as ff
 import matplotlib.dates
+import math
 # Internet and Email modules
 import mimetypes
 import smtplib
@@ -35,7 +36,7 @@ from email import encoders, utils
 import argparse
 # SuperSID modules
 from sidfile import SidFile
-from config import readConfig, printConfig, CONFIG_FILE_NAME
+from supersid_config import read_config, print_config, CONFIG_FILE_NAME
 from supersid_common import exist_file
 
 try:
@@ -133,8 +134,7 @@ class SUPERSID_PLOT():
                     return station['color'] or None
         return None
 
-    def plot_filelist(self, filelist, showPlot=True, eMail=None, pdf=None,
-                      web=False, config=None):
+    def plot_filelist(self, filelist, args, config):
         """Read the files in the filelist parameters.
 
         Each data are combine in one plot.
@@ -143,6 +143,13 @@ class SUPERSID_PLOT():
         Connection for the given days to NOAA website is possible (web) in
         order to draw vetical lines for XRA data.
         """
+        showPlot=args.showPlot
+        eMail=args.email
+        pdf=args.pdffilename
+        web=args.webData
+        y_min = args.y_min
+        y_max = args.y_max
+
         emailText = []
 
         def Tstamp(HHMM):
@@ -170,6 +177,8 @@ class SUPERSID_PLOT():
         filenames.extend([a for a in itertools.chain.from_iterable(
                 [glob.glob(os.path.expanduser(f)) for f in filelist])])
         # print(filenames)
+        if 0 == len(filenames):
+            sys.exit(f"{filelist} doesn't match any known file, no file to procss")
 
         # plot's figure and axis
         fig = plt.figure()
@@ -178,6 +187,7 @@ class SUPERSID_PLOT():
         current_axes.xaxis.set_major_locator(matplotlib.dates.DayLocator())
         current_axes.xaxis.set_major_formatter(ff(self.m2yyyymmdd))
         current_axes.xaxis.set_minor_formatter(ff(self.m2hm))
+        current_axes.xaxis.axis_date()
         current_axes.set_xlabel("UTC Time")
         current_axes.set_ylabel("Signal Strength")
 
@@ -213,10 +223,10 @@ class SUPERSID_PLOT():
                             colorList[colorIdx % len(colorList)] + '-'
                         colorIdx += 1
                 # Add points to the plot
-                plt.plot_date(sFile.timestamp,
-                              sFile.get_station_data(station),
-                              colorStation[station],
-                              label=station)
+                plt.plot(sFile.timestamp,
+                         sFile.get_station_data(station),
+                         colorStation[station],
+                         label=station)
                 # Extra housekeeping
 
                 # maxData will be used later to put the XRA labels up
@@ -296,6 +306,9 @@ class SUPERSID_PLOT():
 
         print("All files read in", clock(), "sec.")
 
+        if not math.isnan(y_max):
+            maxData = y_max
+
         if web:  # add the lines marking the retrieved flares from NOAA
             alternate = 0
             for eventName, BeginTime, MaxTime, EndTime, Particulars in XRAlist:
@@ -331,6 +344,11 @@ class SUPERSID_PLOT():
 
         fig.suptitle(", ".join(figTitle))
 
+        # set the y axis limits as passed via command line arguments
+        if not math.isnan(y_min):
+            plt.ylim(bottom=y_min)
+        if not math.isnan(y_max):
+            plt.ylim(top=y_max)
         plt.legend()
         plt.tight_layout()
 
@@ -350,10 +368,9 @@ For running supersid_plot.py directly from command line
 """
 
 
-def do_main(filelist, showPlot=True, eMail=None, pdf=None,
-            web=False, config=None):
+def do_main(filelist, args, config):
     ssp = SUPERSID_PLOT()
-    ssp.plot_filelist(filelist, showPlot, eMail, pdf, web, config)
+    ssp.plot_filelist(filelist, args, config)
 
 
 if __name__ == '__main__':
@@ -426,6 +443,18 @@ if __name__ == '__main__':
         default=False,
         help="Print more messages.")
     parser.add_argument(
+        "--y-min",
+        dest="y_min",
+        default=float('NaN'),
+        type=float,
+        help="y axis minimum; default is auto")
+    parser.add_argument(
+        "--y-max",
+        dest="y_max",
+        default=float('NaN'),
+        type=float,
+        help="y axis maximum; default is auto")
+    parser.add_argument(
         'file_list',
         metavar='file.csv',
         type=exist_file,
@@ -434,45 +463,47 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # read the configuration file or exit
-    config = readConfig(args.cfg_filename)
+    config = read_config(args.cfg_filename)
     if args.verbose:
-        printConfig(config)
+        print_config(config)
 
     if args.filename is None:  # no --file option specified
         if len(args.file_list) > 0:
             # last non options arguments are assumed to be a list of file names
-            filenames = ",".join(unk)
+            filenames = ",".join(args.file_list)
         else:
             # try building the file name from given options
             # or found in the provided .cfg file
-            Now = datetime.datetime.now()  # by default today
+            Now = datetime.datetime.utcnow()  # by default today
             if args.askYesterday:
                 Now -= datetime.timedelta(days=1)
             # stations can be given as a comma delimited string
             # SuperSID id is unique
-            lstFileNames = []
+            lst_filenames = []
             data_path = config.get("data_path")
             if args.station_id is None:  # file name like supersid file format
-                lstFileNames.append("%s/%s_%04d-%02d-%02d.csv" %
-                                    (data_path,
-                                     args.site_id or config["site_name"],
-                                     Now.year, Now.month, Now.day))
+                filename = os.path.join(data_path,
+                    f"{args.site_id or config['site_name']}_"
+                    f"{Now.year:04d}-{Now.month:02d}-{Now.day:02d}.csv"
+                )
+                lst_filenames.append(filename)
             else:
                 if args.station_id == '*':
                     # all possible stations from .cfg file
                     # - must be '*' on the command line!
-                    strStations = ",".join([s["call_sign"]
+                    str_stations = ",".join([s["call_sign"]
                                             for s in config.stations])
                 else:  # only given stations - can be a comma delimited list
-                    strStations = args.station_id
+                    str_stations = args.station_id
                 # build the list of sid format file names
-                for station in strStations.split(","):
-                    lstFileNames.append("%s/%s_%s_%04d-%02d-%02d.csv" %
-                                        (data_path,
-                                         args.site_id or config["site_name"],
-                                         station,
-                                         Now.year, Now.month, Now.day))
-            filenames = ",".join(lstFileNames)
+                for station in str_stations.split(","):
+                    filename = os.path.join(data_path,
+                        f"{args.site_id or config['site_name']}_"
+                        f"{station}_"
+                        f"{Now.year:04d}-{Now.month:02d}-{Now.day:02d}.csv"
+                    )
+                    lst_filenames.append(filename)
+            filenames = ",".join(lst_filenames)
     else:
         filenames = args.filename
 
@@ -480,11 +511,6 @@ if __name__ == '__main__':
         print("List of files:", filenames)
 
     if filenames:
-        do_main(filenames,
-                showPlot=args.showPlot,
-                eMail=args.email,
-                pdf=args.pdffilename,
-                web=args.webData,
-                config=config)
+        do_main(filenames, args, config)
     else:
         parser.error("No file to plot found.")

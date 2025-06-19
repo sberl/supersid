@@ -58,14 +58,57 @@ It is important that your system time of day clock is closely synchronized with
 the actual UTC time.  Then the data you collect can be compared to data from
 other sources such as other SuperSID users, and Xray flux data collected by
 satellites.
+
+There are two options to synch the time which shall not run in parallel:
+- systemd-timesyncd which uses SNTP protocol
+- ntpd which uses NTP protocol and is reported to be more accurate than systemd-timesyncd
+
+## 2.1) disable systemd-timesyncd, if running
+```console
+    $ timedatectl status
+```
+If you read 'NTP service: n/a' or 'NTP service: inactive', this is desired. Continue with 2.2)
+If you 'NTP service: active' the serivce has to be disabled.
+```console
+    $ sudo systemctl disable systemd-timesyncd --now
+    $ sudo timedatectl set-ntp false
+```
+
+## 2.2) install and enable ntpd
 If your machine does not have ntp installed then you want to install it:
 ```console
+    $ sudo apt-get purge ntp ntpsec
     $ sudo apt-get install ntpdate ntp
 ```
 
 Follow the tutorial [Raspberry Pi sync date and time](https://victorhurdugaci.com/raspberry-pi-sync-date-and-time)
+Edit '/etc/ntp.conf'.
+Do not comment the lines for the localhost (step 5 of the guide).
 
-Optional: Virtual environment management for Python:
+Start the service:
+```console
+    $ sudo systemctl restart ntp
+```
+
+Verify it is up and running:
+```console
+    $ systemctl status ntp
+```
+You should read 'Active: active (running) since ... some date / time ...'.
+
+
+```console
+    $ ntpq -pn
+```
+You should see a list of servers. The smaller the strato (st), the closer the server is to the original time source.
+If ntpq timed out, test the service with ntpdate.
+
+```console
+    $ ntpdate -d 0.debian.pool.ntp.org
+    $ ntpdate -d localhost
+```
+
+## 2.3) Optional: Virtual environment management for Python
 If your machine is being used for other purposes as well as SuperSID, you may
 want to install SuperSID in its own virtual python environment.  This way you
 will not be plagued with version conflicts with the various python packages
@@ -105,7 +148,7 @@ From /home/pi:
     # Activate the newly created virtual environment
     $ source supersid-env/bin/activate
     # Install latest versions of package tools
-    $ python -m pip install -U pip wheel setuptools
+    $ python3 -m pip install -U pip wheel setuptools
 ```
 
 Your prompt should now start with '(supersid-env)'
@@ -157,8 +200,8 @@ Read the help of find_alsa_devices.py and follow it.  Then connect line out of
 the sound card with line in of the same sound card.
 
 ```console
-    $ cd ~/supersid/supersid
-    $ python3 find_alsa_devices.py --help
+    $ cd ~/supersid/src
+    $ python3 find_alsa_devices.py --help | less
     $ python3 -u find_alsa_devices.py 2>&1
 ```
 
@@ -191,7 +234,7 @@ In one console generate the test frequency.
 In another console search for the suitable device.  Replace 'CARD=Generic' with
 the device of interest.
 ```console
-    $ cd ~/supersid/supersid
+    $ cd ~/supersid/src
     $ python3 -u find_alsa_devices.py -t=external -d="CARD=Generic" 2>&1 | grep OK
 ```
 
@@ -386,14 +429,18 @@ ftp.
 ## 7) Start the SuperSID program
 
 ```console
-    $ cd ~/supersid/supersid
+    $ cd ~/supersid/src
     $ ./supersid.py
 ```
+There are three arguments that can be used with supersid.py
+Using -r will allow supersid.py to read an existing csv file and add new data to it.  This can be useful in the event of a power interruption.
+Using -c will allow you to specify a cfg file
+Using -v will allow you to specify a different viewer than that which is listed in your cfg file.  Options are either text or tk
 
 
 ## 8) Plot commands
 
-In a terminal window, navigate to /home/pi/supersid/supersid
+In a terminal window, navigate to /home/pi/supersid/src
 
 Replace filename.csv with the name of the file you want to plot
 

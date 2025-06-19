@@ -9,7 +9,12 @@ from multiprocessing import Queue
 from queue import Empty
 from math import pi, sin
 import struct
-import alsaaudio
+try:
+    import alsaaudio
+except ImportError:
+    sys.exit(
+        "ERROR: 'alsaaudio' is not available, on Linux try "
+        "'python3 -m pip install alsaaudio'")
 import argparse
 
 # http://larsimmisch.github.io/pyalsaaudio/libalsaaudio.html#pcm-objects
