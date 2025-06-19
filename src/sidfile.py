@@ -19,7 +19,7 @@ Licence:     Open to All
 from datetime import datetime, timezone, timedelta
 import numpy
 
-from config import FILTERED, RAW
+from supersid_config import FILTERED, RAW
 from supersid_common import exist_file
 
 USAGE = """

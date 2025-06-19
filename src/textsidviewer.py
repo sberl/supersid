@@ -13,7 +13,7 @@ import readchar
 from threading import Timer
 from time import sleep
 
-from config import FILTERED, RAW, print_config
+from supersid_config import FILTERED, RAW, print_config
 
 
 class textSidViewer:

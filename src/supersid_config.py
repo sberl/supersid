@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Config parses a supersid .cfg file.
+"""supersid_config parses a supersid .cfg file.
 
 Parameter access: all keys are forced to lowercase
   - for parameters: config['site_name'], config['longitude'], etc...
@@ -501,7 +501,7 @@ class Config(dict):
                       "your .cfg files.\n")
 
         # when present, 'Format' must be one of the supported formats
-        # (relevant for the format conversion in sampler.py)
+        # (relevant for the format conversion in supersid_sampler.py)
         if 'Format' in self:
             if self['Format'] not in [S16_LE, S24_3LE, S32_LE]:
                 self.config_ok = False
