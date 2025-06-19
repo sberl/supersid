@@ -439,15 +439,7 @@ class Config(dict):
             print(f"creating folder {self['data_path']}")
             try:
                 os.mkdir(self['data_path'])
-            except FileExistsError as err:
-                self.config_ok = False
-                self.config_err = f"'{self['data_path']}: {err}"
-                return
-            except FileNotFoundError as err:
-                self.config_ok = False
-                self.config_err = f"'{self['data_path']}: {err}"
-                return
-            except OSError as err:
+            except (FileExistsError, FileNotFoundError, OSError) as err:
                 self.config_ok = False
                 self.config_err = f"'{self['data_path']}: {err}"
                 return
@@ -465,15 +457,7 @@ class Config(dict):
                 print(f"creating folder {self['local_tmp']}")
                 try:
                     os.mkdir(self['local_tmp'])
-                except FileExistsError as err:
-                    self.config_ok = False
-                    self.config_err = f"'{self['local_tmp']}: {err}"
-                    return
-                except FileNotFoundError as err:
-                    self.config_ok = False
-                    self.config_err = f"'{self['local_tmp']}: {err}"
-                    return
-                except OSError as err:
+                except (FileExistsError, FileNotFoundError, OSError) as err:
                     self.config_ok = False
                     self.config_err = f"'{self['local_tmp']}: {err}"
                     return
