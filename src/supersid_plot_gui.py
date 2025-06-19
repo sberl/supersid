@@ -15,7 +15,7 @@
 import os.path
 import argparse
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, SUNKEN, RAISED
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
@@ -133,16 +133,27 @@ class PlotGui(ttk.Frame):
         # add the buttons to show/add a station's curve
         for s, c in self.color_station.items():
             btn_color = convert_to_tkinter_color(c)
+            button_border = tk.Frame(
+                self.tk_root,
+                highlightbackground=btn_color,
+                highlightcolor=btn_color,
+                highlightthickness=2,
+                bd=0
+                )
             station_button = tk.Button(
-                self.tk_root, text=s,
-                bg=btn_color, activebackground="white")
+                button_border, text=s,
+                relief=SUNKEN,
+                bg="white", activebackground="white")
             station_button.configure(
                 command=lambda s=s,
                 b=station_button: self.on_click_station(s, b))
-            station_button.pack(side='left', padx=1, pady=1)
+            station_button.pack()
+            button_border.pack(side='left', padx=1, pady=1)
 
         noaa_button = tk.Button(self.tk_root, text="NOAA",
-                                command=self.on_click_noaa)
+                                relief=RAISED,
+                                bg="lightgray", activebackground="white")
+        noaa_button.configure(command=lambda b=noaa_button: self.on_click_noaa(b))
         noaa_button.pack(side='left', padx=1, pady=1)
         # other GUI items
         self.statusbar_txt = tk.StringVar()
@@ -156,29 +167,31 @@ class PlotGui(ttk.Frame):
         self.calc_ephem()   # calculate the sun rise/set for each file
         self.show_figure()  # add other niceties and show the plot
 
-    def on_click_noaa(self):
+    def on_click_noaa(self, button):
         for sid_file in self.sid_files:
             if sid_file.XRAlist:
                 sid_file.XRAlist = []  # no longer to be displayed
+                button.configure(bg="lightgray", relief=RAISED)
             elif self.daysList[sid_file.startTime]:
                 sid_file.XRAlist = self.daysList[sid_file.startTime]
+                button.configure(bg="white", relief=SUNKEN)
             else:
                 nf = NOAA_flares(sid_file.startTime)
                 nf.print_XRAlist()
                 self.daysList[sid_file.startTime] = nf.XRAlist
                 sid_file.XRAlist = self.daysList[sid_file.startTime]
+                button.configure(bg="white", relief=SUNKEN)
         self.update_graph()
 
     def on_click_station(self, station, button):
         """Invert the color of the button. Hide/draw corresponding graph."""
         print("click on", station)
-        alt_color = convert_to_tkinter_color(self.color_station[station])
         if station in self.hidden_stations:
             self.hidden_stations.remove(station)
-            button.configure(bg=alt_color, activebackground="white")
+            button.configure(bg="white", relief=SUNKEN)
         else:
             self.hidden_stations.add(station)
-            button.configure(bg="white", activebackground=alt_color)
+            button.configure(bg="lightgray", relief=RAISED)
         self.update_graph()
 
     def show_figure(self):
