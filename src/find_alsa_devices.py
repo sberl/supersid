@@ -714,7 +714,19 @@ try:
                         "WARNING: 'speaker_test' instance could not be "
                         "created, there will be no frequency generated "
                         "for the loop back test")
-            test_log = []
+            test_log = [{
+                'Device': "",
+                'audio_sampling_rate': 0,
+                'Format': "",
+                'PeriodSize': 0,
+                'i': 0,
+                'channel': 0,
+                'result': 0,
+                'duration': None,
+                'peak_frequency': None,
+                'generated_frequency': 0,
+                'frequency_ratio': None
+                }]
             tested_pcm_devices = []
             print(
                 "audio_sampling_rate, Audio, Device, Format, PeriodSize, "
@@ -858,41 +870,40 @@ try:
                 self.test_summary(test_log, regression, channels)
 
         def test_summary(self, test_log, regression, channels):
+            # convert the entire results list
+            df = pd.DataFrame(test_log)
+
+            # drop all rows containing no values e.g. no duration,
+            # no peak_frequency, no frequency_ratio
+            df = df.dropna()
+
+            # drop frequency_ratio deviating more than 2 %% from the ideal 1.0
+            df = df[
+                (df['frequency_ratio'] >= 0.998) &
+                (df['frequency_ratio'] <= 1.002)]
+
+            # in the brute force operation it has been observed that devices
+            # appear to work with higher sample rates than supported, the
+            # recording time is then i.e. 4 sec for a 48000 device tested as
+            # 192000
+            df = df[
+                (df['duration'] > 0.9) &
+                (df['duration'] < 1.1)]
+            df['candidate'] = None
             num_candidates = 0
-            if len(test_log) > 0:
-                # convert the entire results list
-                df = pd.DataFrame(test_log)
-
-                # drop all rows containing no values e.g. no duration,
-                # no peak_frequency, no frequency_ratio
-                df = df.dropna()
-
-                # drop frequency_ratio deviating more than 2 %% from the ideal 1.0
-                df = df[
-                    (df['frequency_ratio'] >= 0.998) &
-                    (df['frequency_ratio'] <= 1.002)]
-
-                # in the brute force operation it has been observed that devices
-                # appear to work with higher sample rates than supported, the
-                # recording time is then i.e. 4 sec for a 48000 device tested as
-                # 192000
-                df = df[
-                    (df['duration'] > 0.9) &
-                    (df['duration'] < 1.1)]
-                df['candidate'] = None
-                for Device in df['Device'].unique():
-                    for audio_sampling_rate in df['audio_sampling_rate'].unique():
-                        for Format in df['Format'].unique():
-                            for PeriodSize in df['PeriodSize'].unique():
-                                index = df[
-                                    (df['Device'] == Device) &
-                                    (df['audio_sampling_rate']
-                                        == audio_sampling_rate) &
-                                    (df['Format'] == Format) &
-                                    (df['PeriodSize'] == PeriodSize)].index
-                                if len(index) == regression * channels:
-                                    num_candidates += 1
-                                    df.loc[index, 'candidate'] = num_candidates
+            for Device in df['Device'].unique():
+                for audio_sampling_rate in df['audio_sampling_rate'].unique():
+                    for Format in df['Format'].unique():
+                        for PeriodSize in df['PeriodSize'].unique():
+                            index = df[
+                                (df['Device'] == Device) &
+                                (df['audio_sampling_rate']
+                                    == audio_sampling_rate) &
+                                (df['Format'] == Format) &
+                                (df['PeriodSize'] == PeriodSize)].index
+                            if len(index) == regression * channels:
+                                num_candidates += 1
+                                df.loc[index, 'candidate'] = num_candidates
 
             if num_candidates >= 1:
                 print("{} candidates found.".format(num_candidates))
