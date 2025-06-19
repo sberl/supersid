@@ -31,24 +31,33 @@ Output:
           from the line:
           1000 +   1748 1752 1755  G15 5 XRA  1-8A M1.0 2.1E-03 2443
 
-    If the date is from 2015-06-29 to the present (as of 2025-06-16), it is
-    retrieved via FTP. Each file has 1 day of flare data and can be found at
-    ftp://ftp.swpc.noaa.gov/pub/indices/events/{YYYYMMDD}events.txt
+    This data is retrieved from one of the repositories:
+
+    SWPC repository - Data available from 2015-06-29 to the present (as of 2025-06-16),
+    can be retrieved from
+        "ftp://ftp.swpc.noaa.gov/pub/indices/events/{YYYYMMDD}events.txt"
     where {YYYYMMDD} is replaced by 4-digit year, 2-digit month and 2-digit day.
+    Each file has 1 day of flare data.
+    The format as described in ftp://ftp.swpc.noaa.gov/pub/indices/events/README
 
-    For dates before 2015-06-29 we must download a compressed archive file that
-    contains a complete year of flare data. This file is also available via FTP.
-    The URL is ftp://ftp.swpc.noaa.gov/pub/warehouse/{year}/{year}_events.tar.gz
-    Once the file is downloaded, it is uncompressed into a directory hierarchy.
-    In that hierarchy, the path to the daily file is ./YYYY_events/YYYYMMDDevents.txt
+    NGDC repository - Data from 1975-09-01 to 2017-06-28 can be retrieved from
+        "http://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-feature  \
+                    /solar-flares/x-rays/goes/xrs/goes-xrs-report_{YYYY}.txt"
+    where YYYY is the 4 digit year.
+    The file covers all the flares for that particular year.
+    The file format is described in:
+    "https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/solar-flares/ \
+      x-rays/goes/xrs/documentation/miscellaneous/software/xraydatareports.pro"
 
-    These files all have the same format as described in
-    ftp://ftp.swpc.noaa.gov/pub/indices/events/README
+    As of 2025-06-19, the data in the NGDC repository has 2 special cases:
+        - File for 2015 is named goes-xrs-report_2015_modifiedreplacedmissingrows.txt. We deal
+        with this case by substituting the correct name in out code
+        - File for 2017 is named goes-xrs-report_2017-ytd.txt, and does not contain the
+          complete year. We deal with this case by simply using the SWPC repository for all dates
+          starting at 2017-01-01.
 
-    It is not clear if and when any of this is going to change.
-
-ftp://ftp.swpc.noaa.gov/pub/indices/events/20150629events.txt
-https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/solar-flares/x-rays/goes/xrs/goes-xrs-report_2014.txt
+    It is not clear if and when any of this is going to change. The website operators have
+    changed things before and may change them again at any time.
 """
 
 import urllib.request
@@ -60,6 +69,7 @@ import time
 from datetime import datetime, date, timezone, timedelta
 from supersid_common import script_relative_to_cwd_relative
 
+NOAA_CACHE_DIR_DEFAULT = "../Private"
 
 class NOAA_flares:
     """This object carries a list of all x-ray flare events of a given day."""
@@ -70,8 +80,7 @@ class NOAA_flares:
             - a datatime object
             - or a string of the form YYYYMMDD
             noaa_cache_path can be used if the system configuration has overridden
-            the default cache location at ../Private
-
+            the default cache location at NOAA_CACHE_DIR_DEFAULT
         """
 
         # xra_list is a list of tuples.
@@ -80,7 +89,7 @@ class NOAA_flares:
         self.xra_list = [] # List of tuples
 
         if noaa_cache_path is None:
-            self.cache_path = script_relative_to_cwd_relative(path.join("..", "Private"))
+            self.cache_path = script_relative_to_cwd_relative(NOAA_CACHE_DIR_DEFAULT)
         else:
             self.cache_path = noaa_cache_path
 
@@ -110,8 +119,8 @@ class NOAA_flares:
         # Decide how to fetch the data based on the date.
         if int(self.day[:4]) >= 2017:
             # given day is 2017 or later --> fetch data by FTP
-            file = self.ftp_fetch_noaa()
-            self.parse_noaa_event_file(file)
+            file = self.ftp_fetch_swpc()
+            self.parse_swpc_event_file(file)
         else:
             # Given day is 2016 or earlier --> fetch data by https
             # If the file is NOT in the self.cache_path directory then we need to
@@ -122,7 +131,7 @@ class NOAA_flares:
 
     def parse_ngdc_file(self, file_path):
         """ Parse the goes-xrs-report file retrieved from website
-            local_file is a path to the file in the Private folder
+            local_file is a path to the file in the cache folder
             Populates self.xra_list with xra data
         """
         try:
@@ -152,10 +161,10 @@ class NOAA_flares:
                             print("Please check this line format:")
                             print(line)
         except FileNotFoundError:
-            print("File not found")
+            print(f"File {file_path} not found")
 
     def t_stamp(self, hhmm) -> datetime:
-        """ Convert HHMM string to datetime object."""
+        """ Convert hhmm string to datetime object."""
         # "201501311702" -> datetime(2015, 1, 31, 17, 2)
         return datetime.strptime(self.day + hhmm, "%Y%m%d%H%M")
 
@@ -165,8 +174,8 @@ class NOAA_flares:
 
         Return the full path of the data file
         """
-
-        ngdc_url = ("https://www.ngdc.noaa.gov/stp/space-weather/"
+        ngdc_host = "www.ngdc.noaa.gov"
+        ngdc_url = (f"https://{ngdc_host}/stp/space-weather/"
                     "solar-data/solar-features/solar-flares/x-rays/goes/xrs/")
 
         if self.day[:4] != "2015":
@@ -178,9 +187,9 @@ class NOAA_flares:
         file_path = path.join(folder, file_name)
         url = path.join(ngdc_url, file_name)
         if path.isfile(file_path):
-            print(f"local file {file_name} already exists")
+            print(f"Cache file {file_name} already exists")
         else:
-            print(f"downloading {file_name} from www.ngdc.noaa.gov")
+            print(f"Downloading {file_name} from {ngdc_host}")
             try:
                 with urllib.request.urlopen(url) as response:
                     txt = response.read().decode("utf-8")
@@ -192,17 +201,12 @@ class NOAA_flares:
                     fout.write(txt)
         return file_path
 
-    def ftp_fetch_noaa(self):
+    def ftp_fetch_swpc(self):
         """
-        Get the XRA data from NOAA website via FTP
-        This method will get data from 2015-06-29 up to
+        Get the XRA data from SWPC website via FTP
+        This method can get data from 2015-06-29 up to
         the present (last checked 2025-06-16)
-        Older data can be retrieved. Those files are in compressed
-        archive files containing an entire year of data.
         """
-        # ftp://ftp.swpc.noaa.gov/pub/indices/events/20141030events.txt
-        # noaa_url = f"ftp://ftp.swpc.noaa.gov/pub/indices/events/{self.day}events.txt"
-
         noaa_ftp_host = "ftp.swpc.noaa.gov"
         noaa_ftp_path = f"pub/indices/events/{self.day}events.txt"
         noaa_ftp_file = f"{self.day}events.txt"
@@ -210,9 +214,9 @@ class NOAA_flares:
         local_folder = self.cache_path
         local_file = path.join(local_folder, noaa_ftp_file)
         if path.isfile(local_file):
-            print(f"local file {local_file} already exists")
+            print(f"Cache file {local_file} already exists")
         else:
-            print(f"downloading {local_file} from {noaa_ftp_host}")
+            print(f"Downloading {local_file} from {noaa_ftp_host}")
             try:
                 ftp = ftplib.FTP(noaa_ftp_host)
                 ftp.login(user='anonymous', passwd='example@example.com')
@@ -222,12 +226,14 @@ class NOAA_flares:
                 ftp.quit()
             except ftplib.all_errors as err:
                 print(f"Can't retrieve FTP file {noaa_ftp_host}/{noaa_ftp_path}: {err}")
+                if os.path.exists(local_file):
+                    os.remove(local_file) # don't leave empty file in cache folder
         return local_file
 
-    def parse_noaa_event_file(self,local_file):
+    def parse_swpc_event_file(self,local_file):
         """ Parse the NOAA event file retrieved from website
 
-            Input - local_file is a path to the file in the Private folder
+            Input - local_file is a path to the file in the cache folder
 
             Populates self.xra_list with xra data
 
@@ -238,7 +244,7 @@ class NOAA_flares:
             we need to bump up the day by 1.
             20250529events.txt has an example
         """
-        # At this point the file is in Private cache directory.
+        # At this point the file is in cache directory.
         try:
             with open(local_file, "rt", encoding="utf-8") as goes_data:
                 for line in goes_data:
@@ -258,7 +264,8 @@ class NOAA_flares:
                                     # --:-- instead of HH:MM exist
                                     begin_time = self.t_stamp(fields[1])
                                 except (ValueError,TypeError,AttributeError):
-                                    pass
+                                    # if begin_time is not a number, ignore this line
+                                    continue
                                 try:
                                     max_time = self.t_stamp(fields[2])
                                     if max_time < begin_time:
@@ -351,9 +358,26 @@ class NOAA_flares:
 # Run some test cases
 if __name__ == '__main__':
 
+    def clear_xra_cache(cache_path: str = None):
+        """ Utility to clear the XRA cache before running tests"""
+        if cache_path is None:
+            cache_path = script_relative_to_cwd_relative(NOAA_CACHE_DIR_DEFAULT)
+        if not os.path.isdir(cache_path):
+            print(f"Directory '{cache_path}' does not exist.")
+        for filename in os.listdir(cache_path):
+            if filename != "README.md":
+                file_path = os.path.join(cache_path, filename)
+                if os.path.isfile(file_path):  # Check if it's a file (not a subdirectory)
+                    try:
+                        os.remove(file_path)
+                        print(f"Deleted: {file_path}")
+                    except OSError as err:
+                        print(f"Error deleting {file_path}: {err}")
+
     test_list = ["20140104",
                   "20130525", # this one should download the goes-xrs report
                   "20130525", # should be in the cache so faster
+                  "20130716", # full year 2013 should be in cache already
                   "20170104",
                   "20201211",
                   "20250529",
@@ -362,24 +386,11 @@ if __name__ == '__main__':
                   datetime(2023, 10, 1, 12, 0),
                   datetime(2023, 10, 1, 12, 0, tzinfo=timezone.utc),
                   date(2023, 10, 1),
-
                  datetime.now(timezone.utc),
+                 datetime.now(),
+                 datetime.now() + timedelta(days=2.0), # in the future. should fail
+                 "19700501", # in the distant past. should fail
                  "foobar"]  # invalid input - throw exception
-
-    def clear_xra_cache():
-        """ Utility to clear the XRA cache before running tests"""
-        directory_path = script_relative_to_cwd_relative(path.join("..", "Private"))
-        if not os.path.isdir(directory_path):
-            print(f"Directory '{directory_path}' does not exist.")
-        for filename in os.listdir(directory_path):
-            if filename != "README.md":
-                file_path = os.path.join(directory_path, filename)
-                if os.path.isfile(file_path):  # Check if it's a file (not a subdirectory)
-                    try:
-                        os.remove(file_path)
-                        print(f"Deleted: {file_path}")
-                    except OSError as err:
-                        print(f"Error deleting {file_path}: {err}")
 
     #clear_xra_cache()
     for test in test_list:
@@ -390,7 +401,7 @@ if __name__ == '__main__':
             flare_list = flare.get_xra_list()
             flare.print_xra_list()
             print(f"querying {flare.day} took {time.time() - t_start:0.3f} seconds\n")
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-exception-caught
             print(f"Error processing {test}: {e}\n")
 
     print("End of NOAA_flares test cases\n")
