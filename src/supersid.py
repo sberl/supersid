@@ -24,11 +24,10 @@ from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
 from sidtimer import SidTimer
-from sampler import Sampler
-from config import read_config, CONFIG_FILE_NAME
-from logger import Logger
+from supersid_sampler import Sampler
+from supersid_config import read_config, CONFIG_FILE_NAME
+from supersid_logger import Logger
 from supersid_common import exist_file, script_relative_to_cwd_relative, is_script
-
 
 class SuperSID:
     """Main class which creates all other objects.

@@ -34,7 +34,7 @@ from os import path
 import ftplib
 from datetime import datetime, timezone, timedelta
 from sidfile import SidFile
-from config import read_config, FILTERED, RAW, CONFIG_FILE_NAME
+from supersid_config import read_config, FILTERED, RAW, CONFIG_FILE_NAME
 from supersid_common import exist_file
 
 

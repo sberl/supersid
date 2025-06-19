@@ -20,9 +20,9 @@ from matplotlib.mlab import psd as mlab_psd
 
 # SuperSID Package classes
 from sidtimer import SidTimer
-from sampler import Sampler
-from config import read_config, CONFIG_FILE_NAME
-from logger import Logger
+from supersid_sampler import Sampler
+from supersid_config import read_config, CONFIG_FILE_NAME
+from supersid_logger import Logger
 from textsidviewer import textSidViewer
 from supersid_common import exist_file, slugify
 
@@ -260,7 +260,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.record_sec:
-        from sampler import pyaudio_soundcard
+        from supersid_sampler import pyaudio_soundcard
         import wave
 
         config = read_config(args.config_file)
