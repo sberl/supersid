@@ -457,10 +457,13 @@ class Config(dict):
 
         # data_path must be a folder with read/write permission
         if not os.path.isdir(self['data_path']):
-            self.config_ok = False
-            self.config_err = "'data_path' does not point to a valid " \
-                "directory:\n" + self['data_path']
-            return
+            print(f"creating folder {self['data_path']}")
+            try:
+                os.mkdir(self['data_path'])
+            except (FileExistsError, FileNotFoundError, OSError) as err:
+                self.config_ok = False
+                self.config_err = f"'{self['data_path']}: {err}"
+                return
         if not os.access(self['data_path'], os.R_OK | os.W_OK):
             self.config_ok = False
             self.config_err = "'data_path' must have read/write " \
@@ -468,14 +471,17 @@ class Config(dict):
             return
 
         # when present, 'local_tmp' must be a folder with read/write access
-        if 'local_tmp' in self:
+        if ('local_tmp' in self) and self['local_tmp']:
             self['local_tmp'] = script_relative_to_cwd_relative(
                 self['local_tmp']) + os.sep
             if not os.path.isdir(self['local_tmp']):
-                self.config_ok = False
-                self.config_err = "'local_tmp' does not point to a valid " \
-                    "directory:\n" + self['local_tmp']
-                return
+                print(f"creating folder {self['local_tmp']}")
+                try:
+                    os.mkdir(self['local_tmp'])
+                except (FileExistsError, FileNotFoundError, OSError) as err:
+                    self.config_ok = False
+                    self.config_err = f"'{self['local_tmp']}: {err}"
+                    return
             if not os.access(self['local_tmp'], os.R_OK | os.W_OK):
                 self.config_ok = False
                 self.config_err = "'local_tmp' must have read/write " \

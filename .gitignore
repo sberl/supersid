@@ -48,3 +48,13 @@ PyInstaller/build
 PyInstaller/dist
 PyInstaller/specs
 SuperSID.zip
+
+# Pre-created directories for installation
+# This will prevent any user data files as appearing as "untracked".
+Data/
+!Data/README.md
+outgoing/
+!outgoing/README.md
+Private/
+!Private/README.md
+!Config/supersid.cfg

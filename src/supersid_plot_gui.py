@@ -107,7 +107,7 @@ class PlotGui(ttk.Frame):
             sid_file = SidFile(filename)
 
             # list will be populated if the user click on 'NOAA' button
-            sid_file.XRAlist = []
+            sid_file.xra_list = []
 
             self.sid_files.append(sid_file)
             self.daysList[sid_file.startTime] = []
@@ -158,15 +158,15 @@ class PlotGui(ttk.Frame):
 
     def on_click_noaa(self):
         for sid_file in self.sid_files:
-            if sid_file.XRAlist:
-                sid_file.XRAlist = []  # no longer to be displayed
+            if sid_file.xra_list:
+                sid_file.xra_list = []  # no longer to be displayed
             elif self.daysList[sid_file.startTime]:
-                sid_file.XRAlist = self.daysList[sid_file.startTime]
+                sid_file.xra_list = self.daysList[sid_file.startTime]
             else:
                 nf = NOAA_flares(sid_file.startTime)
-                nf.print_XRAlist()
-                self.daysList[sid_file.startTime] = nf.XRAlist
-                sid_file.XRAlist = self.daysList[sid_file.startTime]
+                nf.print_xra_list()
+                self.daysList[sid_file.startTime] = nf.get_xra_list()
+                sid_file.xra_list = self.daysList[sid_file.startTime]
         self.update_graph()
 
     def on_click_station(self, station, button):
@@ -204,7 +204,7 @@ class PlotGui(ttk.Frame):
         for sid_file in self.sid_files:
             # for each flare, draw the lines and box with flares intensity
             for eventName, BeginTime, MaxTime, EndTime, Particulars \
-                    in sid_file.XRAlist:
+                    in sid_file.xra_list:
                 self.graph.vlines(
                     [BeginTime, MaxTime, EndTime], 0,
                     self.max_data, color=['g', 'r', 'y'],
