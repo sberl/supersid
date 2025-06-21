@@ -176,7 +176,7 @@ class Config(dict):
 
             'Capture': (
                 # audio module: alsaaudio, sounddevice, pyaudio
-                ("Audio", str, audio_modules[0]),
+                ("Audio", str, audio_modules[0] if len(audio_modules) > 0 else 'alsaaudio'),
 
                 # alsaaudio, sounddevice, pyaudio: Device name for capture
                 ("Device", str, 'plughw:CARD=Generic,DEV=0'),
@@ -243,7 +243,7 @@ class Config(dict):
         if platform.system() == 'Windows':
             sections['Capture'] = (
                 # audio module: sounddevice, pyaudio
-                ("Audio", str, audio_modules[0]),
+                ("Audio", str, audio_modules[0] if len(audio_modules) > 0 else 'sounddevice'),
 
                 # sounddevice, pyaudio: Device name for capture
                 ("Device", str, 'MME: Microsoft Soundmapper - Input'),
