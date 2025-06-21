@@ -45,10 +45,10 @@ def get_peak_freq(data, audio_sampling_rate):
     return peak_freq
 
 
-audioModule = []
+audio_modules = []
 try:
     import alsaaudio  # for Linux direct sound capture
-    audioModule.append("alsaaudio")
+    audio_modules.append("alsaaudio")
 
     def alsaaudio_test(device, sampling_rate, format, channels, periodsize):
         print()
@@ -267,7 +267,7 @@ except ImportError:
 try:
     # for Linux and Windows http://python-sounddevice.readthedocs.org
     import sounddevice
-    audioModule.append("sounddevice")
+    audio_modules.append("sounddevice")
 
     def sounddevice_test(device, sampling_rate, format, channels):
         print()
@@ -461,7 +461,7 @@ except ImportError:
 
 try:
     import pyaudio  # for Linux with jackd OR windows
-    audioModule.append("pyaudio")
+    audio_modules.append("pyaudio")
 
     def pyaudio_test(device, sampling_rate, format, channels):
         print()
@@ -717,41 +717,47 @@ class Sampler():
             #        4096 for 192000
             # -> the frequency resolution is constant
             self.NFFT = max(1024, 1024 * self.audio_sampling_rate // 48000)
-        self.sampler_ok = True
+        self.sampler_ok = False
 
-        try:
-            if controller.config['Audio'] == 'alsaaudio':
-                self.capture_device = alsaaudio_soundcard(
-                    controller.config['Card'],  # deprecated
-                    controller.config['Device'],
-                    audio_sampling_rate,
-                    controller.config['Format'],
-                    controller.config['Channels'],
-                    controller.config['PeriodSize'])
-            elif controller.config['Audio'] == 'sounddevice':
-                self.capture_device = sounddevice_soundcard(
-                    controller.config['Device'],
-                    audio_sampling_rate,
-                    controller.config['Format'],
-                    controller.config['Channels'])
-            elif controller.config['Audio'] == 'pyaudio':
-                self.capture_device = pyaudio_soundcard(
-                    controller.config['Device'],
-                    audio_sampling_rate,
-                    controller.config['Format'],
-                    controller.config['Channels'])
-            else:
+        if controller.config['Audio'] in audio_modules:
+            try:
+                if controller.config['Audio'] == 'alsaaudio':
+                    self.capture_device = alsaaudio_soundcard(
+                        controller.config['Card'],  # deprecated
+                        controller.config['Device'],
+                        audio_sampling_rate,
+                        controller.config['Format'],
+                        controller.config['Channels'],
+                        controller.config['PeriodSize'])
+                    self.sampler_ok = True
+                elif controller.config['Audio'] == 'sounddevice':
+                    self.capture_device = sounddevice_soundcard(
+                        controller.config['Device'],
+                        audio_sampling_rate,
+                        controller.config['Format'],
+                        controller.config['Channels'])
+                    self.sampler_ok = True
+                elif controller.config['Audio'] == 'pyaudio':
+                    self.capture_device = pyaudio_soundcard(
+                        controller.config['Device'],
+                        audio_sampling_rate,
+                        controller.config['Format'],
+                        controller.config['Channels'])
+                    self.sampler_ok = True
+                else:
+                    self.display_error_message(
+                        "Unknown audio module:" + controller.config['Audio'])
+            except Exception as err:
                 self.display_error_message(
-                    "Unknown audio module:" + controller.config['Audio'])
-                self.sampler_ok = False
-        except Exception as err:
-            self.sampler_ok = False
-            self.display_error_message(
-                "Could not open capture device. "
-                "Please check your .cfg file or hardware.")
-            print("Error", controller.config['Audio'])
-            print(err)
-            print(traceback.format_exc())
+                    "Could not open capture device. "
+                    "Please check your .cfg file or hardware.")
+                print("Error", controller.config['Audio'])
+                print(err)
+                print(traceback.format_exc())
+        else:
+            print("Error in the [Capture] configuration.")
+            print(f"Audio = {controller.config['Audio']} is not supported by this installation")
+            print(f"Use one of {audio_modules}.")
 
         if self.sampler_ok:
             print("-", self.capture_device.name)
@@ -816,7 +822,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "-m", "--module",
         help="audio module",
-        choices=audioModule,
+        choices=audio_modules,
         default=None)
     parser.add_argument(
         "-d", "--device",
@@ -850,17 +856,17 @@ select smaller numbers like 128, 256, 512, ...""",
 
     # -l/--list is an exclusive parameter, exit after execution
     if args.list:
-        if 'alsaaudio' in audioModule:
+        if 'alsaaudio' in audio_modules:
             devices = alsaaudio.pcms()
             for device in devices:
                 print('--module=alsaaudio --device="{}"'.format(device))
             print()
-        if 'sounddevice' in audioModule:
+        if 'sounddevice' in audio_modules:
             devices = sounddevice_soundcard.query_input_devices()
             for device in devices:
                 print('--module=sounddevice --device="{}"'.format(device))
             print()
-        if 'pyaudio' in audioModule:
+        if 'pyaudio' in audio_modules:
             devices = pyaudio_soundcard.query_input_devices()
             for device in devices:
                 print('--module=pyaudio --device="{}"'.format(device))
@@ -868,7 +874,7 @@ select smaller numbers like 128, 256, 512, ...""",
         sys.exit(0)
 
     if (args.module is None) or (args.module == 'alsaaudio'):
-        if 'alsaaudio' in audioModule:
+        if 'alsaaudio' in audio_modules:
             devices = alsaaudio.pcms()
             for device in devices:
                 for sampling_rate in SAMPLING_RATES:
@@ -884,7 +890,7 @@ select smaller numbers like 128, 256, 512, ...""",
             print("alsaaudio not installed.")
 
     if (args.module is None) or (args.module == 'sounddevice'):
-        if 'sounddevice' in audioModule:
+        if 'sounddevice' in audio_modules:
             devices = sounddevice_soundcard.query_input_devices()
             for device in devices:
                 for sampling_rate in SAMPLING_RATES:
@@ -899,7 +905,7 @@ select smaller numbers like 128, 256, 512, ...""",
             print("sounddevice not installed.")
 
     if (args.module is None) or (args.module == 'pyaudio'):
-        if 'pyaudio' in audioModule:
+        if 'pyaudio' in audio_modules:
             devices = pyaudio_soundcard.query_input_devices()
             for device in devices:
                 for sampling_rate in SAMPLING_RATES:
