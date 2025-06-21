@@ -110,11 +110,11 @@ def create_zip():
     os.chdir(r"..")
     content = {
         ".": ["LICENSE", "README.md", "requirements.txt"],
-        "Config": ["ftp_cmds.TXT", "supersid.cfg"],
-        "Data": [],
+        "Config": ["supersid.cfg"],
+        "Data": ["README.md"],
         "docs": ["*.md"],
-        "outgoing": [],
-        "Private": [],
+        "outgoing": ["README.md"],
+        "Private": ["README.md"],
         "Program": ["*"],
         "src": ["*.*"],
     }
