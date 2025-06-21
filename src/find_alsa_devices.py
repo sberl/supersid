@@ -714,7 +714,19 @@ try:
                         "WARNING: 'speaker_test' instance could not be "
                         "created, there will be no frequency generated "
                         "for the loop back test")
-            test_log = []
+            test_log = [{
+                'Device': "",
+                'audio_sampling_rate': 0,
+                'Format': "",
+                'PeriodSize': 0,
+                'i': 0,
+                'channel': 0,
+                'result': 0,
+                'duration': None,
+                'peak_frequency': None,
+                'generated_frequency': 0,
+                'frequency_ratio': None
+                }]
             tested_pcm_devices = []
             print(
                 "audio_sampling_rate, Audio, Device, Format, PeriodSize, "
