@@ -109,23 +109,30 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     print("Email to %s sent." % To_mail)
 
 
+def format_coord(x, y):
+    t = matplotlib.dates.num2date(x)
+    return f"(x, y) = ({t.year:04d}-{t.month:02d}-{t.day:02d} {t.hour:02d}:{t.minute:02d}, {y:0.2E})"
+
+
+def m2hm(x, _):
+    """Small function to format the time on horizontal axis, minor ticks"""
+    t = matplotlib.dates.num2date(x)
+    h = t.hour
+    m = t.minute
+    # only for odd hours
+    return '%(h)02d:%(m)02d' % {'h': h, 'm': m} if h % 2 == 1 else ''
+
+
+def m2yyyymmdd(x, _):
+    """Small function to format the date on horizontal axis, major ticks"""
+    t = matplotlib.dates.num2date(x)
+    y = t.year
+    m = t.month
+    d = t.day
+    return '%(y)04d-%(m)02d-%(d)02d' % {'y': y, 'm': m, 'd': d}
+
+
 class SUPERSID_PLOT():
-
-    def m2hm(self, x, i):
-        """Small function to format the time on horizontal axis, minor ticks"""
-        t = matplotlib.dates.num2date(x)
-        h = t.hour
-        m = t.minute
-        # only for odd hours
-        return '%(h)02d:%(m)02d' % {'h': h, 'm': m} if h % 2 == 1 else ''
-
-    def m2yyyymmdd(self, x, i):
-        """Small function to format the date on horizontal axis, major ticks"""
-        t = matplotlib.dates.num2date(x)
-        y = t.year
-        m = t.month
-        d = t.day
-        return '%(y)04d-%(m)02d-%(d)02d --' % {'y': y, 'm': m, 'd': d}
 
     def get_station_color(self, config, call_sign):
         if config:
@@ -185,11 +192,12 @@ class SUPERSID_PLOT():
         current_axes = fig.gca()
         current_axes.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
         current_axes.xaxis.set_major_locator(matplotlib.dates.DayLocator())
-        current_axes.xaxis.set_major_formatter(ff(self.m2yyyymmdd))
-        current_axes.xaxis.set_minor_formatter(ff(self.m2hm))
+        current_axes.xaxis.set_major_formatter(ff(m2yyyymmdd))
+        current_axes.xaxis.set_minor_formatter(ff(m2hm))
         current_axes.xaxis.axis_date()
         current_axes.set_xlabel("UTC Time")
         current_axes.set_ylabel("Signal Strength")
+        current_axes.format_coord = format_coord
 
         # Get data from files
         maxData, data_length = -1, -1  # impossible values
