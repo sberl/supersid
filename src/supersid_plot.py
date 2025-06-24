@@ -384,11 +384,13 @@ def do_main(filelist, args, config):
 if __name__ == '__main__':
     filenames = ""
     parser = argparse.ArgumentParser(
-        description="""Usage:   supersid_plot.py  filename.csv\n
-     Usage:   supersid_plot.py  "filename1.csv,filename2.csv,filename3.csv"\n
-     Usage:   supersid_plot.py  "filename*.csv"\n
-     Note: " are optional on Windows, mandatory on *nix\n
-     Other options:  supersid_plot.py -h\n""")
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="""Examples:
+       supersid_plot.py filename.csv
+       supersid_plot.py filename1.csv filename2.csv filename3.csv
+       supersid_plot.py -f "filename1.csv,filename2.csv,filename3.csv"
+       supersid_plot.py -f "filename*.csv"
+       supersid_plot.py -h""")
     parser.add_argument(
         "-c", "--config",
         dest="cfg_filename",
