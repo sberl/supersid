@@ -29,8 +29,13 @@ from supersid_common import exist_file
 from supersid_config import read_config, print_config, CONFIG_FILE_NAME
 
 
+def format_coord(x, y):
+    t = matplotlib.dates.num2date(x)
+    return f"(x, y) = ({t.year:04d}-{t.month:02d}-{t.day:02d} {t.hour:02d}:{t.minute:02d}, {y:0.2E})"
+
+
 def m2hm(x, _):
-    """Small function to format the time on horizontal axis - minor ticks."""
+    """Small function to format the time on horizontal axis, minor ticks"""
     t = matplotlib.dates.num2date(x)
     h = t.hour
     m = t.minute
@@ -39,12 +44,12 @@ def m2hm(x, _):
 
 
 def m2yyyymmdd(x, _):
-    """Small function to format the date on horizontal axis - major ticks."""
+    """Small function to format the date on horizontal axis, major ticks"""
     t = matplotlib.dates.num2date(x)
     y = t.year
     m = t.month
     d = t.day
-    return '%(y)04d-%(m)02d-%(d)02d    .' % {'y': y, 'm': m, 'd': d}
+    return '%(y)04d-%(m)02d-%(d)02d' % {'y': y, 'm': m, 'd': d}
 
 
 def convert_to_tkinter_color(matplotlib_color):
@@ -203,6 +208,7 @@ class PlotGui(ttk.Frame):
         current_axes.xaxis.set_minor_formatter(ff(m2hm))
         current_axes.set_xlabel("UTC Time")
         current_axes.set_ylabel("Signal Strength")
+        current_axes.format_coord = format_coord
 
         for label in current_axes.xaxis.get_majorticklabels():
             label.set_fontsize(8)
