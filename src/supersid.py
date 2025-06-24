@@ -139,7 +139,7 @@ class SuperSID:
 
         """
         if is_script():
-            cmd += [sys.executable,
+            cmd = [sys.executable,
                     script_relative_to_cwd_relative('ftp_to_stanford.py')]
         else:
             cmd = [script_relative_to_cwd_relative('ftp_to_stanford.exe')]
