@@ -222,7 +222,9 @@ class SUPERSID_PLOT():
             sFile = SidFile(filename)
             for station in sFile.stations:
                 # Does this station already have a color? if not, reserve one
+                label = None
                 if station not in colorStation:
+                    label = station
                     colorStation[station] = \
                         self.get_station_color(config, station)
                     if (colorStation[station] is None):
@@ -234,7 +236,7 @@ class SUPERSID_PLOT():
                 plt.plot(sFile.timestamp,
                          sFile.get_station_data(station),
                          colorStation[station],
-                         label=station)
+                         label=label)
                 # Extra housekeeping
 
                 # maxData will be used later to put the XRA labels up
@@ -345,7 +347,6 @@ class SUPERSID_PLOT():
         for label in current_axes.xaxis.get_majorticklabels():
             label.set_fontsize(8)
             label.set_rotation(30)  # 'vertical')
-            # label.set_horizontalalignment='left'
 
         for label in current_axes.xaxis.get_minorticklabels():
             label.set_fontsize(12 if len(daysList) == 1 else 8)
