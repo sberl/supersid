@@ -382,6 +382,8 @@ def do_main(filelist, args, config):
 
 
 if __name__ == '__main__':
+    file_formats = [f".{ext}" for ext in plt.gcf().canvas.get_supported_filetypes().keys()]
+    plt.close()
     filenames = ""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -405,8 +407,8 @@ if __name__ == '__main__':
     parser.add_argument(
         "-p", "--pdf",
         dest="pdffilename",
-        help="Write the plot in a PDF file.",
-        metavar="filename.PDF")
+        help=f"Write the plot into file with the extension {file_formats}.",
+        metavar="filename.pdf")
     parser.add_argument(
         "-e", "--email",
         dest="email", nargs="?",
@@ -471,6 +473,13 @@ if __name__ == '__main__':
         nargs='*',
         help='file(s) to be plotted')
     args = parser.parse_args()
+
+    if args.pdffilename:
+        ext = os.path.splitext(args.pdffilename)[1]
+        if ext not in file_formats:
+            print(f"-p/--pdf: '{args.pdffilename}' extension '{ext}' is not in {file_formats}")
+            parser.print_help()
+            sys.exit(-1)
 
     # read the configuration file or exit
     config = read_config(args.cfg_filename)
