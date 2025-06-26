@@ -23,6 +23,10 @@ import glob
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter as ff
 import matplotlib.dates
+import matplotlib.backends.backend_ps
+import matplotlib.backends.backend_pdf
+import matplotlib.backends.backend_pgf
+import matplotlib.backends.backend_svg
 import math
 # Internet and Email modules
 import mimetypes
