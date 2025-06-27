@@ -33,6 +33,7 @@ def psd_format_coord(x, y):
 
 
 def safe_log10(data):
+    """safe log for data type <class 'numpy.ndarray'>"""
     result = np.log10(data, where=data>0)
     result[data<=0] = 0
     return result
