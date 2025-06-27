@@ -261,8 +261,7 @@ try:
                 print("Exception", type(err), err)
 
 except ImportError:
-    pass
-
+    print("AlsaAudio not installed")
 
 try:
     # for Linux and Windows http://python-sounddevice.readthedocs.org
@@ -457,7 +456,7 @@ try:
                 print("Exception", type(err), err)
 
 except ImportError:
-    pass
+    print("sounddevice not installed")
 
 
 try:
@@ -691,7 +690,6 @@ try:
 
 except ImportError:
     print("PyAudio not installed")
-    pass
 
 
 class Sampler():
@@ -858,17 +856,17 @@ select smaller numbers like 128, 256, 512, ...""",
         if 'alsaaudio' in audio_modules:
             devices = alsaaudio.pcms()
             for device in devices:
-                print(f"--module=alsaaudio --device='{device}'")
+                print(f'--module=alsaaudio --device="{device}"')
             print()
         if 'sounddevice' in audio_modules:
             devices = sounddevice_soundcard.query_input_devices()
             for device in devices:
-                print(f"--module=sounddevice --device='{device}'")
+                print(f'--module=sounddevice --device="{device}"')
             print()
         if 'pyaudio' in audio_modules:
             devices = pyaudio_soundcard.query_input_devices()
             for device in devices:
-                print(f"--module=pyaudio --device='{device}'")
+                print(f'--module=pyaudio --device="{device}"')
             print()
         sys.exit(0)
 
