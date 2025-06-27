@@ -32,6 +32,12 @@ def psd_format_coord(x, y):
     return f"frequency={bin_freq:.0f} power={bin_power:.3f}"
 
 
+def safe_log10(data):
+    result = np.log10(data, where=data>0)
+    result[data<=0] = 0
+    return result
+
+
 class tkSidViewer():
     """Create the Tkinter GUI."""
 
@@ -316,7 +322,7 @@ class tkSidViewer():
         psd_max = self.controller.config['psd_max']
         psd_min = self.controller.config['psd_min']
         for channel in range(self.controller.config['Channels']):
-            y = 10 * np.log10(self.pxx[channel])
+            y = 10 * safe_log10(self.pxx[channel])
 
             if channel not in self.line:
                 self.line[channel], = self.psd_axes.plot(self.t, y)
@@ -335,7 +341,7 @@ class tkSidViewer():
                     y_axis_changed = True
 
             if self.controller.config['waterfall_samples']:
-                pxx = np.log10(self.pxx[channel][:-1].reshape(
+                pxx = safe_log10(self.pxx[channel][:-1].reshape(
                     (1, self.pxx[channel].shape[0] - 1)))
                 if self.waterfall[channel] is None:
                     min_val = pxx.min()
