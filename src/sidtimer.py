@@ -62,7 +62,7 @@ class SidTimer:
         with self.lock:     # only one timer callback at a time
             self.time_now = time.time()
             if (self.time_now < self.expected_time):
-                print(f"Hard realtime correction: busy waiting {int((self.expected_time - self.time_now) * 1000000)} µs")
+                print(f"{self.utc_now} busy waiting {int((self.expected_time - self.time_now) * 1000000)} µs")
                 while self.time_now < self.expected_time:
                     self.time_now = time.time()
 
