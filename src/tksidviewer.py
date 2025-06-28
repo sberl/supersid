@@ -15,6 +15,7 @@ import tkinter.messagebox as MessageBox
 import tkinter.filedialog as FileDialog
 
 import math
+from datetime import datetime, timezone, timedelta
 import numpy as np
 import matplotlib.ticker
 import matplotlib.pyplot as plt
@@ -25,14 +26,27 @@ from matplotlib.figure import Figure
 from supersid_common import script_relative_to_cwd_relative, is_script
 
 
-def psd_format_coord(bin_freq, bin_power):
+def psd_format_coord(x, y):
     """Display cursor position in lower right of display"""
+    bin_freq, bin_power = x, y
     return f"frequency={bin_freq:.0f} power={bin_power:.3f}"
 
 
-def waterfall_format_coord(bin_freq, _):
-    """Display cursor position in lower right of display"""
-    return f"frequency={bin_freq:.0f}"
+def safe_log10(data):
+    """safe log10 for scalar and array like numeric data types"""
+    if np.isscalar(data):
+        if data <= 0:
+            return 0
+        return np.log10(data)
+
+    if not isinstance(data, np.ndarray):
+        data = np.array(data)
+    if np.issubdtype(data.dtype, np.integer):
+        data = data.astype(np.float32)
+    max_val = np.finfo(data.dtype).max
+    min_val = np.where(data>0, data, max_val).min()
+    data[data<=0] = min_val
+    return np.log10(data)
 
 
 class tkSidViewer():
@@ -135,8 +149,8 @@ class tkSidViewer():
         # set formatter for position under the mouse pointer
         self.psd_axes.format_coord = psd_format_coord
         for ax in self.waterfall_axes:
-            ax.format_coord = waterfall_format_coord
-            ax.set_yticks([])
+            ax.format_coord = self.waterfall_format_coord
+            self.waterfall_set_yticks(ax)
 
         self.psd_axes.grid(True)
 
@@ -167,15 +181,58 @@ class tkSidViewer():
         self.statusbar_txt.set('Initialization...')
         self.label.pack(fill=tk.X)
         self.need_psd_refresh = False
+        self.pxx = []
+        self.freqs = []
         self.need_text_refresh = False
+        self.message = ""
+
+    def waterfall_set_yticks(self, ax):
+        """set the y ticks of the waterfall diagram at fixed positions"""
+        waterfall_samples = self.controller.config['waterfall_samples']
+        log_interval = self.controller.config['log_interval']
+        samples_per_minute = 60 / log_interval
+
+        positions = []
+        labels = []
+        row = waterfall_samples - samples_per_minute
+        minutes = -1
+        while row >= 0:
+            positions.append(int(row))
+            if 0 == (minutes % 3):
+                labels.append(f"{minutes}:00")
+            else:
+                labels.append("")
+            row -= samples_per_minute
+            minutes -= 1
+        ax.yaxis.set_major_locator(matplotlib.ticker.FixedLocator(positions))
+        ax.yaxis.set_major_formatter(matplotlib.ticker.FixedFormatter(labels))
+
+    def waterfall_format_coord(self, x, y):
+        """Display cursor position in lower right of display"""
+        bin_freq = x
+
+        waterfall_samples = self.controller.config['waterfall_samples']
+        log_interval = self.controller.config['log_interval']
+
+        # round down the current time based on log_interval
+        utcnow = datetime.now(timezone.utc)
+        utcnow = utcnow.replace(second = (utcnow.second // log_interval) * log_interval)
+
+        # add the offset based on the y coordinate
+        seconds_relative = (int(y) - waterfall_samples) * log_interval
+        y_time = utcnow + timedelta(seconds=seconds_relative)
+
+        return f"frequency={bin_freq:.0f} UTC={y_time.strftime('%H:%M:%S')}"
 
     def run(self):
+        """actions on start"""
         self.running = True
         self.refresh_psd()  # start the re-draw loop
         self.tk_root.mainloop()
         self.running = False
 
     def close(self, force_close=True):
+        """actions on close"""
         if not force_close and MessageBox.askyesno(
                 "Confirm exit",
                 "Are you sure you want to exit SuperSID?"):
@@ -187,6 +244,7 @@ class tkSidViewer():
         Resize the figure to fill the available space.
         The border is defined by left_gap, bottom_gap, right_gap, top_gap.
         """
+        _ = event
         width = self.tk_root.winfo_width()
         height = self.tk_root.winfo_height()
 
@@ -211,27 +269,29 @@ class tkSidViewer():
         self.need_text_refresh = True
 
     def set_x_limits(self):
-        FS = self.controller.config['audio_sampling_rate']
-        # NFFT = 1024 for 44100 and 48000,
+        """set the psd x limits on change of the diagram"""
+        fs = self.controller.config['audio_sampling_rate']
+        # nfft = 1024 for 44100 and 48000,
         #        2048 for 96000,
         #        4096 for 192000
         # -> the frequency resolution is constant
-        NFFT = max(1024, 1024 * FS // 48000)
-        if FS > 96000:
+        nfft = max(1024, 1024 * fs // 48000)
+        if fs > 96000:
             step = 10000    # one tick per 10 kHz
-        elif FS > 48000:
+        elif fs > 48000:
             step = 5000     # one tick per 5 kHz
         else:
             step = 2500     # one tick per 2.5 kHz
-        x_steps = (FS // 2) // step
+        x_steps = (fs // 2) // step
         x_max = x_steps * step
 
         # use the entire x-axis for data
-        self.t = np.arange(0, (FS/2)+1, FS/NFFT)    # x-axis data (frequency)
+        self.t = np.arange(0, (fs/2)+1, fs/nfft)    # x-axis data (frequency)
         self.psd_axes.set_xticks(np.linspace(0, x_max, x_steps+1))
         self.psd_axes.set_xlim(self.xlim)
 
     def set_y_limits(self):
+        """set the psd y limits on change of the diagram"""
         psd_min = self.controller.config['psd_min']
         psd_max = self.controller.config['psd_max']
         psd_ticks = self.controller.config['psd_ticks']
@@ -244,7 +304,7 @@ class tkSidViewer():
             l.create_dummy_axis()
             ticks = l.tick_values(self.y_min, self.y_max)
 
-            # correct min/max if theouter ticks are already outside
+            # correct min/max if the outer ticks are already outside
             if ticks[0] < self.y_min:
                 self.y_min = ticks[0]
             if ticks[-1] > self.y_max:
@@ -258,10 +318,12 @@ class tkSidViewer():
             # set maximum for the y-axis if not configured as NaN
             self.psd_axes.set_ylim(top=psd_max)
 
-    def update_psd(self, Pxx, freqs):
-        # decouple the PSD calculation (done in timer context)
-        # from displaying the data with TK/matplotlib
-        self.Pxx = Pxx
+    def update_psd(self, pxx, freqs):
+        """
+        decouple the PSD calculation (done in timer context)
+        from displaying the data with TK/matplotlib
+        """
+        self.pxx = pxx
         self.freqs = freqs
         self.need_psd_refresh = True
 
@@ -271,7 +333,7 @@ class tkSidViewer():
         psd_max = self.controller.config['psd_max']
         psd_min = self.controller.config['psd_min']
         for channel in range(self.controller.config['Channels']):
-            y = 10 * np.log10(self.Pxx[channel])
+            y = 10 * safe_log10(self.pxx[channel])
 
             if channel not in self.line:
                 self.line[channel], = self.psd_axes.plot(self.t, y)
@@ -290,14 +352,14 @@ class tkSidViewer():
                     y_axis_changed = True
 
             if self.controller.config['waterfall_samples']:
-                pxx = np.log10(self.Pxx[channel][:-1].reshape(
-                    (1, self.Pxx[channel].shape[0] - 1)))
+                pxx = safe_log10(self.pxx[channel][:-1].reshape(
+                    (1, self.pxx[channel].shape[0] - 1)))
                 if self.waterfall[channel] is None:
                     min_val = pxx.min()
                     self.waterfall[channel] = np.full(
                         (
                             self.controller.config['waterfall_samples'],
-                            self.Pxx[channel].shape[0] - 1
+                            self.pxx[channel].shape[0] - 1
                         ),
                         min_val)
                 self.waterfall[channel] = np.append(
@@ -386,6 +448,7 @@ class tkSidViewer():
 
     def save_file(self, param=None):
         """Save the files as per user's menu choice."""
+        saved_files = None
         param = param if isinstance(
             param, str) else param.keysym  # which is the letter with the CTRL-
         if param == 'r':
@@ -401,18 +464,16 @@ class tkSidViewer():
                 log_type='raw',
                 log_format='both_extended')
         elif param == 's':
-            filename = self.AskSaveasFilename()
+            filename = self.asksaveasfilename()
             if filename:
                 saved_files = self.controller.save_current_buffers(
                     filename,
                     log_type='filtered',
                     log_format='supersid')
-            else:
-                saved_files = None
         if saved_files:
             MessageBox.showinfo("SuperSID files saved", "\n".join(saved_files))
 
-    def on_plot(self, dummy=None):
+    def on_plot(self, _=None):
         """Save current buffers (raw) and display the data using supersid_plot.
         Using a separate process to prevent interference with data capture
         """
@@ -429,17 +490,18 @@ class tkSidViewer():
                    script_relative_to_cwd_relative('supersid_plot.py')]
         else:
             cmd = [script_relative_to_cwd_relative('supersid_plot.exe')]
-        subprocess.Popen(cmd + [
+        with subprocess.Popen(cmd + [
             '-f',
             filenames[0],
             '-c',
-            self.controller.config.filenames[0]])
+            self.controller.config.filenames[0]]) as _:
+            pass
 
     def on_about(self):
         """Display the About box message."""
         MessageBox.showinfo("SuperSID", self.controller.about_app())
 
-    def AskSaveasFilename(
+    def asksaveasfilename(
             self,
             title='Save File',
             filetypes=None,
@@ -452,8 +514,8 @@ class tkSidViewer():
             filetypes = [
                 ('CSV File', '*.csv'),
                 ('Any File', '*.*')]
-        fileName = FileDialog.asksaveasfilename(parent=self.tk_root,
-                                                filetypes=filetypes,
-                                                initialfile=initialfile,
-                                                title=title)
-        return fileName
+        file_name = FileDialog.asksaveasfilename(parent=self.tk_root,
+                                                 filetypes=filetypes,
+                                                 initialfile=initialfile,
+                                                 title=title)
+        return file_name

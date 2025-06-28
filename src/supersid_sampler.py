@@ -261,8 +261,7 @@ try:
                 print("Exception", type(err), err)
 
 except ImportError:
-    pass
-
+    print("AlsaAudio not installed")
 
 try:
     # for Linux and Windows http://python-sounddevice.readthedocs.org
@@ -332,7 +331,7 @@ try:
         def query_input_devices():
             input_device_names = []
             for device_info in sounddevice.query_devices():
-                # we are interrested only in input devices
+                # we are interested only in input devices
                 if device_info['max_input_channels'] > 0:
                     hostapi_name = sounddevice.query_hostapis(
                         device_info['hostapi'])['name']
@@ -350,7 +349,8 @@ try:
                 name = device_name[separator_pos+1:].strip()
                 for i, device_info in enumerate(sounddevice.query_devices()):
                     if ((device_info['hostapi'] == hostapi) and
-                            (device_info['name'] == name)):
+                            (device_info['name'] == name) and
+                            (device_info['max_input_channels'] > 0)):
                         return i
             print(
                 "Warning: sounddevice Device '{}' not found"
@@ -456,7 +456,7 @@ try:
                 print("Exception", type(err), err)
 
 except ImportError:
-    pass
+    print("sounddevice not installed")
 
 
 try:
@@ -539,7 +539,7 @@ try:
             input_device_names = []
             for i in range(pyaudio.PyAudio().get_device_count()):
                 device_info = pyaudio.PyAudio().get_device_info_by_index(i)
-                # we are interrested only in input devices
+                # we are interested only in input devices
                 if device_info['maxInputChannels'] > 0:
                     hostapi_name = pyaudio.PyAudio() \
                         .get_host_api_info_by_index(
@@ -559,11 +559,10 @@ try:
                 for i in range(pyaudio.PyAudio().get_device_count()):
                     device_info = pyaudio.PyAudio().get_device_info_by_index(i)
                     if ((device_info['hostApi'] == hostApi) and
-                            (device_info['name'] == name)):
+                        (device_info['name'] == name) and
+                        (device_info['maxInputChannels'] > 0)):
                         return i
-            print(
-                "Warning: pyaudio Device '{}' not found."
-                .format(device_name))
+            print(f"Warning: pyaudio Device '{device_name}' not found.")
             return None
 
         @staticmethod
@@ -572,9 +571,7 @@ try:
                 host_api_info = pyaudio.PyAudio().get_host_api_info_by_index(i)
                 if host_api_info['name'] == hostapi_name:
                     return host_api_info['index']
-            print(
-                "Warning: pyaudio Host API '{}' not found"
-                .format(hostapi_name))
+            print(f"Warning: pyaudio Host API '{hostapi_name}' not found")
             return None
 
         def capture_1sec(self):
@@ -692,7 +689,7 @@ try:
                 print("Exception", type(err), err)
 
 except ImportError:
-    pass
+    print("PyAudio not installed")
 
 
 class Sampler():
@@ -859,17 +856,17 @@ select smaller numbers like 128, 256, 512, ...""",
         if 'alsaaudio' in audio_modules:
             devices = alsaaudio.pcms()
             for device in devices:
-                print('--module=alsaaudio --device="{}"'.format(device))
+                print(f'--module=alsaaudio --device="{device}"')
             print()
         if 'sounddevice' in audio_modules:
             devices = sounddevice_soundcard.query_input_devices()
             for device in devices:
-                print('--module=sounddevice --device="{}"'.format(device))
+                print(f'--module=sounddevice --device="{device}"')
             print()
         if 'pyaudio' in audio_modules:
             devices = pyaudio_soundcard.query_input_devices()
             for device in devices:
-                print('--module=pyaudio --device="{}"'.format(device))
+                print(f'--module=pyaudio --device="{device}"')
             print()
         sys.exit(0)
 
