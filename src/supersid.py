@@ -195,7 +195,7 @@ class SuperSID:
             if self.config['hourly_save'] == 'YES':
                 file_name = (f"hourly_current_buffers.raw.ext."
                              f"{self.logger.sid_file.sid_params['utc_starttime'][:10]}.csv")
-                print("Saving hourly buffers to", file_name)
+                print(f"{self.timer.utc_now} saving {file_name}")
                 self.save_current_buffers(filename=file_name,
                                           log_type='raw',
                                           log_format='supersid_extended')
