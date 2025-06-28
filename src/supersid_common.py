@@ -59,7 +59,7 @@ def slugify(value, allow_unicode=False):
 
 def is_script():
     executable = os.path.split(sys.executable)[-1].lower()
-    return 'python' == os.path.splitext(executable)[0]
+    return 'python' in os.path.splitext(executable)[0]
 
 
 if __name__ == '__main__':
