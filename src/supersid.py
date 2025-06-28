@@ -19,6 +19,7 @@ import sys
 import os.path
 import argparse
 import subprocess
+import time
 from datetime import datetime, timezone
 from matplotlib.mlab import psd as mlab_psd
 
@@ -195,18 +196,26 @@ class SuperSID:
             if self.config['hourly_save'] == 'YES':
                 file_name = (f"hourly_current_buffers.raw.ext."
                              f"{self.logger.sid_file.sid_params['utc_starttime'][:10]}.csv")
-                print(f"{self.timer.utc_now} saving {file_name}")
+                print(f"{self.timer.utc_now} saving {file_name} ", end="")
+                t_start = time.time()
                 self.save_current_buffers(filename=file_name,
                                           log_type='raw',
                                           log_format='supersid_extended')
+                print(f"in {time.time() - t_start: 0.1f} sec")
             # a new day!
             if self.timer.utc_now.hour == 0:
                 # use log_type and log_format requested by the user
                 # in the .cfg
+                print(f"{datetime.now(timezone.utc)} saving yesterdays files ", end="")
+                t_start = time.time()
                 self.save_current_buffers(log_type=self.config['log_type'],
                                           log_format=self.config['log_format'])
+                print(f"in {time.time() - t_start: 0.1f} sec")
                 self.clear_all_data_buffers()
+                print(f"{datetime.now(timezone.utc)} ftp to Stanford ", end="")
+                t_start = time.time()
                 self.ftp_to_stanford()
+                print(f"in {time.time() - t_start: 0.1f} sec")
         # Save signal strengths into memory buffers
         # prepare message for status bar
         message = f"{self.timer.get_utc_now()}  [{current_index}]  "
