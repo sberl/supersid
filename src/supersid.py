@@ -201,7 +201,7 @@ class SuperSID:
                 self.save_current_buffers(filename=file_name,
                                           log_type='raw',
                                           log_format='supersid_extended')
-                print(f"in {time.time() - t_start: 0.1f} sec")
+                print(f"in {time.time() - t_start:0.1f} sec")
             # a new day!
             if self.timer.utc_now.hour == 0:
                 # use log_type and log_format requested by the user
@@ -210,12 +210,12 @@ class SuperSID:
                 t_start = time.time()
                 self.save_current_buffers(log_type=self.config['log_type'],
                                           log_format=self.config['log_format'])
-                print(f"in {time.time() - t_start: 0.1f} sec")
+                print(f"in {time.time() - t_start:0.1f} sec")
                 self.clear_all_data_buffers()
                 print(f"{datetime.now(timezone.utc)} ftp to Stanford ", end="")
                 t_start = time.time()
                 self.ftp_to_stanford()
-                print(f"in {time.time() - t_start: 0.1f} sec")
+                print(f"in {time.time() - t_start:0.1f} sec")
         # Save signal strengths into memory buffers
         # prepare message for status bar
         message = f"{self.timer.get_utc_now()}  [{current_index}]  "
