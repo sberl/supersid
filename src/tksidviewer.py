@@ -41,52 +41,12 @@ def safe_log10(data):
     else:
         if not isinstance(data, np.ndarray):
             data = np.array(data)
-        print(data.dtype)
         if np.issubdtype(data.dtype, np.integer):
             data = data.astype(np.float32)
-        print(data.dtype, np.finfo(data.dtype).max)
         max_val = np.finfo(data.dtype).max
         min_val = np.where(data>0, data, max_val).min()
-        print(min_val)
         data[data<=0] = min_val
         return np.log10(data)
-
-
-def better_log10(data):
-    if data <= 0:
-       return 0
-    return np.log10(data)
-
-for i in [-1, 0, 1, 2]:
-    print(f"safe_log10({i}) {safe_log10(i)}\n")
-    print(f"better_log10({i}) {better_log10(i)}\n")
-
-
-x = [-1, 0, 1]
-print(x, type(x), type(x[0]))
-print(f"safe_log10({x}) {safe_log10(x)}\n")
-
-x = np.array(x)
-print(x, type(x), type(x[0]))
-print(f"safe_log10({x}) {safe_log10(x)}\n")
-
-
-x = [-1, 0, 0]
-print(x, type(x), type(x[0]))
-print(f"safe_log10({x}) {safe_log10(x)}\n")
-
-x = np.array(x)
-print(x, type(x), type(x[0]))
-print(f"safe_log10({x}) {safe_log10(x)}\n")
-
-
-x = [-1.0, 0.0, 0.0]
-print(x, type(x), type(x[0]))
-print(f"safe_log10({x}) {safe_log10(x)}\n")
-
-x = np.array(x)
-print(x, type(x), type(x[0]))
-print(f"safe_log10({x}) {safe_log10(x)}\n")
 
 
 class tkSidViewer():
@@ -373,8 +333,6 @@ class tkSidViewer():
         psd_max = self.controller.config['psd_max']
         psd_min = self.controller.config['psd_min']
         for channel in range(self.controller.config['Channels']):
-            self.pxx[channel][0] = 0
-            self.pxx[channel][0] = -1
             y = 10 * safe_log10(self.pxx[channel])
 
             if channel not in self.line:
