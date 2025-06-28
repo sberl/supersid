@@ -38,15 +38,15 @@ def safe_log10(data):
         if data <= 0:
             return 0
         return np.log10(data)
-    else:
-        if not isinstance(data, np.ndarray):
-            data = np.array(data)
-        if np.issubdtype(data.dtype, np.integer):
-            data = data.astype(np.float32)
-        max_val = np.finfo(data.dtype).max
-        min_val = np.where(data>0, data, max_val).min()
-        data[data<=0] = min_val
-        return np.log10(data)
+
+    if not isinstance(data, np.ndarray):
+        data = np.array(data)
+    if np.issubdtype(data.dtype, np.integer):
+        data = data.astype(np.float32)
+    max_val = np.finfo(data.dtype).max
+    min_val = np.where(data>0, data, max_val).min()
+    data[data<=0] = min_val
+    return np.log10(data)
 
 
 class tkSidViewer():
