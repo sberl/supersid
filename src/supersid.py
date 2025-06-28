@@ -107,6 +107,7 @@ class SuperSID:
         # Create Timer
         self.viewer.status_display("Waiting for Timer ... ")
         self.timer = SidTimer(self.config['log_interval'], self.on_timer)
+        self.hour = self.timer.utc_now.hour     # detection of the hour change
 
     def clear_all_data_buffers(self):
         """Clear the current memory buffers and pass to the next day."""
@@ -189,8 +190,8 @@ class SuperSID:
             signal_strengths.append(0.0)
 
         # do we need to save some files (hourly) or switch to a new day?
-        if ((self.timer.utc_now.minute == 0) and
-                (self.timer.utc_now.second < self.config['log_interval'])):
+        if self.hour != self.timer.utc_now.hour:    # Did the hour change?
+            self.hour = self.timer.utc_now.hour     # Yes, it changed!
             if self.config['hourly_save'] == 'YES':
                 file_name = (f"hourly_current_buffers.raw.ext."
                              f"{self.logger.sid_file.sid_params['utc_starttime'][:10]}.csv")
