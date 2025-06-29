@@ -62,11 +62,12 @@ class SidTimer:
         with self.lock:     # only one timer callback at a time
             self.time_now = time.time()
             if (self.time_now < self.expected_time):
-                print(f"{self.utc_now} busy waiting {int((self.expected_time - self.time_now) * 1000000)} µs")
+                print(f"{datetime.fromtimestamp(self.time_now, timezone.utc)} busy waiting "
+                      f"{int((self.expected_time - self.time_now) * 1000000)} µs")
                 while self.time_now < self.expected_time:
                     self.time_now = time.time()
 
-            self.utc_now = datetime.now(timezone.utc)
+            self.utc_now = datetime.fromtimestamp(self.time_now, timezone.utc)
             self._timer = threading.Timer(self.interval
                                           + self.expected_time
                                           - self.time_now, self._ontimer)
