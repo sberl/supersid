@@ -7,6 +7,7 @@ tkSidViewer class - a graphical user interface for SID based on tkinter.
 2017/09/01: add vertical lines on the plot for each monitored station
 
 """
+import os
 import sys
 import subprocess
 
@@ -88,13 +89,22 @@ class tkSidViewer():
         self.tk_root.bind_all("<Control-e>", self.save_file)
         self.tk_root.bind_all("<Control-s>", self.save_file)
         self.tk_root.bind_all("<Control-p>", self.on_plot)
+        self.tk_root.bind_all("<Control-o>", self.on_plot_gui)
+        self.tk_root.bind_all("<Control-t>", self.on_plot_gui)
         # user click on the [X] to close the window
         self.tk_root.protocol("WM_DELETE_WINDOW", lambda: self.close(False))
         menubar.add_cascade(label="File", menu=filemenu)
 
         plotmenu = tk.Menu(menubar, tearoff=0)
-        plotmenu.add_command(label="Plot", command=self.on_plot,
+        plotmenu.add_command(label="Plot",
+                             command=self.on_plot,
                              underline=0, accelerator="Ctrl+P")
+        plotmenu.add_command(label="Plot (overlay)",
+                             command=lambda: self.on_plot_gui('o'),
+                             underline=0, accelerator="Ctrl+O")
+        plotmenu.add_command(label="Plot (temporal)",
+                             command=lambda: self.on_plot_gui('t'),
+                             underline=0, accelerator="Ctrl+T")
         menubar.add_cascade(label="Plot", menu=plotmenu)
 
         helpmenu = tk.Menu(menubar, tearoff=0)
@@ -143,8 +153,8 @@ class tkSidViewer():
             sharex=True,
             gridspec_kw={'wspace': 0, 'hspace': 0})
 
-        self.psd_axes = self.figure.axes[0]
-        self.waterfall_axes = self.figure.axes[1:]
+        self.psd_axes = self.figure.axes[0]         # pylint: disable=unsubscriptable-object
+        self.waterfall_axes = self.figure.axes[1:]  # pylint: disable=unsubscriptable-object
 
         # set formatter for position under the mouse pointer
         self.psd_axes.format_coord = psd_format_coord
@@ -162,8 +172,8 @@ class tkSidViewer():
 
         # add the psd labels manually for proper layout at startup
         self.psd_axes.set_ylabel("Power Spectral Density (dB/Hz)")
-        for i in range(len(self.figure.axes) - 1):
-            self.figure.axes[i].set_xlabel(None)
+        for i in range(len(self.figure.axes) - 1):  # pylint: disable=unsubscriptable-object
+            self.figure.axes[i].set_xlabel(None)    # pylint: disable=unsubscriptable-object
         self.figure.axes[-1].set_xlabel("Frequency")
 
         self.set_x_limits()
@@ -490,13 +500,44 @@ class tkSidViewer():
                    script_relative_to_cwd_relative('supersid_plot.py')]
         else:
             cmd = [script_relative_to_cwd_relative('supersid_plot.exe')]
-        with subprocess.Popen(cmd + [
+        subprocess.Popen(cmd + [ # pylint: disable=consider-using-with
             '-f',
             filenames[0],
             '-c',
-            self.controller.config.filenames[0]]) as _:
-            pass
+            self.controller.config.filenames[0]])
 
+    def on_plot_gui(self, param=None):
+        """Save current buffers (raw) and display the data using supersid_plot.
+        Using a separate process to prevent interference with data capture
+        """
+        param = param if isinstance(
+            param, str) else param.keysym  # which is the letter with the CTRL-
+        option = []
+        if param == 'o':
+            option = ['-o']
+
+        initialfile = self.controller.save_current_buffers(
+            log_format='supersid_format')
+        initialfile = script_relative_to_cwd_relative(initialfile[0])
+        initialdir, initialfile = os.path.split(initialfile)
+        filetypes = [
+                ('CSV File', '*.csv'),
+                ('Any File', '*.*')]
+        filenames = FileDialog.askopenfilenames(parent=self.tk_root,
+                                                filetypes=filetypes,
+                                                initialdir=initialdir,
+                                                initialfile=initialfile,
+                                                title="Plot File(s)")
+        filenames = list(filenames)
+        if filenames:
+            print("plotting", filenames)
+            if is_script():
+                cmd = [sys.executable,
+                       script_relative_to_cwd_relative('supersid_plot_gui.py')]
+            else:
+                cmd = [script_relative_to_cwd_relative('supersid_plot_gui.exe')]
+            subprocess.Popen(cmd +  # pylint: disable=consider-using-with
+                ['-c', self.controller.config.filenames[0]] + option + filenames)
     def on_about(self):
         """Display the About box message."""
         MessageBox.showinfo("SuperSID", self.controller.about_app())
