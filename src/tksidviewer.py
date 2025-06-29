@@ -153,8 +153,8 @@ class tkSidViewer():
             sharex=True,
             gridspec_kw={'wspace': 0, 'hspace': 0})
 
-        self.psd_axes = self.figure.axes[0]
-        self.waterfall_axes = self.figure.axes[1:]
+        self.psd_axes = self.figure.axes[0]         # pylint: disable=unsubscriptable-object
+        self.waterfall_axes = self.figure.axes[1:]  # pylint: disable=unsubscriptable-object
 
         # set formatter for position under the mouse pointer
         self.psd_axes.format_coord = psd_format_coord
@@ -172,8 +172,8 @@ class tkSidViewer():
 
         # add the psd labels manually for proper layout at startup
         self.psd_axes.set_ylabel("Power Spectral Density (dB/Hz)")
-        for i in range(len(self.figure.axes) - 1):
-            self.figure.axes[i].set_xlabel(None)
+        for i in range(len(self.figure.axes) - 1):  # pylint: disable=unsubscriptable-object
+            self.figure.axes[i].set_xlabel(None)    # pylint: disable=unsubscriptable-object
         self.figure.axes[-1].set_xlabel("Frequency")
 
         self.set_x_limits()
@@ -500,7 +500,7 @@ class tkSidViewer():
                    script_relative_to_cwd_relative('supersid_plot.py')]
         else:
             cmd = [script_relative_to_cwd_relative('supersid_plot.exe')]
-        subprocess.Popen(cmd + [
+        subprocess.Popen(cmd + [ # pylint: disable=consider-using-with
             '-f',
             filenames[0],
             '-c',
@@ -536,7 +536,7 @@ class tkSidViewer():
                        script_relative_to_cwd_relative('supersid_plot_gui.py')]
             else:
                 cmd = [script_relative_to_cwd_relative('supersid_plot_gui.exe')]
-            subprocess.Popen(cmd + 
+            subprocess.Popen(cmd +  # pylint: disable=consider-using-with
                 ['-c', self.controller.config.filenames[0]] + option + filenames)
     def on_about(self):
         """Display the About box message."""
