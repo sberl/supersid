@@ -122,7 +122,7 @@ def sendMail(config, To_mail, msgBody, PDFfile):
     # Send the email - real from, real to, extra headers and content ...
     s.sendmail(senderEmail, To_mail, msg.as_string())
     s.close()
-    print("Email to %s sent." % To_mail)
+    print(f"Email with {PDFfile} sent to {To_mail}.")
 
 
 def format_coord(x, y):
