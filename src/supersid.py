@@ -19,6 +19,7 @@ import sys
 import os.path
 import argparse
 import subprocess
+import time
 from datetime import datetime, timezone
 from matplotlib.mlab import psd as mlab_psd
 
@@ -107,6 +108,7 @@ class SuperSID:
         # Create Timer
         self.viewer.status_display("Waiting for Timer ... ")
         self.timer = SidTimer(self.config['log_interval'], self.on_timer)
+        self.hour = self.timer.utc_now.hour     # detection of the hour change
 
     def clear_all_data_buffers(self):
         """Clear the current memory buffers and pass to the next day."""
@@ -189,23 +191,37 @@ class SuperSID:
             signal_strengths.append(0.0)
 
         # do we need to save some files (hourly) or switch to a new day?
-        if ((self.timer.utc_now.minute == 0) and
-                (self.timer.utc_now.second < self.config['log_interval'])):
+        if self.hour != self.timer.utc_now.hour:    # Did the hour change?
+            self.hour = self.timer.utc_now.hour     # Yes, it changed!
             if self.config['hourly_save'] == 'YES':
                 file_name = (f"hourly_current_buffers.raw.ext."
                              f"{self.logger.sid_file.sid_params['utc_starttime'][:10]}.csv")
-                print("Saving hourly buffers to", file_name)
+
+                time_info = f"{self.timer.utc_now} saving {file_name}"
+                t_start = time.time()
                 self.save_current_buffers(filename=file_name,
                                           log_type='raw',
                                           log_format='supersid_extended')
+                print(f"{time_info} in {time.time() - t_start:0.1f} sec")
+
             # a new day!
             if self.timer.utc_now.hour == 0:
                 # use log_type and log_format requested by the user
                 # in the .cfg
+
+                time_info = f"{datetime.now(timezone.utc)} saving yesterdays files "
+                t_start = time.time()
                 self.save_current_buffers(log_type=self.config['log_type'],
                                           log_format=self.config['log_format'])
+                print(f"{time_info} in {time.time() - t_start:0.1f} sec")
+
                 self.clear_all_data_buffers()
+
+                time_info = f"{datetime.now(timezone.utc)} ftp to Stanford "
+                t_start = time.time()
                 self.ftp_to_stanford()
+                print(f"{time_info} in {time.time() - t_start:0.1f} sec")
+
         # Save signal strengths into memory buffers
         # prepare message for status bar
         message = f"{self.timer.get_utc_now()}  [{current_index}]  "
