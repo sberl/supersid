@@ -41,16 +41,14 @@ class Logger():
         # first create in memory buffers
         if len(self.config.stations) == 1:
             # only one station to monitor, let's default to SID file format
-            self.controller.isSuperSID = False
+            self.controller.isSuperSID = False  # TODO: What is this good for? Class SuperSid has no attribute isSuperSID.
             self.config["stationid"] = self.config.stations[0][CALL_SIGN]
             self.config["frequency"] = self.config.stations[0][FREQUENCY]
         elif len(self.config.stations) > 1:
             # more than one station to monitor, default to SuperSId file format
-            self.controller.isSuperSID = True
-            self.config["stations"] = \
-                ",".join([s[CALL_SIGN] for s in self.config.stations])
-            self.config["frequencies"] = \
-                ",".join([s[FREQUENCY] for s in self.config.stations])
+            self.controller.isSuperSID = True  # TODO: What is this good for? Class SuperSid has no attribute isSuperSID.
+            self.config["stations"] = ",".join([s[CALL_SIGN] for s in self.config.stations])
+            self.config["frequencies"] = ",".join([s[FREQUENCY] for s in self.config.stations])
         else:
             print("Error: no station to log???")
             sys.exit(5)

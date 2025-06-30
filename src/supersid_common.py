@@ -29,13 +29,12 @@ def script_relative_to_cwd_relative(path):
     if os.path.isabs(path):
         # it is an absolute path, don't touch it
         return path
-    else:
-        # it is a relative path,
-        # convert it to a relative path with respect to the script folder
-        absolute_cwd = os.path.realpath(os.getcwd())
-        absolute_script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
-        relative_path = os.path.relpath(absolute_script_path, absolute_cwd)
-        return os.path.normpath(os.path.join(relative_path, path))
+    # it is a relative path,
+    # convert it to a relative path with respect to the script folder
+    absolute_cwd = os.path.realpath(os.getcwd())
+    absolute_script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+    relative_path = os.path.relpath(absolute_script_path, absolute_cwd)
+    return os.path.normpath(os.path.join(relative_path, path))
 
 
 def slugify(value, allow_unicode=False):

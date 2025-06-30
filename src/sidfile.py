@@ -218,7 +218,7 @@ class SidFile():
             # extended SuperSID file format: one extended time stamp then
             # one data column per station
             print(
-                "Warning: read SuperSid extended file, time stamps are read & "
+                "Info: read SuperSid extended file, time stamps are read & "
                 "converted from file.")
             inData = numpy.loadtxt(self.lines, dtype=datetime, comments='#',
                                    delimiter=",", converters=converters_dict)
@@ -236,7 +236,7 @@ class SidFile():
                     or force_read_timestamp
                     or self.is_extended):
                 print(
-                    "Warning: read SID file, timestamps are read & converted "
+                    "Info: read SID file, time stamps are read & converted "
                     "from file.")
                 inData = numpy.loadtxt(self.lines, dtype=datetime,
                                        comments='#', delimiter=",",
